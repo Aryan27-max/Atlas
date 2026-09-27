@@ -125,7 +125,7 @@ flowchart TB
         health["health.py<br/>net + Ollama probes (Planned)"]
     end
     subgraph L3["Stages"]
-        csvl["ingest/csv_loader.py (Planned)"]
+        csvl["ingest/csv_loader.py (Built)"]
         dl["ingest/downloader.py (Planned)"]
         ext["extract/ pdf, ocr, sections (Planned)"]
         llm["llm/ client, prompt, schema, precheck (Planned)"]
@@ -150,7 +150,6 @@ flowchart TB
     worker --> db
     exp --> db
     exp --> buckets
-    csvl --> db
 ```
 
 **Stage modules never import `db.py`.** They take plain inputs and return results or raise typed errors. Only `worker.py` and `server.py` write to the database. That keeps every stage testable with no database at all.
@@ -457,7 +456,7 @@ A worker-level kill test is added with `worker.py`.
 
 ## 10. CSV ingest and pre-flight
 
-**Planned** (`engine/ingest/csv_loader.py`). The loader parses and validates everything, then shows a report. Nothing is written until the recruiter confirms, and then `add_candidates` inserts all rows or none.
+**Built** (`engine/ingest/csv_loader.py`, `engine/ingest/links.py`). `load_csv(path)` parses and validates everything and returns a `PreflightReport`; it never touches the database. Nothing is written until the recruiter confirms, and then `add_candidates` inserts all rows or none.
 
 **Expected fields**, with header aliases matched case- and punctuation-insensitively:
 
@@ -475,10 +474,12 @@ A worker-level kill test is added with `worker.py`.
 | Résumé link | `resume_link` | resume link, resume, cv link, drive link | **yes** |
 
 **Normalisation:**
-- Encoding: try UTF-8-with-BOM, then UTF-8, then cp1252. Delimiter sniffed (`,` `;` tab).
-- Phone: undo Excel scientific notation (`9.19876E+11`), strip `+91`, spaces and dashes; keep 10 digits. Anything else is kept raw with a warning.
+- Encoding: try UTF-8-with-BOM, then UTF-16 (Excel "Unicode Text", has its own BOM), then UTF-8, then cp1252. Delimiter chosen by counting `,` `;` tab `|` outside quotes on the header line (`csv.Sniffer` is unreliable on short headers).
+- Header: normally the first non-blank row; a title row above it ("Placement Drive 2026") is skipped when a later row names the required columns. A longer header still matches when it *starts with* a specific alias ("Resume Link (Anyone with the link)"). `First Name` + `Last Name` are joined when there is no single Name column.
+- Phone: undo Excel scientific notation, strip `+91`, spaces and dashes; keep 10 digits. Anything else is kept raw with a warning. Scientific notation is only undone when no digits were lost: `9.19876543210E+11` → `9876543210`, but `9.19876E+11` lost six digits, so it is kept as typed with the warning "shortened by Excel" rather than guessed.
 - CGPA: `8.2`, `8.2/10`, `82%` → 8.2; out of range → warning, stored as empty.
-- RA number: trimmed and upper-cased.
+- RA number: trimmed and upper-cased. Duplicates (after upper-casing) keep the first row.
+- Résumé link: two students with the same file (compared by Drive file id, so `/view` and `open?id=` match) → warning. A link that isn't a web address → warning (it fails as a permanent candidate failure when downloaded).
 - Skills and hackathons: kept as the raw string; split on `,` `;` `|` newline when building the prompt.
 
 **Pre-flight report**, shown in the UI before the run can start:
@@ -766,7 +767,8 @@ atlas/
 ├── CLAUDE.md · ARCHITECTURE.md · PLAN.md
 ├── engine/
 │   ├── db.py · buckets.py                     Built
-│   ├── ingest/csv_loader.py · downloader.py   Planned
+│   ├── ingest/csv_loader.py · links.py        Built
+│   ├── ingest/downloader.py                   Planned
 │   ├── extract/pdf.py · ocr.py · sections.py  Planned
 │   ├── llm/client.py · prompt.py · schema.py · precheck.py   Planned
 │   ├── worker.py · health.py · estimate.py · export.py · server.py   Planned
@@ -798,7 +800,7 @@ atlas/
 | db, buckets | unittest | every transition, invalid transitions, atomic rollback, concurrency, recovery (**Built: 43 tests**) |
 | crash safety | subprocess + SIGKILL | 20 random kills, integrity + consistency (**Built**); worker-level version with `worker.py` |
 | downloader | unittest + mocked `requests` | Drive rewrite, login page at HTTP 200, confirm page, 20 MB abort, magic bytes, 403/404/429/5xx, timeouts, reset |
-| csv_loader | unittest + fixture CSVs | aliases, BOM/cp1252, Excel phones, CGPA formats, duplicates, blanks |
+| csv_loader | unittest + fixture CSVs | aliases, BOM/cp1252, Excel phones, CGPA formats, duplicates, blanks (**Built: 29 tests**) |
 | extraction | unittest + generated PDFs | 1- and 10-page, scanned (OCR), encrypted, corrupt, section splitting |
 | llm | unittest + mocked client | invalid JSON, truncated output, fake quotes, injection text, identity stripped from prompt |
 | worker | unittest + fakes | pause on network/Ollama loss with zero failed candidates, prefetch ≤ 2, delete-after-commit, resume |

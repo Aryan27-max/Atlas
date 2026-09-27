@@ -50,7 +50,7 @@ atlas/
 ├── engine/              ← Python: all logic
 │   ├── db.py            ← SQLite, state machine, crash recovery        [done]
 │   ├── buckets.py       ← view-time bucketing, min fill, ties          [done]
-│   ├── ingest/          ← csv_loader.py, downloader.py                 [next]
+│   ├── ingest/          ← csv_loader.py, links.py [done]; downloader.py [next]
 │   ├── extract/         ← PDF text, OCR fallback, section extraction
 │   ├── llm/             ← Ollama client, prompts, model pre-check
 │   ├── worker.py        ← resumable job loop
