@@ -14,3 +14,10 @@ local/
 *.db
 *.db-wal
 *.db-shm
+
+# App build output and dependencies
+app/node_modules/
+app/out/
+app/dist/
+app/test-results/
+app/playwright-report/

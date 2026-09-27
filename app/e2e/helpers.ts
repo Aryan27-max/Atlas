@@ -1,0 +1,43 @@
+import { mkdtempSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { type ElectronApplication, type Page, _electron as electron, expect } from '@playwright/test'
+
+export const APP_DIR = join(__dirname, '..')
+
+export interface Launched {
+  app: ElectronApplication
+  page: Page
+  userData: string
+}
+
+/** Launch the built app with its own throwaway data folder. */
+export async function launch(env: Record<string, string> = {}, userData?: string): Promise<Launched> {
+  const folder = userData ?? mkdtempSync(join(tmpdir(), 'atlas-e2e-'))
+  // Editors built on Electron (VS Code) set ELECTRON_RUN_AS_NODE for their
+  // child processes; inherited, it would start Atlas as plain Node.
+  const inherited = { ...(process.env as Record<string, string>) }
+  delete inherited.ELECTRON_RUN_AS_NODE
+  const app = await electron.launch({
+    args: [join(APP_DIR, 'out', 'main', 'index.js')],
+    cwd: APP_DIR,
+    env: {
+      ...inherited,
+      ATLAS_E2E: '1',
+      ATLAS_USER_DATA: folder,
+      ATLAS_OLLAMA_URL: 'http://127.0.0.1:9',
+      ...env,
+    },
+  })
+  const page = await app.firstWindow()
+  return { app, page, userData: folder }
+}
+
+export async function waitForEngine(page: Page): Promise<void> {
+  await expect(page.locator('[data-engine="ready"]')).toBeVisible({ timeout: 120_000 })
+}
+
+export async function close(launched: Launched, removeData = true): Promise<void> {
+  await launched.app.close()
+  if (removeData) rmSync(launched.userData, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 })
+}

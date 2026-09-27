@@ -64,7 +64,12 @@ atlas/
 │   ├── api_models.py    ← API request/response shapes → OpenAPI → TS types [done]
 │   ├── filters.py       ← CGPA/department filter rule (worker + preview) [done]
 │   └── tests/           ← unittest; stubs/ = local fake Drive + Ollama; fixtures.py = generated PDFs
-└── app/                 ← Electron + React (Phase 2)                    [next]
+└── app/                 ← Electron + React (Phase 2)
+    ├── main/            ← engine process, IPC validation, SSE, window, keep-awake [done]
+    ├── preload/         ← window.atlas bridge (no token, sandboxed)     [done]
+    ├── renderer/        ← React: design/ + screens/                     [next: 2.3 design]
+    ├── src/shared/      ← api-schema.json → api-types.ts (generated), bridge.ts [done]
+    └── e2e/, tests/     ← Playwright (Electron) and Vitest              [done]
 ```
 
 Update the `[done]` / `[next]` markers when a step lands.
@@ -86,6 +91,11 @@ python -m engine.cli --help
 # the local API; after changing it, regenerate the schema the app's types come from
 python -m engine.server --data-dir <dir> --port 0 --token <32+ chars>
 python -m engine.server --openapi app/src/shared/api-schema.json
+
+# the app (from app/): unit tests, type checks, end-to-end (builds first)
+npm test && npm run typecheck && npm run e2e
+npm run gen:api          # after re-exporting the schema
+npm run dev              # the app with hot reload
 ```
 
 Python **3.11+**. Stdlib `unittest` only — no pytest. Tests must not need Ollama or the internet: mock `requests`, the Ollama client, and `time.sleep`.

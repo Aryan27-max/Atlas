@@ -82,7 +82,7 @@ Résumé text only ever goes to the local Ollama server.
 
 ## 2. Process model
 
-**Engine side built (2.1); Electron side in 2.2.** There are three processes.
+**Built** (engine side 2.1, Electron side 2.2: `app/main`, `app/preload`). There are three processes.
 
 ```mermaid
 flowchart TB
@@ -116,6 +116,20 @@ flowchart TB
 4. On quit, main calls `POST /shutdown`. The engine pauses any running run ("Atlas was closed") and exits. It waits at most **8 s** for the current item (Phase 1 waited 30 s, longer than main's grace), so the pause reason is always "Atlas was closed", never "closed unexpectedly". After 10 s main kills it anyway, and recovery covers the rest.
 
 **Why the main process proxies API calls:** the token never reaches renderer JavaScript, and the renderer keeps `contextIsolation: true`, `sandbox: true` and `nodeIntegration: false`.
+
+**The bridge as built** (`window.atlas`, typed in `app/src/shared/bridge.ts`):
+
+| Call | What main does |
+|---|---|
+| `api.request(method, path, body?)` | checks the method + path against the routes in the engine's own OpenAPI schema (routes that upload, write files, stream or shut down are refused here), adds the token, returns `{ok, data}` or `{ok: false, error: {code, message}}` |
+| `events.subscribe(runId \| null, cb)` | main reads the SSE stream (`/runs/{id}/events` or `/events`), reconnects with `Last-Event-ID`, and forwards each event over IPC; returns an unsubscribe function |
+| `files.openTable()` | native open dialog (csv, xlsx, xls, txt, tsv); the path stays in main, the renderer gets an opaque handle + name + size |
+| `files.uploadTable(runId, {handle} \| {name, bytes})` | reads the chosen file (or takes dropped bytes), multipart-uploads it to the engine, returns the pre-flight report |
+| `files.saveExport(runId, view, name)` | native save dialog, then `POST /runs/{id}/export {view, path}`: the engine writes the CSV atomically there |
+| `files.showInFolder(…)` | only the data folder, the logs folder, or a file this session exported |
+| `app.info / setTheme / engineState / onEngineState / onNavigate / restartEngine`, `notifications.show` | platform facts; `nativeTheme.themeSource`; engine state (`starting · ready · restarting · failed · stopped`); menu navigation (Settings `⌘,`/`Ctrl+,`); "Restart Atlas" |
+
+**Window chrome:** macOS `hiddenInset` + `vibrancy: 'sidebar'`; Windows 11 `titleBarStyle: 'hidden'` + `titleBarOverlay` (native controls on the right, colours follow the theme) + `backgroundMaterial: 'mica'`. Minimum 1100×720, default 1280×800, size and position remembered (`window-state.json`, off-screen positions dropped). Single instance. Closing while a run is `running` asks "Screening is running. Close Atlas? It will pause and continue where it left off when you reopen it."; closing then stops the engine gracefully. Main follows `run_status` app events to hold `powerSaveBlocker` while any run runs (if Keep awake is on) and to notify when a run completes or pauses for a reason that needs the recruiter, while the window isn't focused.
 
 **Sleep:** main holds `powerSaveBlocker.start('prevent-app-suspension')` while any run is `running`, and releases it on pause or completion.
 
@@ -861,7 +875,7 @@ The design tokens and platform rules are in PLAN.md → *Design system*.
 | Other local apps calling the API | bound to `127.0.0.1` only, random port, per-launch 32-byte token held by Electron main, passed in the environment (not the command line), compared in constant time |
 | A web page calling the API (DNS rebinding) | every request's `Host` must be exactly `127.0.0.1:<port>` (Built, 2.1) |
 | Errors leaking internals | every error body is `{code, message}` with recruiter wording from `errors.py`; an unhandled exception becomes a plain 500 and its trace goes only to the log (Built, 2.1; tested) |
-| Renderer compromise | `contextIsolation`, `sandbox`, no `nodeIntegration`, strict CSP, no remote content loaded, `setWindowOpenHandler` denies |
+| Renderer compromise | `contextIsolation`, `sandbox`, no `nodeIntegration`, strict CSP, no remote content loaded, `setWindowOpenHandler` denies (**Built, 2.2**: CSP `default-src 'self'; script-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'none'` in `index.html`; every permission denied; the session cancels any request that isn't the app's own files; `will-navigate`/`will-redirect` blocked; webviews refused; every IPC argument validated in `app/main/validate.ts`; API routes limited to the engine schema's, minus main-only ones; Playwright tests prove the CSP, the navigation block and that the token never reaches the renderer) |
 | Prompt injection from a résumé | fenced résumé, system-prompt instruction, evidence-quote verification, suspicious-text flag (§13) |
 | CSV formula injection | escaping on export (§16) |
 | Bias | identity fields never sent to the LLM |
@@ -903,9 +917,14 @@ atlas/
 │   ├── estimate.py                                                   Built (Phase 2)
 │   ├── server.py · api_models.py · filters.py                        Built (Phase 2)
 │   └── tests/
-├── app/
-│   ├── main/        Electron main + preload
-│   └── renderer/    React: design/ (tokens, components) + screens/
+├── app/                                 (Built from Phase 2)
+│   ├── main/        Electron main: engine process, IPC + validation, SSE, window, keep-awake, notifications
+│   ├── preload/     contextBridge: window.atlas
+│   ├── renderer/    React: design/ (tokens, components) + screens/
+│   ├── src/shared/  api-schema.json (from the engine), api-types.ts (generated), bridge.ts
+│   ├── scripts/     gen-api-types.mjs
+│   ├── e2e/         Playwright (Electron) tests
+│   └── tests/       Vitest contract tests
 └── packaging/       PyInstaller spec, electron-builder config, signing
 ```
 
