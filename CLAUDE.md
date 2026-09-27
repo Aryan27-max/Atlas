@@ -50,8 +50,9 @@ atlas/
 ├── engine/              ← Python: all logic
 │   ├── db.py            ← SQLite, state machine, crash recovery        [done]
 │   ├── buckets.py       ← view-time bucketing, min fill, ties          [done]
-│   ├── ingest/          ← csv_loader.py, links.py [done]; downloader.py [next]
-│   ├── extract/         ← PDF text, OCR fallback, section extraction
+│   ├── errors.py        ← CandidateError / SystemUnavailable / TransientError + all recruiter wording [done]
+│   ├── ingest/          ← csv_loader.py, links.py, downloader.py      [done]
+│   ├── extract/         ← PDF text, OCR fallback, section extraction    [next]
 │   ├── llm/             ← Ollama client, prompts, model pre-check
 │   ├── worker.py        ← resumable job loop
 │   ├── export.py        ← CSV export

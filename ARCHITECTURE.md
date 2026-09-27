@@ -126,7 +126,7 @@ flowchart TB
     end
     subgraph L3["Stages"]
         csvl["ingest/csv_loader.py (Built)"]
-        dl["ingest/downloader.py (Planned)"]
+        dl["ingest/downloader.py (Built)"]
         ext["extract/ pdf, ocr, sections (Planned)"]
         llm["llm/ client, prompt, schema, precheck (Planned)"]
         exp["export.py (Planned)"]
@@ -385,7 +385,7 @@ flowchart LR
 
 ## 8. Failure classification
 
-**Planned** (the downloader, extractor and LLM stages raise typed errors; `worker.py` maps them). The deciding question is: *is this the candidate's problem, or ours?*
+**Built** for the downloader (`engine/errors.py`: `CandidateError`, `SystemUnavailable`, `TransientError`, and every recruiter-facing sentence in `Reason` / `Pause`); the extractor, LLM stages and `worker.py` follow. The deciding question is: *is this the candidate's problem, or ours?*
 
 ```mermaid
 flowchart TD
@@ -412,10 +412,12 @@ flowchart TD
 | File over 20 MB | permanent | The file is larger than 20 MB. |
 | HTTP 404 / file deleted | permanent | The file no longer exists at this link. |
 | Invalid / non-http link | permanent | The résumé link isn't a valid web address. |
+| Other HTTP 4xx, redirect loop *(added)* | permanent | The file host refused the download. |
 | PDF is corrupt or encrypted | permanent | The PDF is damaged or password-protected. |
 | No text and OCR finds nothing | permanent | No readable text was found in the résumé. |
 | HTTP 429 / Drive quota | retryable | Google Drive is limiting downloads. Retry later. |
 | Timeout / reset on one link while others work | retryable | The download timed out. |
+| DNS failure / refused connection on one host while others work *(added)* | retryable | The website in this link couldn't be reached. |
 | HTTP 5xx | retryable | The file host returned an error. |
 | LLM returned invalid JSON after all attempts | retryable | The model's answer couldn't be read. |
 
@@ -499,7 +501,7 @@ Errors (missing key, missing link, duplicate RA) exclude the row. Warnings don't
 
 ## 11. Downloading résumés
 
-**Planned** (`engine/ingest/downloader.py`).
+**Built** (`engine/ingest/downloader.py`, link planning in `engine/ingest/links.py`). `Downloader(session, *, max_bytes, min_interval, clock, sleep, url_rewrite, …).fetch(link, dest_dir, stem) -> Downloaded(path, sha256, size_bytes)`.
 
 ```mermaid
 flowchart TD
@@ -538,6 +540,15 @@ flowchart TD
 ```
 
 **Key rule:** a private Drive file returns **HTTP 200 with an HTML login page**. Status codes alone cannot be trusted. The `%PDF-` magic-byte check is the final gate for every download.
+
+Details as built:
+- **429:** the `Retry-After` value (seconds or HTTP date, capped at 60 s, default 5 s) pushes back the next request start; up to 2 retries inside one `fetch`, then a retryable failure. A "429 then OK" link therefore succeeds.
+- **403 with Drive's quota page** ("too many users have viewed or downloaded this file") is retryable "limiting downloads", not "private". Any other 401/403 is "private".
+- **Confirm page:** followed once, and only for Drive links. The current Drive page is a form (`id`, `export`, `confirm`, `uuid`), the older one a link with `confirm=`; both are handled.
+- **Network errors** raise `TransientError(probe="internet")`: timeouts and resets carry "The download timed out."; DNS failures and refused connections carry "…couldn't be reached". The worker's probe decides whether it's the machine or the link (§8).
+- **Disk full** (`ENOSPC`, or Windows error 112/39) raises `SystemUnavailable("Disk is full")`.
+- **Throttle:** at least `min_interval` (1 s) between request *starts*, shared by the confirm-page follow-up and 429 retries.
+- **Test hook:** `url_rewrite` is applied to every URL right before the request, so tests point "Drive" at a local stub without touching production rewriting.
 
 Downloads write to `.part` and are renamed only when complete, so a partial file can never be mistaken for a real PDF.
 
@@ -768,7 +779,7 @@ atlas/
 ├── engine/
 │   ├── db.py · buckets.py                     Built
 │   ├── ingest/csv_loader.py · links.py        Built
-│   ├── ingest/downloader.py                   Planned
+│   ├── ingest/downloader.py · errors.py       Built
 │   ├── extract/pdf.py · ocr.py · sections.py  Planned
 │   ├── llm/client.py · prompt.py · schema.py · precheck.py   Planned
 │   ├── worker.py · health.py · estimate.py · export.py · server.py   Planned
@@ -799,7 +810,7 @@ atlas/
 |---|---|---|
 | db, buckets | unittest | every transition, invalid transitions, atomic rollback, concurrency, recovery (**Built: 43 tests**) |
 | crash safety | subprocess + SIGKILL | 20 random kills, integrity + consistency (**Built**); worker-level version with `worker.py` |
-| downloader | unittest + mocked `requests` | Drive rewrite, login page at HTTP 200, confirm page, 20 MB abort, magic bytes, 403/404/429/5xx, timeouts, reset |
+| downloader | unittest + mocked `requests` + local Drive stub | Drive rewrite, login page at HTTP 200, confirm page, 20 MB abort, magic bytes, 403/404/429/5xx, timeouts, reset (**Built: 41 tests**) |
 | csv_loader | unittest + fixture CSVs | aliases, BOM/cp1252, Excel phones, CGPA formats, duplicates, blanks (**Built: 29 tests**) |
 | extraction | unittest + generated PDFs | 1- and 10-page, scanned (OCR), encrypted, corrupt, section splitting |
 | llm | unittest + mocked client | invalid JSON, truncated output, fake quotes, injection text, identity stripped from prompt |
