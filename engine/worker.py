@@ -701,7 +701,7 @@ class Worker:
                 self.db.mark_filtered(candidate["id"], reason=reason)
                 filtered += 1
         if filtered:
-            self.db.log_event(run["id"], f"{filtered} candidates filtered out before scoring")
+            self.db.log_event(run["id"], f"{filtered} students filtered out before scoring")
             log.info("run %d: %d candidates filtered", run["id"], filtered)
 
     def _release_in_flight(self, run_id: int) -> int:

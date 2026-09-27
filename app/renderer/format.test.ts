@@ -17,7 +17,7 @@ describe('format', () => {
   })
 
   it('durations and ranges', () => {
-    expect(formatDuration(30)).toBe('under a minute')
+    expect(formatDuration(30)).toBe('less than a minute')
     expect(formatDuration(45 * 60)).toBe('45 min')
     expect(formatDuration(2 * 3600 + 10 * 60)).toBe('2 h 10 min')
     expect(formatRange(3 * 3600, 5 * 3600)).toBe('About 3–5 hours')

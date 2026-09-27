@@ -21,7 +21,7 @@ The rest of the setup flow is built: the recruiter describes the role, decides h
 | Cutoffs | ![Cutoffs, light](screens/cutoffs-light.png) | ![Cutoffs, dark](screens/cutoffs-dark.png) |
 | Review | ![Review, light](screens/review-light.png) | ![Review, dark](screens/review-dark.png) |
 
-*(Captured against the stubs, so the model is instant and the estimate reads "Under a minute"; on a real CPU laptop the same card says "About 16–35 hours" for 400 students.)*
+*(Captured against the stubs, so the model is instant and the estimate reads "Under a minute". With smoke test 1's 57.6-second pre-check, 400 students would read "About 4–10 hours", and the real time on that laptop would be nearer 16 hours; see Known limitations.)*
 
 ## Files
 | File | Purpose | Key functions / classes |

@@ -25,7 +25,7 @@ export function formatBytes(bytes: number): string {
 
 /** "2 h 10 min", "45 min", "under a minute". */
 export function formatDuration(seconds: number): string {
-  if (seconds < 60) return 'under a minute'
+  if (seconds < 60) return 'less than a minute'
   const minutes = Math.round(seconds / 60)
   if (minutes < 60) return `${minutes} min`
   const hours = Math.floor(minutes / 60)

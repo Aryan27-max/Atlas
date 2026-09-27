@@ -660,7 +660,7 @@ class LaunchTests(unittest.TestCase):
             self.assertEqual(stream.headers["content-type"].split(";")[0], "text/event-stream")
             lines = stream.iter_lines(decode_unicode=True)
             first = next(line for line in lines if line.startswith("data: "))
-            self.assertIn("Run created: Live", first)
+            self.assertIn("Screening created: Live", first)
         response = requests.post(f"{self.base}/shutdown", headers=headers, timeout=5)
         self.assertEqual(response.status_code, 202)
         self.assertEqual(self.proc.wait(15), 0)

@@ -269,6 +269,21 @@ class RecoveryReport:
 # --------------------------------------------------------------------------- #
 
 
+def _status_event(current: str, status: str, reason: str | None) -> str:
+    """The events-table line for a run status change (the app's activity feed shows it)."""
+    if status == "running":
+        return "Screening started" if current == "draft" else "Screening resumed"
+    if status == "paused":
+        if not reason:
+            return "Paused"
+        return reason if reason.lower().startswith("paused") else f"Paused: {reason}"
+    if status == "completed":
+        return "Screening complete"
+    if status == "cancelled":
+        return "Screening cancelled"
+    return f"Screening {status}"
+
+
 class Database:
     """Thread-safe access to the Atlas SQLite file.
 
@@ -380,7 +395,7 @@ class Database:
                 (name, csv_filename, now, now),
             )
             run_id = int(cur.lastrowid)
-            self._event(c, run_id, None, "info", f"Run created: {name}")
+            self._event(c, run_id, None, "info", f"Screening created: {name}")
             return run_id
 
     def get_run(self, run_id: int) -> dict[str, Any]:
@@ -494,7 +509,7 @@ class Database:
                 fields["completed_at"] = now
             columns = ", ".join(f"{k} = ?" for k in fields)
             c.execute(f"UPDATE runs SET {columns} WHERE id = ?", (*fields.values(), run_id))
-            message = f"Run {status}" + (f": {reason}" if reason else "")
+            message = _status_event(current, status, reason)
             self._event(c, run_id, None, "warning" if status == "paused" else "info", message)
 
     def update_run_info(self, run_id: int, *, name: str | None = None, csv_filename: str | None = None) -> None:
@@ -575,7 +590,7 @@ class Database:
                         raise ValidationError(f"Row {index}: RA number {ra} appears twice.") from exc
                     raise ValidationError(f"Row {index} ({ra}): {exc}") from exc
                 count += 1
-            self._event(c, run_id, None, "info", f"{count} candidates added")
+            self._event(c, run_id, None, "info", f"{count} students added")
         return count
 
     def get_candidate(self, candidate_id: int) -> dict[str, Any]:
@@ -863,7 +878,7 @@ class Database:
                 target = "extracted" if row["has_text"] else "queued"
                 self._transition(c, row["id"], "failed", target, pdf_path=None)
             if rows:
-                self._event(c, run_id, None, "info", f"Retrying {len(rows)} failed candidates")
+                self._event(c, run_id, None, "info", f"Retrying {len(rows)} students who couldn't be screened")
             return len(rows)
 
     def clear_filters(self, run_id: int) -> int:
@@ -886,7 +901,7 @@ class Database:
             for row in rows:
                 self._transition(c, row["id"], "filtered", "queued")
             if rows:
-                self._event(c, run_id, None, "info", f"{len(rows)} filtered candidates will be screened after all")
+                self._event(c, run_id, None, "info", f"{len(rows)} filtered-out students will be screened after all")
             return len(rows)
 
     def scoring_durations(self, run_id: int) -> list[float]:
@@ -919,7 +934,7 @@ class Database:
                     "UPDATE runs SET status = 'paused', pause_reason = ?, updated_at = ? WHERE id = ?",
                     ("Atlas closed unexpectedly. Press Resume to continue.", _now(), run["id"]),
                 )
-                self._event(c, run["id"], None, "warning", "Recovered after unexpected shutdown")
+                self._event(c, run["id"], None, "warning", "Atlas closed unexpectedly; screening paused")
                 runs_paused += 1
 
             for row in c.execute(
