@@ -113,6 +113,21 @@ class OllamaClient:
             if m.get("name")
         ]
 
+    def version(self) -> str | None:
+        """Ollama's version (``/api/version``), or None if it doesn't say. Never raises."""
+        try:
+            response = self._session.get(f"{self.base_url}/api/version", timeout=(self._connect, self._tags_timeout))
+        except requests.RequestException:
+            return None
+        try:
+            if response.status_code != 200:
+                return None
+            return str(response.json().get("version") or "") or None
+        except ValueError:
+            return None
+        finally:
+            response.close()
+
     def find_model(self, name: str) -> ModelInfo | None:
         """The installed model called ``name`` (``qwen3`` also matches ``qwen3:latest``)."""
         wanted = {name, name if ":" in name else f"{name}:latest"}

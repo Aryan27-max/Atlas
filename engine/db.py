@@ -409,14 +409,21 @@ class Database:
     ) -> None:
         """Set run options. Allowed only while the run is a draft.
 
+        One deliberate exception: a **completed** run may change its cutoffs
+        and minimum (and nothing else). Buckets are computed at view time from
+        the stored scores, so new cutoffs re-sort the results without any
+        re-scoring; model, criteria and filters stay locked.
+
         ``cgpa_min`` and ``departments_allowed`` use ``...`` as "not given" so
         that ``None`` can mean "clear this filter".
         """
+        cutoffs_only = (model_name is None and criteria_prompt is None
+                        and cgpa_min is ... and departments_allowed is ...)
         with self.transaction() as c:
             run = c.execute("SELECT * FROM runs WHERE id = ?", (run_id,)).fetchone()
             if run is None:
                 raise NotFoundError(f"Run {run_id} does not exist.")
-            if run["status"] != "draft":
+            if run["status"] != "draft" and not (run["status"] == "completed" and cutoffs_only):
                 raise RunLockedError(
                     "A run's model, criteria and cutoffs are locked once it starts."
                 )
@@ -489,6 +496,29 @@ class Database:
             c.execute(f"UPDATE runs SET {columns} WHERE id = ?", (*fields.values(), run_id))
             message = f"Run {status}" + (f": {reason}" if reason else "")
             self._event(c, run_id, None, "warning" if status == "paused" else "info", message)
+
+    def update_run_info(self, run_id: int, *, name: str | None = None, csv_filename: str | None = None) -> None:
+        """Rename a run or record its file name. Allowed in any status (not screening config)."""
+        updates: dict[str, Any] = {}
+        if name is not None:
+            if not name.strip():
+                raise ValidationError("Give the screening a name.")
+            updates["name"] = " ".join(name.split())[:120]
+        if csv_filename is not None:
+            updates["csv_filename"] = csv_filename
+        if not updates:
+            return
+        updates["updated_at"] = _now()
+        with self.transaction() as c:
+            columns = ", ".join(f"{k} = ?" for k in updates)
+            cur = c.execute(f"UPDATE runs SET {columns} WHERE id = ?", (*updates.values(), run_id))
+            if cur.rowcount == 0:
+                raise NotFoundError(f"Run {run_id} does not exist.")
+
+    def vacuum(self) -> None:
+        """Give deleted pages back to the disk (after deleting runs)."""
+        with self._lock:
+            self._conn.execute("VACUUM")
 
     def delete_run(self, run_id: int) -> None:
         """Remove a run and everything under it (cascade)."""
@@ -947,6 +977,10 @@ class Database:
                 f"Moved by recruiter: {from_bucket} → {to_bucket}" + (f" ({note.strip()})" if note.strip() else ""),
             )
 
+    def overrides_for(self, candidate_id: int) -> list[dict[str, Any]]:
+        """Every override of one candidate, oldest first."""
+        return self._query("SELECT * FROM overrides WHERE candidate_id = ? ORDER BY id", (candidate_id,))
+
     def latest_overrides(self, run_id: int) -> dict[int, str]:
         """Most recent override per candidate: ``{candidate_id: to_bucket}``."""
         rows = self._query(
@@ -968,6 +1002,20 @@ class Database:
                WHERE c.run_id = ? AND c.state = 'scored'""",
             (run_id,),
         )
+
+    def results_rows(self, run_id: int) -> list[dict[str, Any]]:
+        """Every candidate of a run with what the results screen lists (one query)."""
+        rows = self._query(
+            """SELECT c.id AS candidate_id, c.ra_number, c.name, c.department, c.cgpa, c.state,
+                      c.failure_kind, c.failure_reason, c.filter_reason, c.resume_link,
+                      e.overall_score, e.flags
+               FROM candidates c LEFT JOIN evaluations e ON e.candidate_id = c.id
+               WHERE c.run_id = ? ORDER BY c.id""",
+            (run_id,),
+        )
+        for row in rows:
+            row["flags"] = json.loads(row["flags"]) if row["flags"] else []
+        return rows
 
     def export_rows(self, run_id: int) -> list[dict[str, Any]]:
         """Every candidate of a run with its evaluation (if any), JSON decoded.
@@ -1010,6 +1058,19 @@ class Database:
             "SELECT * FROM events WHERE run_id = ? AND id > ? ORDER BY id LIMIT ?",
             (run_id, after_id, limit),
         )
+
+    def candidate_events(self, candidate_id: int, *, limit: int = 200) -> list[dict[str, Any]]:
+        return self._query(
+            "SELECT * FROM events WHERE candidate_id = ? ORDER BY id LIMIT ?", (candidate_id, limit)
+        )
+
+    def last_event_id(self, run_id: int) -> int:
+        row = self._query_one("SELECT MAX(id) AS last FROM events WHERE run_id = ?", (run_id,))
+        return int(row["last"] or 0) if row else 0
+
+    def clear_settings(self) -> None:
+        with self.transaction() as c:
+            c.execute("DELETE FROM settings")
 
     def get_setting(self, key: str, default: Any = None) -> Any:
         row = self._query_one("SELECT value FROM settings WHERE key = ?", (key,))

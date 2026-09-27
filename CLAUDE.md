@@ -60,9 +60,11 @@ atlas/
 │   ├── export.py        ← CSV export                                    [done]
 │   ├── estimate.py      ← time estimate (pre-check / history / measured) [done]
 │   ├── cli.py           ← headless proof of Phase 1                     [done]
-│   ├── server.py        ← local API for the UI (Phase 2)                [next]
+│   ├── server.py        ← local API for the app (FastAPI, 127.0.0.1)     [done]
+│   ├── api_models.py    ← API request/response shapes → OpenAPI → TS types [done]
+│   ├── filters.py       ← CGPA/department filter rule (worker + preview) [done]
 │   └── tests/           ← unittest; stubs/ = local fake Drive + Ollama; fixtures.py = generated PDFs
-└── app/                 ← Electron + React (Phase 2)
+└── app/                 ← Electron + React (Phase 2)                    [next]
 ```
 
 Update the `[done]` / `[next]` markers when a step lands.
@@ -80,6 +82,10 @@ python -m unittest engine.tests.test_db -v
 
 # the engine without a UI (see ARCHITECTURE §17 → Headless CLI)
 python -m engine.cli --help
+
+# the local API; after changing it, regenerate the schema the app's types come from
+python -m engine.server --data-dir <dir> --port 0 --token <32+ chars>
+python -m engine.server --openapi app/src/shared/api-schema.json
 ```
 
 Python **3.11+**. Stdlib `unittest` only — no pytest. Tests must not need Ollama or the internet: mock `requests`, the Ollama client, and `time.sleep`.

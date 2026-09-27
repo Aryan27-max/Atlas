@@ -474,6 +474,39 @@ _REPORT_LINES: tuple[tuple[str, str, str, str], ...] = (
 )
 
 
+# Row-level issue groups for the app's pre-flight screen, in display order:
+# code → (label, severity, rows are skipped).
+ISSUE_GROUPS: dict[str, tuple[str, str, bool]] = {
+    "missing_ra": ("Missing RA numbers", "error", True),
+    "missing_link": ("Missing résumé links", "error", True),
+    "duplicate_ra": ("Duplicate RA numbers (the first row is kept)", "error", True),
+    "link_invalid": ("Résumé links that aren't web addresses (these students will fail)", "warning", False),
+    "shared_link": ("Résumé link also used by another student", "warning", False),
+    "phone_excel_rounded": ("Phone numbers shortened by Excel", "warning", False),
+    "phone_invalid": ("Phone numbers that don't look like 10 digits", "warning", False),
+    "cgpa_out_of_range": ("CGPA outside 0–10 (left empty)", "warning", False),
+    "cgpa_unreadable": ("CGPA not understood (left empty)", "warning", False),
+    "email_invalid": ("Mail IDs that don't look like email addresses", "warning", False),
+}
+
+
+def issue_groups(report: PreflightReport) -> list[dict[str, Any]]:
+    """Row-level errors and warnings grouped by kind, for the app (the CLI uses render_report)."""
+    groups: list[dict[str, Any]] = []
+    issues = [i for i in report.errors + report.warnings if i.row is not None]
+    known = list(ISSUE_GROUPS) + sorted({i.code for i in issues} - set(ISSUE_GROUPS))
+    for code in known:
+        found = [i for i in issues if i.code == code]
+        if not found:
+            continue
+        label, severity, skipped = ISSUE_GROUPS.get(code, (found[0].message, "warning", False))
+        groups.append({
+            "code": code, "label": label, "severity": severity, "skipped": skipped, "count": len(found),
+            "rows": [i.row for i in found if i.row is not None], "ra_numbers": [i.ra_number for i in found],
+        })
+    return groups
+
+
 def render_report(report: PreflightReport) -> str:
     """The pre-flight text block shown before a run can start (§10)."""
     lines: list[str] = []

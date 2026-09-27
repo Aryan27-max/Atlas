@@ -54,6 +54,7 @@ from engine.errors import (
 from engine.estimate import TIMING_SETTING, remember
 from engine.extract.pdf import MAX_PAGES, Extraction
 from engine.extract.sections import split_sections
+from engine.filters import filter_reason
 from engine.ingest.downloader import Downloaded
 from engine.llm.redact import CandidateContext, scoring_input
 from engine.llm.scorer import ScoreResult
@@ -693,15 +694,9 @@ class Worker:
         allowed = run["departments_allowed"] or []
         if cgpa_min is None and not allowed:
             return
-        allowed_keys = {_department_key(d) for d in allowed}
         filtered = 0
         for candidate in self.db.list_candidates(run["id"], states=["queued"]):
-            cgpa, department = candidate["cgpa"], candidate["department"]
-            reason = None
-            if cgpa_min is not None and cgpa is not None and cgpa < cgpa_min:
-                reason = f"CGPA {cgpa:g} is below the minimum of {cgpa_min:g}."
-            elif allowed_keys and department and _department_key(department) not in allowed_keys:
-                reason = f"Department {department} isn't one of the selected departments ({', '.join(allowed)})."
+            reason = filter_reason(candidate["cgpa"], candidate["department"], cgpa_min=cgpa_min, departments=allowed)
             if reason:
                 self.db.mark_filtered(candidate["id"], reason=reason)
                 filtered += 1
@@ -740,11 +735,6 @@ def run_waiting_to_resume(db: Database) -> int | None:
     if not waiting:
         return None
     return max(waiting, key=lambda r: (r["updated_at"], r["id"]))["id"]
-
-
-def _department_key(value: str) -> str:
-    """"C.S.E." == "cse" == "CSE" (letters and digits only, upper-case)."""
-    return re.sub(r"[^0-9A-Za-z]", "", value).upper()
 
 
 def _sha256(path: Path) -> str:

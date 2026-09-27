@@ -89,6 +89,33 @@ class Pull:
         return f'There is no model called "{model}". Check the name at ollama.com/library.'
 
 
+class Api:
+    """What the local API says when a request can't be done (ARCHITECTURE §17)."""
+
+    UNAUTHORIZED = "This request didn't come from the Atlas app."
+    WRONG_HOST = "Atlas only accepts requests from this computer."
+    NOT_FOUND = "That item doesn't exist any more. It may have been deleted."
+    INVALID = "Something in the request isn't valid."
+    INTERNAL = "Something went wrong inside Atlas. The details are in the log file."
+    UPLOAD_TOO_LARGE = "This file is larger than 20 MB. Save just the student sheet as .xlsx or CSV and try again."
+    UPLOAD_TYPE = "Choose a CSV or Excel (.xlsx) file."
+    UPLOAD_EMPTY = "No file was received. Choose the file again."
+    NO_UPLOAD = "Add the students' file first."
+    UPLOAD_NOT_READY = "This file can't be used yet. Fix the problems listed, then add it again."
+    ALREADY_CONFIRMED = "This screening already has its students."
+    NOT_DRAFT = "Students can only be added before screening starts."
+    NO_CANDIDATES = "Add the students' file before starting."
+    NOT_SCORED = "Only screened candidates can be moved between buckets."
+    CANT_PAUSE = "Only a running screening can be paused."
+    CANT_RESUME = "This screening can't be resumed."
+    CANT_CANCEL = "A finished screening can't be cancelled."
+    RUN_ACTIVE = "Pause or cancel this screening before deleting it."
+    ANY_RUN_ACTIVE = "A screening is running. Pause or cancel it first."
+    PRECHECK_BUSY = "Another model is being tested. Try again when it finishes."
+    EXPORT_PATH = "Choose where to save the file again."
+    CUTOFF_ORDER = "The cutoff band must start at or below the shortlist score."
+
+
 # Only these resume on their own, when the health probe succeeds again.
 AUTO_RESUME_REASONS = frozenset({Pause.NO_INTERNET, Pause.OLLAMA_DOWN})
 

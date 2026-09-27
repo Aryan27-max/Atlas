@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
+from typing import Literal
 from urllib.parse import parse_qs, urlsplit
 
 from engine.errors import CandidateError, Reason
@@ -62,6 +63,26 @@ def plan_download(link: str) -> DownloadPlan:
     if file_id:
         return DownloadPlan(DRIVE_DOWNLOAD_URL.format(id=file_id), drive_id=file_id)
     return DownloadPlan(url)
+
+
+LinkKind = Literal["drive_file", "google_doc", "folder", "web", "invalid"]
+
+
+def link_kind(link: str) -> LinkKind:
+    """What kind of link this is, by the same rules the downloader uses.
+
+    For the recruiter's "Needs attention" list: it says *what* was pasted
+    without showing the link itself.
+    """
+    try:
+        plan = plan_download(link)
+    except CandidateError as exc:
+        if exc.reason == Reason.GOOGLE_DOC:
+            return "google_doc"
+        if exc.reason == Reason.FOLDER:
+            return "folder"
+        return "invalid"
+    return "drive_file" if plan.drive_id else "web"
 
 
 def with_scheme(link: str) -> str:

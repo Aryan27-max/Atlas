@@ -47,6 +47,8 @@ As built in Phase 1, the engine's outbound traffic is exactly:
 
 Public profile pages are not fetched yet (open decision 2).
 
+Phase 2 adds no outbound traffic. The engine *listens* on `127.0.0.1` only (the local API); a model download is Ollama's own `/api/pull`, which the engine only asks for and relays progress from.
+
 ```mermaid
 flowchart LR
     rec(["Recruiter"])
@@ -80,7 +82,7 @@ Résumé text only ever goes to the local Ollama server.
 
 ## 2. Process model
 
-**Planned.** There are three processes.
+**Engine side built (2.1); Electron side in 2.2.** There are three processes.
 
 ```mermaid
 flowchart TB
@@ -107,10 +109,11 @@ flowchart TB
 ```
 
 **Engine lifecycle.**
-1. Main spawns the engine with `--data-dir <userData> --port 0 --token <random 32 bytes>`.
-2. The engine binds `127.0.0.1` on a free port, runs `recover_after_crash()`, then prints one line to stdout: `ATLAS_READY port=<n>`.
+1. Main spawns the engine with `--data-dir <userData> --port 0 --watch-stdin` and the random 32-byte token in the **`ATLAS_TOKEN` environment variable** *(changed: `--token` still works, but a command line is visible to other processes in `ps`/Task Manager; the environment isn't)*.
+2. The engine binds `127.0.0.1` on a free port, runs `Worker.recover()` (crash recovery), attaches a worker to a run paused for a connection problem (§6), then writes exactly one line to stdout, as bytes so Windows can't add a CR: `ATLAS_READY port=<n>\n`. Everything else goes to the log file.
+   `--watch-stdin`: when the app dies without calling `/shutdown`, its end of the stdin pipe closes and the engine shuts down gracefully instead of running on as an orphan.
 3. Main health-checks `/health` every 5 s. If the engine dies, main restarts it: up to 3 times in 60 s, then an error screen. Because all state is in SQLite, a restart loses nothing.
-4. On quit, main calls `POST /shutdown`. The engine pauses any running run ("Atlas was closed") and exits. After 10 s main kills it anyway, and recovery covers the rest.
+4. On quit, main calls `POST /shutdown`. The engine pauses any running run ("Atlas was closed") and exits. It waits at most **8 s** for the current item (Phase 1 waited 30 s, longer than main's grace), so the pause reason is always "Atlas was closed", never "closed unexpectedly". After 10 s main kills it anyway, and recovery covers the rest.
 
 **Why the main process proxies API calls:** the token never reaches renderer JavaScript, and the renderer keeps `contextIsolation: true`, `sandbox: true` and `nodeIntegration: false`.
 
@@ -125,7 +128,7 @@ Arrows show imports. Dependencies only point downward.
 ```mermaid
 flowchart TB
     subgraph L1["Interface"]
-        server["server.py<br/>(Planned)"]
+        server["server.py<br/>(Built, Phase 2)"]
         cli["cli.py<br/>(Built, Phase 1)"]
     end
     subgraph L2["Orchestration"]
@@ -742,7 +745,41 @@ Phase 3 plan:
 
 ## 17. Local API
 
-**Planned** (`engine/server.py`, FastAPI + uvicorn on `127.0.0.1`). Every request needs `Authorization: Bearer <token>`.
+**Built** (`engine/server.py`, shapes in `engine/api_models.py`; FastAPI + uvicorn on `127.0.0.1`). Every request except `/health` needs `Authorization: Bearer <token>` (constant-time compare), and every request's `Host` must be exactly `127.0.0.1:<port>` (DNS-rebinding guard). The OpenAPI schema is exported to `app/src/shared/api-schema.json` (`python -m engine.server --openapi …`); a test fails if it is stale, and the app's TypeScript types are generated from it.
+
+**As built** (the original table is kept below for history):
+
+| Method | Path | Purpose |
+|---|---|---|
+| GET | `/health` | alive (no token) |
+| GET | `/system` | engine version, data and logs folders, storage used, OS, CPU count, Ollama running + version, models installed |
+| GET | `/models` | installed models, each with its cached pre-check status (`ready` / `not_checked` / `cant_use`), plus suggested names; `ollama_running: false` instead of an error |
+| POST | `/models/{name}/precheck` | run the pre-check (one at a time), cache it per model + digest |
+| POST / DELETE | `/models/{name}/pull` | start / cancel a pull; progress on `GET /events` (`pull`) |
+| GET / POST | `/runs` | the Welcome list (with counts) / create a draft (defaults from Settings) |
+| GET / PATCH / DELETE | `/runs/{id}` | detail / configure (draft only; `name` any time) / delete + VACUUM (not while running) |
+| PATCH | `/runs/{id}/cutoffs` | save cutoffs + minimum — draft or **completed** (the one exception to the lock; buckets are computed at view time) |
+| POST / DELETE | `/runs/{id}/table` | upload CSV/XLSX (multipart, ≤ 20 MB) → pre-flight report; nothing stored / discard the upload |
+| POST | `/runs/{id}/table/confirm` | insert the ready rows (draft only, once) |
+| GET | `/runs/{id}/filters/preview?cgpa_min=&departments=` | how many students each filter removes (same rule as the worker, `engine/filters.py`) |
+| POST | `/runs/{id}/filters/clear` | `clear_filters` (draft or paused) |
+| GET | `/runs/{id}/estimate?count=` | §15 estimate for what's left (or for the pending upload before confirm) |
+| POST | `/runs/{id}/start` · `/pause` · `/resume` · `/cancel` | lifecycle; one active run at a time (`409 busy`) |
+| POST | `/runs/{id}/retry-failed` | `{include_permanent}` → `retry_failed` + restart |
+| GET | `/runs/{id}/progress` | status, pause reason + `auto_resume`, counts, display stages, what's in flight (ids + RA only), failures by reason, estimate |
+| GET | `/runs/{id}/results?shortlist=&band=&min=&bucket=&q=&sort=&offset=&limit=` | buckets computed live (**nothing saved**), counts, change vs saved cutoffs, notes, histogram (10 bands), failure groups, a page of rows |
+| GET | `/runs/{id}/candidates/{cid}` | detail: fields, evaluation, placement, résumé pages/OCR, overrides, events |
+| POST | `/runs/{id}/candidates/{cid}/override` | move to a bucket, with a note |
+| GET / POST | `/runs/{id}/export` | `?view=` CSV download / `{view, path}` written straight to the path the save dialog chose (atomic; "…is open in another program") |
+| GET | `/runs/{id}/events` | SSE from the `events` table; `Last-Event-ID` (or `?after=`); keep-alive every 15 s; `?follow=false` returns the backlog and ends |
+| GET | `/events` | SSE, app level: `pull` progress and `run_status` changes (the app's keep-awake and notifications follow these) |
+| GET / PUT | `/settings` | preferences (appearance, default cutoffs and model, keep awake, notify); PUT is a partial update |
+| DELETE | `/data` | delete every run, the settings, uploads, exports and old logs; VACUUM |
+| POST | `/shutdown` | graceful stop (`202`), then exit |
+
+Upload parsing reads the one file field of the multipart body with the standard library: FastAPI's own form parsing needs `python-multipart`, which isn't a pre-approved dependency.
+
+Original plan:
 
 | Method | Path | Purpose |
 |---|---|---|
@@ -821,7 +858,9 @@ The design tokens and platform rules are in PLAN.md → *Design system*.
 
 | Concern | Measure |
 |---|---|
-| Other local apps calling the API | bound to `127.0.0.1` only, random port, per-launch 32-byte token held by Electron main |
+| Other local apps calling the API | bound to `127.0.0.1` only, random port, per-launch 32-byte token held by Electron main, passed in the environment (not the command line), compared in constant time |
+| A web page calling the API (DNS rebinding) | every request's `Host` must be exactly `127.0.0.1:<port>` (Built, 2.1) |
+| Errors leaking internals | every error body is `{code, message}` with recruiter wording from `errors.py`; an unhandled exception becomes a plain 500 and its trace goes only to the log (Built, 2.1; tested) |
 | Renderer compromise | `contextIsolation`, `sandbox`, no `nodeIntegration`, strict CSP, no remote content loaded, `setWindowOpenHandler` denies |
 | Prompt injection from a résumé | fenced résumé, system-prompt instruction, evidence-quote verification, suspicious-text flag (§13) |
 | CSV formula injection | escaping on export (§16) |
@@ -842,7 +881,8 @@ Electron's `app.getPath('userData')` is passed to the engine as `--data-dir`. **
 │                                    Windows: %APPDATA%\Atlas
 ├── atlas.db  (+ -wal, -shm)          all state
 ├── downloads/                        ≤ ~2 PDFs at a time; .part while downloading
-├── exports/                          CSVs written here, then offered via save dialog
+├── uploads/                          the file being checked before confirm; emptied after confirm/cancel and at boot
+├── exports/                          `GET …/export` copies; emptied at boot (the app writes straight to the chosen path)
 └── logs/
     └── engine.log                    rotating, 5 × 5 MB, no résumé text / PII
 ```
@@ -861,7 +901,7 @@ atlas/
 │   ├── worker.py · health.py · logs.py                              Built
 │   ├── export.py                                                     Built
 │   ├── estimate.py                                                   Built (Phase 2)
-│   ├── server.py                                                     Planned
+│   ├── server.py · api_models.py · filters.py                        Built (Phase 2)
 │   └── tests/
 ├── app/
 │   ├── main/        Electron main + preload

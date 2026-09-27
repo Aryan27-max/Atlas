@@ -113,6 +113,8 @@ class OllamaStub(StubServer):
                         {"name": m, "model": m, "digest": f"sha256:stub{i}", "size": 1}
                         for i, m in enumerate(stub.models)
                     ]})
+                elif self.path == "/api/version":
+                    self._json(200, {"version": "0.0.0-stub"})
                 else:
                     self._json(404, {"error": "not found"})
 
