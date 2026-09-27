@@ -1,13 +1,15 @@
 """Kill test: SIGKILL a process mid-write, then prove nothing is lost or half-done.
 
 This is the database layer's share of the Phase 1 exit criterion. The
-worker-level kill test comes with ``worker.py``.
+worker-level kill test is ``test_worker_kill.py``.
+
+``Popen.kill()`` is SIGKILL on POSIX and ``TerminateProcess`` on Windows. Both
+end the process instantly with no cleanup, no ``finally`` and no flush, so the
+same test proves crash safety on both platforms.
 """
 
 from __future__ import annotations
 
-import os
-import signal
 import subprocess
 import sys
 import tempfile
@@ -51,7 +53,6 @@ WRITER = textwrap.dedent(
 )
 
 
-@unittest.skipIf(os.name == "nt", "SIGKILL is POSIX-only; Windows kill test lives in the worker suite")
 class KillTest(unittest.TestCase):
     def test_sigkill_never_leaves_inconsistent_state(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -80,7 +81,7 @@ class KillTest(unittest.TestCase):
                     proc.wait()
                     self.fail(f"writer did not start: {proc.stderr.read()}")
                 time.sleep(0.02 + (round_ % 7) * 0.013)  # vary where the kill lands
-                proc.send_signal(signal.SIGKILL)
+                proc.kill()  # SIGKILL / TerminateProcess
                 proc.wait()
                 proc.stdout.close()
                 proc.stderr.close()

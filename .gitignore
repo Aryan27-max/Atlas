@@ -1,0 +1,8 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# Runtime data (SQLite + WAL/SHM side files, partial downloads)
+*.db*
+*.part

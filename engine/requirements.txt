@@ -1,0 +1,4 @@
+# Atlas engine runtime dependencies (pre-approved in prompts/phase1.md).
+requests>=2.32
+PyMuPDF>=1.24
+pydantic>=2.8

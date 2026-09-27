@@ -1,0 +1,5 @@
+# Optional: OCR for scanned (image-only) résumés.
+# The engine imports easyocr lazily; everything else, including the whole
+# test suite, works without it. Pulls in PyTorch (hundreds of MB).
+-r requirements.txt
+easyocr>=1.7.2

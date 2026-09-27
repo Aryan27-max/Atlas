@@ -22,6 +22,7 @@ import hashlib
 import json
 import sqlite3
 import threading
+import time
 from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -243,6 +244,16 @@ def _dict(row: sqlite3.Row | None) -> dict[str, Any] | None:
     return dict(row) if row is not None else None
 
 
+# Waits between attempts to open the database (about 2 s in total).
+_OPEN_RETRY_DELAYS = (0.02, 0.05, 0.1, 0.25, 0.5, 1.0)
+
+
+def _is_transient_open_error(exc: BaseException) -> bool:
+    """An SQLite I/O error while opening, e.g. right after a killed process."""
+    code = getattr(exc, "sqlite_errorcode", None)
+    return isinstance(exc, sqlite3.OperationalError) and code is not None and code & 0xFF == sqlite3.SQLITE_IOERR
+
+
 @dataclass(frozen=True)
 class RecoveryReport:
     """What ``recover_after_crash`` changed, for the startup log."""
@@ -270,15 +281,28 @@ class Database:
         self.path = Path(path)
         self.path.parent.mkdir(parents=True, exist_ok=True)
         self._lock = threading.RLock()
-        self._conn = sqlite3.connect(
-            self.path,
-            isolation_level=None,  # we issue BEGIN/COMMIT ourselves
-            check_same_thread=False,
-            timeout=10.0,
-        )
-        self._conn.row_factory = sqlite3.Row
-        self._configure()
-        self._migrate()
+        for delay in (*_OPEN_RETRY_DELAYS, None):
+            self._conn = sqlite3.connect(
+                self.path,
+                isolation_level=None,  # we issue BEGIN/COMMIT ourselves
+                check_same_thread=False,
+                timeout=10.0,
+            )
+            self._conn.row_factory = sqlite3.Row
+            try:
+                self._configure()
+                self._migrate()
+                return
+            except BaseException as exc:
+                # A refused or broken database must not stay open: on Windows
+                # an open handle locks the file, so nothing could replace it.
+                self._conn.close()
+                if delay is None or not _is_transient_open_error(exc):
+                    raise
+            # Windows releases a killed process's -shm mapping a few ms after
+            # the process exits; until then opening the WAL fails with an I/O
+            # error. Nothing has been written yet, so trying again is safe.
+            time.sleep(delay)
 
     # ---- lifecycle -------------------------------------------------------- #
 

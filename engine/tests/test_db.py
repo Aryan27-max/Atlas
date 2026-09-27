@@ -7,8 +7,10 @@ import tempfile
 import threading
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from engine.db import (
+    SCHEMA_VERSION,
     Database,
     InvalidTransitionError,
     NotFoundError,
@@ -79,7 +81,7 @@ class SchemaTests(DbTestCase):
         self.assertEqual(conn.execute("PRAGMA journal_mode").fetchone()[0].lower(), "wal")
         self.assertEqual(conn.execute("PRAGMA foreign_keys").fetchone()[0], 1)
         self.assertEqual(conn.execute("PRAGMA synchronous").fetchone()[0], 2)  # FULL
-        self.assertEqual(conn.execute("PRAGMA user_version").fetchone()[0], 1)
+        self.assertEqual(conn.execute("PRAGMA user_version").fetchone()[0], SCHEMA_VERSION)
 
     def test_reopen_keeps_data_and_does_not_rerun_schema(self) -> None:
         run_id, _ = self.new_run(2)
@@ -92,10 +94,43 @@ class SchemaTests(DbTestCase):
         self.db.close()
         with self.assertRaises(Exception):
             Database(self.dir / "atlas.db")
+        # The refused handle was closed, so the file can be replaced (Windows
+        # locks files that are still open).
+        (self.dir / "atlas.db").replace(self.dir / "moved.db")
+        (self.dir / "moved.db").replace(self.dir / "atlas.db")
         # restore so tearDown can close a valid handle
         conn = sqlite3.connect(self.dir / "atlas.db")
-        conn.execute("PRAGMA user_version=1")
+        conn.execute(f"PRAGMA user_version={SCHEMA_VERSION}")
         conn.close()
+        self.db = Database(self.dir / "atlas.db")
+
+    def test_transient_io_error_on_open_is_retried(self) -> None:
+        # What Windows reports for a few ms after a killed process held the WAL.
+        self.db.close()
+        real_configure = Database._configure
+        calls = {"n": 0}
+
+        def flaky(db: Database) -> None:
+            calls["n"] += 1
+            if calls["n"] <= 2:
+                err = sqlite3.OperationalError("disk I/O error")
+                err.sqlite_errorcode = sqlite3.SQLITE_IOERR_SHMOPEN
+                raise err
+            real_configure(db)
+
+        with patch.object(Database, "_configure", flaky), patch("engine.db.time.sleep") as sleep:
+            self.db = Database(self.dir / "atlas.db")
+        self.assertEqual(calls["n"], 3)
+        self.assertEqual(sleep.call_count, 2)
+        self.assertEqual(self.db.list_runs(), [])
+
+    def test_other_open_errors_are_not_retried(self) -> None:
+        self.db.close()
+        with patch.object(Database, "_configure", side_effect=sqlite3.OperationalError("no such thing")), \
+                patch("engine.db.time.sleep") as sleep:
+            with self.assertRaises(sqlite3.OperationalError):
+                Database(self.dir / "atlas.db")
+        sleep.assert_not_called()
         self.db = Database(self.dir / "atlas.db")
 
 

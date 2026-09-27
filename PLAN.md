@@ -89,3 +89,11 @@ Rules, not vibes. Every screen follows these.
 
 **Language**
 - Plain, calm, specific. "Link is private — ask the candidate to share it with 'Anyone with the link'", never "Error 403".
+
+---
+
+## Progress
+
+A fresh session reads this first. One line per step: date · step · tests · what to know.
+
+- 2026-09-27 · 1.0 baseline · 45 tests, 0 skipped · Dev machine is Windows 11. Python 3.14.7 (uv) at `.venv/`; run tests with `.venv/Scripts/python -m unittest discover -s engine/tests -t .`. Kill tests use `Popen.kill()` and **run on Windows** (not skipped). `Database()` retries transient `SQLITE_IOERR` on open (Windows holds `-shm` briefly after a kill). `legacy/QWENTUS` is untracked on purpose (separate git clone). Files must be written with LF (`.gitattributes`); Python `write_text` on Windows writes CRLF, so use `write_bytes` or `newline="\n"`.

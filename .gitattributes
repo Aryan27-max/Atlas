@@ -1,0 +1,4 @@
+# Keep LF everywhere (the repo is edited on macOS and Windows).
+* text=auto eol=lf
+*.pdf binary
+*.db binary
