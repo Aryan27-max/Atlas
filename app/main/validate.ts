@@ -158,14 +158,14 @@ export function validateUploadSource(value: unknown): UploadSource {
       throw new InvalidArgument('Bad file.')
     return { handle: source.handle }
   }
+  // The file type is the engine's call (it answers "Choose a CSV or Excel
+  // (.xlsx) file."); the size is checked by the IPC handler, which answers
+  // with the engine's wording instead of an error.
   const { name, bytes } = source
   if (typeof name !== 'string' || name.length === 0 || name.length > 255 || /[\\/]/.test(name)) {
     throw new InvalidArgument('Bad file name.')
   }
-  const extension = name.slice(name.lastIndexOf('.')).toLowerCase()
-  if (!TABLE_EXTENSIONS.includes(extension)) throw new InvalidArgument('Choose a CSV or Excel (.xlsx) file.')
   if (!(bytes instanceof ArrayBuffer) && !(bytes instanceof Uint8Array)) throw new InvalidArgument('Bad file.')
-  if (bytes.byteLength > MAX_UPLOAD_BYTES) throw new InvalidArgument('The file is larger than 20 MB.')
   return { name, bytes: bytes instanceof Uint8Array ? copy(bytes) : bytes }
 }
 

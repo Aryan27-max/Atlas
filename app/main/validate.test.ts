@@ -114,11 +114,12 @@ describe('small validators', () => {
     expect(() => validateUploadSource({ handle: '../../etc/passwd' })).toThrow(InvalidArgument)
     const ok = validateUploadSource({ name: 'students.xlsx', bytes: new Uint8Array([1, 2, 3]) })
     expect('bytes' in ok && ok.bytes.byteLength).toBe(3)
-    expect(() => validateUploadSource({ name: 'resume.pdf', bytes: new ArrayBuffer(1) })).toThrow(InvalidArgument)
+    // The file type is the engine's call; the size gets the engine's wording from the IPC handler.
+    expect(validateUploadSource({ name: 'resume.pdf', bytes: new ArrayBuffer(1) })).toMatchObject({
+      name: 'resume.pdf',
+    })
     expect(() => validateUploadSource({ name: 'a/b.csv', bytes: new ArrayBuffer(1) })).toThrow(InvalidArgument)
-    expect(() => validateUploadSource({ name: 'big.csv', bytes: new ArrayBuffer(21 * 1024 * 1024) })).toThrow(
-      InvalidArgument,
-    )
+    expect(() => validateUploadSource({ name: '', bytes: new ArrayBuffer(1) })).toThrow(InvalidArgument)
     expect(() => validateUploadSource({ name: 'x.csv', bytes: 'not bytes' })).toThrow(InvalidArgument)
   })
 

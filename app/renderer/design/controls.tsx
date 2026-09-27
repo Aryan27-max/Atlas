@@ -339,6 +339,8 @@ export interface TextFieldProps extends FieldShell {
   autoFocus?: boolean
   type?: 'text' | 'search'
   name?: string
+  onBlur?: () => void
+  onEnter?: () => void
 }
 
 export function TextField({
@@ -353,6 +355,8 @@ export function TextField({
   autoFocus,
   type = 'text',
   name,
+  onBlur,
+  onEnter,
 }: TextFieldProps) {
   const id = useId()
   const described = [hint ? `${id}-hint` : '', error ? `${id}-error` : ''].filter(Boolean).join(' ') || undefined
@@ -373,6 +377,13 @@ export function TextField({
         aria-invalid={Boolean(error) || undefined}
         aria-describedby={described}
         onChange={(event) => onChange(event.target.value)}
+        onBlur={onBlur}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter' && onEnter) {
+            event.preventDefault()
+            onEnter()
+          }
+        }}
       />
       {(hint || error) && (
         <div className="atl-field-foot">

@@ -858,6 +858,8 @@ flowchart LR
     r -.-> s
 ```
 
+**As built (Phase 2):** Welcome is the entry point; the setup flow shows four numbered steps (Students & model · Criteria · Cutoffs · Review) with Back on the left, one primary button on the right, and Esc = Back. **New screening** creates the draft run (so the name and each choice are saved on it as the recruiter goes); the students are inserted only when the recruiter presses Start screening (`/table/confirm`). Screens: Welcome and Students & model built in 2.4.
+
 **UI rules that come from the architecture:**
 - The renderer never computes a bucket, score or state. It asks the API.
 - Every pause shows its reason, plus a Resume button unless the run resumes automatically.

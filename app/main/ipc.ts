@@ -143,6 +143,7 @@ export function registerIpc(ctx: IpcContext): void {
     } else {
       name = checked.name
       bytes = checked.bytes
+      if (bytes.byteLength > MAX_UPLOAD_BYTES) return TOO_LARGE
     }
     return ctx.engine.upload(`/runs/${run}/table`, name, bytes)
   })

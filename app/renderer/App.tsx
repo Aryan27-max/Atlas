@@ -1,9 +1,21 @@
+import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query'
 import { MotionConfig } from 'motion/react'
 import { useEffect, useState } from 'react'
 import type { EngineState } from '@shared/bridge'
+import { api } from './api/client'
 import { Button, Spinner, ToastProvider } from './design'
 import { Gallery } from './design/Gallery'
+import { Placeholder } from './screens/Placeholder'
+import { Welcome } from './screens/Welcome'
+import { SetupFlow } from './screens/setup/SetupFlow'
+import { useNav } from './state/nav'
+import { applyTheme } from './state/theme'
 import './app.css'
+import './screens/screens.css'
+
+const queries = new QueryClient({
+  defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false, staleTime: 2_000 } },
+})
 
 function useHashRoute(): string {
   const [hash, setHash] = useState(window.location.hash)
@@ -47,12 +59,14 @@ export function App() {
   const route = useHashRoute()
   return (
     <MotionConfig reducedMotion="user">
-      <ToastProvider>{route.startsWith('#/design') ? <Gallery /> : <Shell />}</ToastProvider>
+      <QueryClientProvider client={queries}>
+        <ToastProvider>{route.startsWith('#/design') ? <Gallery /> : <Shell />}</ToastProvider>
+      </QueryClientProvider>
     </MotionConfig>
   )
 }
 
-/** Engine gate; the screens (steps 2.4–2.8) render inside it. */
+/** Engine gate: the screens render only once the engine is ready. */
 function Shell() {
   const engine = useEngineState()
   if (engine.state === 'failed') {
@@ -78,10 +92,42 @@ function Shell() {
       </main>
     )
   }
+  return <Screens />
+}
+
+function Screens() {
+  const view = useNav((state) => state.view)
+  const go = useNav((state) => state.go)
+  const settings = useQuery({ queryKey: ['settings'], queryFn: () => api('GET /settings') })
+
+  useEffect(() => {
+    if (settings.data) applyTheme(settings.data.appearance)
+  }, [settings.data])
+
+  useEffect(() => {
+    const stop = window.atlas.app.onNavigate((target) =>
+      go(target === 'settings' ? { name: 'settings' } : { name: 'welcome' }),
+    )
+    const onKey = (event: KeyboardEvent): void => {
+      if ((event.metaKey || event.ctrlKey) && event.key === ',') {
+        event.preventDefault()
+        go({ name: 'settings' })
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => {
+      stop()
+      window.removeEventListener('keydown', onKey)
+    }
+  }, [go])
+
   return (
-    <main className="gate" data-engine="ready">
-      <h1 className="atl-title">Atlas</h1>
-      <p className="atl-callout atl-secondary">Ready.</p>
-    </main>
+    <div className="screens" data-engine="ready">
+      {view.name === 'welcome' && <Welcome />}
+      {view.name === 'setup' && <SetupFlow key={view.runId} runId={view.runId} step={view.step} />}
+      {view.name === 'progress' && <Placeholder title="Progress" />}
+      {view.name === 'results' && <Placeholder title="Results" />}
+      {view.name === 'settings' && <Placeholder title="Settings" />}
+    </div>
   )
 }

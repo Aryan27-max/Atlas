@@ -65,6 +65,7 @@ class OllamaStub(StubServer):
         self.pullable: set[str] = {"stub-small:latest"}   # names /api/pull can "download"
         self.pull_step_delay = 0.0             # seconds between pull progress lines
         self.pulls: list[str] = []
+        self.sizes: dict[str, int] = {}          # model name → bytes shown by /api/tags
 
     def start(self) -> "OllamaStub":
         super().start()
@@ -110,7 +111,7 @@ class OllamaStub(StubServer):
                     stub.requests.append(self.path)
                 if self.path == "/api/tags":
                     self._json(200, {"models": [
-                        {"name": m, "model": m, "digest": f"sha256:stub{i}", "size": 1}
+                        {"name": m, "model": m, "digest": f"sha256:stub{i}", "size": stub.sizes.get(m, 1)}
                         for i, m in enumerate(stub.models)
                     ]})
                 elif self.path == "/api/version":
