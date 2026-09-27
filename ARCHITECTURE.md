@@ -864,7 +864,7 @@ flowchart LR
 - Failed candidates show the exact `failure_reason`, grouped by reason, with "Retry failed".
 - Filled-to-minimum and overridden candidates carry a visible badge.
 
-The design tokens and platform rules are in PLAN.md → *Design system*.
+The design tokens and platform rules are in PLAN.md → *Design system*. **Built (2.3):** `app/renderer/design/`: `tokens.css` (light/dark on any `[data-theme]`, OS theme by default), `base.css`, `components.css`, and the components (Button, SegmentedControl, Toggle, Slider, Stepper, TextField, TextArea, Select, Card, List/ListRow, Sidebar, Toolbar, Sheet, Popover, Alert, Banner, Badge, ProgressRing, ProgressBar, Spinner, EmptyState, Toast, KeyValue, ScorePill); the gallery is `#/design`. Screens may use only these.
 
 ---
 

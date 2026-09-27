@@ -40,9 +40,11 @@ describe('the token stays in main', () => {
       /\.(ts|tsx|html|css)$/.test(f),
     )
     expect(sources.length).toBeGreaterThan(3)
+    // "Design tokens" are fine; anything that names or handles the API credential is not.
+    const credential = /ATLAS_TOKEN|authorization|bearer|tokenForTests|__atlasTest|api[ _-]?token|authHeaders/i
     for (const file of sources) {
       const text = readFileSync(file, 'utf8')
-      expect(text, relative(APP, file)).not.toMatch(/token|authorization|bearer|ATLAS_TOKEN/i)
+      expect(text, relative(APP, file)).not.toMatch(credential)
     }
   })
 })

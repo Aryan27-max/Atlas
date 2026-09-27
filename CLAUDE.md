@@ -67,7 +67,8 @@ atlas/
 └── app/                 ← Electron + React (Phase 2)
     ├── main/            ← engine process, IPC validation, SSE, window, keep-awake [done]
     ├── preload/         ← window.atlas bridge (no token, sandboxed)     [done]
-    ├── renderer/        ← React: design/ + screens/                     [next: 2.3 design]
+    ├── renderer/design/ ← tokens.css + components + #/design gallery   [done]
+    ├── renderer/screens/← Welcome, Upload+Model, Criteria, Cutoffs, Review, Progress, Results, Settings [next]
     ├── src/shared/      ← api-schema.json → api-types.ts (generated), bridge.ts [done]
     └── e2e/, tests/     ← Playwright (Electron) and Vitest              [done]
 ```

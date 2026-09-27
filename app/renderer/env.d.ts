@@ -7,7 +7,4 @@ declare global {
   }
 }
 
-declare module '*.css'
-declare module '*.woff2'
-
 export {}

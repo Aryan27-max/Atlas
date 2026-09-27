@@ -1,0 +1,269 @@
+/*
+ * Atlas design tokens (PLAN.md → Design system).
+ *
+ * Light values on :root and any [data-theme='light'] element; dark values on
+ * [data-theme='dark'] elements and, when no theme is chosen, whenever the OS
+ * is in dark mode. Because tokens are scoped to [data-theme], a light and a
+ * dark section can sit side by side (the #/design gallery does this).
+ *
+ * Contrast: app/renderer/design/contrast.test.ts computes every text pairing
+ * listed there from this file and requires ≥ 4.5:1 in both themes. That is
+ * why text uses the -text colours, and white-on-colour buttons use the
+ * -strong fills: PLAN's #007AFF / #0A84FF stay the accent for non-text UI
+ * (focus rings, toggles, sliders, progress), where 3:1 is the rule.
+ *
+ * Keep the dark block and the prefers-color-scheme block identical (a test
+ * checks).
+ */
+
+:root,
+[data-theme='light'] {
+  color-scheme: light;
+
+  /* Accent */
+  --accent: #007aff;
+  --accent-strong: #0071e3; /* filled buttons: white text 4.7:1 */
+  --accent-text: #0066cc; /* links, plain buttons */
+  --accent-tint: rgba(0, 122, 255, 0.12);
+  --on-accent: #ffffff;
+  --focus-ring: #007aff;
+
+  /* Labels (4 levels) */
+  --label-primary: #1d1d1f;
+  --label-secondary: #515154;
+  --label-tertiary: #68686d;
+  --label-quaternary: #8e8e93; /* placeholder and disabled text only */
+
+  /* Backgrounds: layered greys, never pure white on white */
+  --bg-window: #f2f2f7;
+  --bg-content: #ffffff;
+  --bg-elevated: #ffffff;
+  --bg-grouped: #f2f2f7;
+  --bg-sidebar: #ebebf0;
+  --bg-toolbar: #f5f5f7;
+
+  /* Fills (controls) */
+  --fill-primary: rgba(120, 120, 128, 0.2);
+  --fill-secondary: rgba(120, 120, 128, 0.16);
+  --fill-tertiary: rgba(118, 118, 128, 0.12);
+  --fill-quaternary: rgba(116, 116, 128, 0.08);
+  --control-bg: #ffffff;
+  --control-selected: #ffffff;
+
+  /* Separators */
+  --separator: rgba(60, 60, 67, 0.18);
+  --separator-opaque: #d8d8dc;
+
+  /* Semantic */
+  --success: #34c759;
+  --success-text: #1d7a34;
+  --success-tint: rgba(52, 199, 89, 0.16);
+  --warning: #ff9500;
+  --warning-text: #9a4f00;
+  --warning-tint: rgba(255, 149, 0, 0.16);
+  --danger: #ff3b30;
+  --danger-strong: #d70015; /* destructive buttons: white text 5.4:1 */
+  --danger-text: #c4000f;
+  --danger-tint: rgba(255, 59, 48, 0.12);
+  --info-tint: rgba(0, 122, 255, 0.1);
+
+  /* Buckets (ScorePill, sidebar counts) */
+  --bucket-shortlisted-bg: #dcf5e2;
+  --bucket-shortlisted-text: #17632b;
+  --bucket-cutoff-bg: #fcebd2;
+  --bucket-cutoff-text: #7a4000;
+  --bucket-rejected-bg: #e9e9ee;
+  --bucket-rejected-text: #48484c;
+
+  /* Elevation */
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.06), 0 1px 1px rgba(0, 0, 0, 0.04);
+  --shadow-2: 0 12px 32px rgba(0, 0, 0, 0.14), 0 2px 8px rgba(0, 0, 0, 0.08);
+  --scrim: rgba(0, 0, 0, 0.24);
+
+  /* Materials (sheets, toolbars) */
+  --material: rgba(250, 250, 252, 0.78);
+  --material-thick: rgba(250, 250, 252, 0.92);
+  --material-filter: saturate(180%) blur(24px);
+}
+
+[data-theme='dark'] {
+  color-scheme: dark;
+
+  --accent: #0a84ff;
+  --accent-strong: #0a6fe0;
+  --accent-text: #4aa3ff;
+  --accent-tint: rgba(10, 132, 255, 0.2);
+  --on-accent: #ffffff;
+  --focus-ring: #0a84ff;
+
+  --label-primary: #f5f5f7;
+  --label-secondary: #c7c7cc;
+  --label-tertiary: #a1a1a6;
+  --label-quaternary: #6e6e73;
+
+  --bg-window: #161618;
+  --bg-content: #1f1f21;
+  --bg-elevated: #2c2c2e;
+  --bg-grouped: #161618;
+  --bg-sidebar: #1c1c1e;
+  --bg-toolbar: #1c1c1e;
+
+  --fill-primary: rgba(120, 120, 128, 0.36);
+  --fill-secondary: rgba(120, 120, 128, 0.32);
+  --fill-tertiary: rgba(118, 118, 128, 0.24);
+  --fill-quaternary: rgba(118, 118, 128, 0.18);
+  --control-bg: #2c2c2e;
+  --control-selected: #636366;
+
+  --separator: rgba(84, 84, 88, 0.6);
+  --separator-opaque: #38383a;
+
+  --success: #30d158;
+  --success-text: #4cd873;
+  --success-tint: rgba(48, 209, 88, 0.18);
+  --warning: #ff9f0a;
+  --warning-text: #ffb340;
+  --warning-tint: rgba(255, 159, 10, 0.18);
+  --danger: #ff453a;
+  --danger-strong: #d70015;
+  --danger-text: #ff6961;
+  --danger-tint: rgba(255, 69, 58, 0.18);
+  --info-tint: rgba(10, 132, 255, 0.18);
+
+  --bucket-shortlisted-bg: #173d22;
+  --bucket-shortlisted-text: #8ce9a4;
+  --bucket-cutoff-bg: #45300f;
+  --bucket-cutoff-text: #ffcf87;
+  --bucket-rejected-bg: #3a3a3c;
+  --bucket-rejected-text: #d1d1d6;
+
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4), 0 1px 1px rgba(0, 0, 0, 0.3);
+  --shadow-2: 0 16px 40px rgba(0, 0, 0, 0.5), 0 2px 8px rgba(0, 0, 0, 0.4);
+  --scrim: rgba(0, 0, 0, 0.48);
+
+  --material: rgba(40, 40, 42, 0.72);
+  --material-thick: rgba(40, 40, 42, 0.9);
+  --material-filter: saturate(180%) blur(24px);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    color-scheme: dark;
+
+    --accent: #0a84ff;
+    --accent-strong: #0a6fe0;
+    --accent-text: #4aa3ff;
+    --accent-tint: rgba(10, 132, 255, 0.2);
+    --on-accent: #ffffff;
+    --focus-ring: #0a84ff;
+
+    --label-primary: #f5f5f7;
+    --label-secondary: #c7c7cc;
+    --label-tertiary: #a1a1a6;
+    --label-quaternary: #6e6e73;
+
+    --bg-window: #161618;
+    --bg-content: #1f1f21;
+    --bg-elevated: #2c2c2e;
+    --bg-grouped: #161618;
+    --bg-sidebar: #1c1c1e;
+    --bg-toolbar: #1c1c1e;
+
+    --fill-primary: rgba(120, 120, 128, 0.36);
+    --fill-secondary: rgba(120, 120, 128, 0.32);
+    --fill-tertiary: rgba(118, 118, 128, 0.24);
+    --fill-quaternary: rgba(118, 118, 128, 0.18);
+    --control-bg: #2c2c2e;
+    --control-selected: #636366;
+
+    --separator: rgba(84, 84, 88, 0.6);
+    --separator-opaque: #38383a;
+
+    --success: #30d158;
+    --success-text: #4cd873;
+    --success-tint: rgba(48, 209, 88, 0.18);
+    --warning: #ff9f0a;
+    --warning-text: #ffb340;
+    --warning-tint: rgba(255, 159, 10, 0.18);
+    --danger: #ff453a;
+    --danger-strong: #d70015;
+    --danger-text: #ff6961;
+    --danger-tint: rgba(255, 69, 58, 0.18);
+    --info-tint: rgba(10, 132, 255, 0.18);
+
+    --bucket-shortlisted-bg: #173d22;
+    --bucket-shortlisted-text: #8ce9a4;
+    --bucket-cutoff-bg: #45300f;
+    --bucket-cutoff-text: #ffcf87;
+    --bucket-rejected-bg: #3a3a3c;
+    --bucket-rejected-text: #d1d1d6;
+
+    --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4), 0 1px 1px rgba(0, 0, 0, 0.3);
+    --shadow-2: 0 16px 40px rgba(0, 0, 0, 0.5), 0 2px 8px rgba(0, 0, 0, 0.4);
+    --scrim: rgba(0, 0, 0, 0.48);
+
+    --material: rgba(40, 40, 42, 0.72);
+    --material-thick: rgba(40, 40, 42, 0.9);
+    --material-filter: saturate(180%) blur(24px);
+  }
+}
+
+/* Theme-independent tokens */
+:root {
+  /* Type: macOS uses the system font (SF Pro); Windows the bundled Inter. Never ship SF Pro. */
+  --font-mac: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif;
+  --font-win: 'Inter Variable', 'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif;
+  --font: var(--font-mac);
+
+  --text-large-title: 700 34px/41px var(--font);
+  --text-title: 700 22px/28px var(--font);
+  --text-headline: 600 17px/22px var(--font);
+  --text-body: 400 17px/22px var(--font);
+  --text-callout: 400 15px/20px var(--font);
+  --text-footnote: 400 13px/18px var(--font);
+  --text-caption: 400 11px/13px var(--font);
+  --tracking-large: -0.4px;
+  --tracking-title: -0.2px;
+  --tracking-body: -0.2px;
+
+  /* Space: the 8-pt grid, plus 4 */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* Radii */
+  --radius-control: 6px;
+  --radius-card: 10px;
+  --radius-sheet: 14px;
+  --radius-full: 999px;
+
+  /* Motion (CSS side; springs for JS are in motion.ts) */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --duration-fast: 200ms;
+  --duration-base: 280ms;
+  --duration-slow: 350ms;
+
+  /* Chrome */
+  --toolbar-height: 52px;
+  --sidebar-width: 232px;
+}
+
+:root[data-platform='win32'] {
+  --font: var(--font-win);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration-fast: 0ms;
+    --duration-base: 0ms;
+    --duration-slow: 0ms;
+  }
+}

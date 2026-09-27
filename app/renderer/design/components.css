@@ -1,0 +1,899 @@
+/* Atlas components. Only tokens from tokens.css; no raw colours. */
+
+/* ---------------------------------------------------------------- Button */
+.atl-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  height: 32px;
+  padding: 0 var(--space-4);
+  border: 0;
+  border-radius: var(--radius-control);
+  font: 500 15px/20px var(--font);
+  white-space: nowrap;
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    transform var(--duration-fast) var(--ease-out),
+    opacity var(--duration-fast) var(--ease-out);
+}
+.atl-button:active:not(:disabled) {
+  transform: scale(0.97);
+}
+.atl-button:disabled {
+  opacity: 0.4;
+}
+.atl-button--small {
+  height: 24px;
+  padding: 0 var(--space-3);
+  font-size: 13px;
+  gap: var(--space-1);
+}
+.atl-button--large {
+  height: 40px;
+  padding: 0 var(--space-6);
+  font-size: 17px;
+  border-radius: var(--radius-card);
+}
+.atl-button--full {
+  width: 100%;
+}
+.atl-button--primary {
+  background: var(--accent-strong);
+  color: var(--on-accent);
+  box-shadow: var(--shadow-1);
+}
+.atl-button--primary:hover:not(:disabled) {
+  filter: brightness(1.06);
+}
+.atl-button--secondary {
+  background: var(--fill-secondary);
+  color: var(--label-primary);
+}
+.atl-button--secondary:hover:not(:disabled) {
+  background: var(--fill-primary);
+}
+.atl-button--plain {
+  background: transparent;
+  color: var(--accent-text);
+  padding: 0 var(--space-2);
+}
+.atl-button--plain:hover:not(:disabled) {
+  background: var(--fill-quaternary);
+}
+.atl-button--destructive {
+  background: var(--danger-strong);
+  color: var(--on-accent);
+}
+.atl-button--destructive:hover:not(:disabled) {
+  filter: brightness(1.06);
+}
+.atl-button svg {
+  flex: none;
+}
+
+/* ------------------------------------------------------ SegmentedControl */
+.atl-segmented {
+  display: inline-grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  padding: 2px;
+  gap: 2px;
+  border-radius: calc(var(--radius-control) + 2px);
+  background: var(--fill-tertiary);
+}
+.atl-segment {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  min-width: 72px;
+  height: 28px;
+  padding: 0 var(--space-3);
+  border: 0;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--label-primary);
+  font: 500 13px/18px var(--font);
+}
+.atl-segment-label {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+.atl-segment-thumb {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius-control);
+  background: var(--control-selected);
+  box-shadow: var(--shadow-1);
+}
+
+/* ------------------------------------------------------------------ Toggle */
+.atl-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+.atl-toggle-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.atl-toggle {
+  position: relative;
+  flex: none;
+  width: 42px;
+  height: 26px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: var(--fill-primary);
+  transition: background-color var(--duration-fast) var(--ease-out);
+}
+.atl-toggle[aria-checked='true'] {
+  background: var(--accent);
+}
+.atl-toggle-knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 22px;
+  height: 22px;
+  border-radius: var(--radius-full);
+  background: #fff; /* the knob is always white, as on macOS */
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+.atl-toggle:focus-visible {
+  border-radius: var(--radius-full);
+}
+
+/* ------------------------------------------------------------------ Slider */
+.atl-slider {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.atl-slider-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+.atl-slider-track {
+  position: relative;
+  height: 28px;
+  display: flex;
+  align-items: center;
+}
+.atl-slider input[type='range'] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 4px;
+  margin: 0;
+  border-radius: var(--radius-full);
+  background: linear-gradient(
+    to right,
+    var(--accent) 0,
+    var(--accent) var(--pct, 0%),
+    var(--fill-primary) var(--pct, 0%),
+    var(--fill-primary) 100%
+  );
+}
+.atl-slider input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: var(--radius-full);
+  background: #fff;
+  box-shadow:
+    0 0 0 0.5px rgba(0, 0, 0, 0.12),
+    0 2px 5px rgba(0, 0, 0, 0.2);
+}
+.atl-slider input[type='range']:focus-visible {
+  outline-offset: 8px;
+}
+.atl-slider-ticks {
+  position: relative;
+  height: 14px;
+}
+.atl-slider-tick {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  font: var(--text-caption);
+  color: var(--label-tertiary);
+}
+.atl-slider-tick::before {
+  content: '';
+  display: block;
+  width: 1px;
+  height: 4px;
+  margin: 0 auto 1px;
+  background: var(--separator-opaque);
+}
+.atl-slider-bubble {
+  position: absolute;
+  bottom: 28px;
+  transform: translateX(-50%);
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-control);
+  background: var(--label-primary);
+  color: var(--bg-content);
+  font: 600 13px/18px var(--font);
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--duration-fast) var(--ease-out);
+}
+.atl-slider-track:hover .atl-slider-bubble,
+.atl-slider-track:focus-within .atl-slider-bubble {
+  opacity: 1;
+}
+
+/* ----------------------------------------------------------------- Stepper */
+.atl-stepper {
+  display: inline-flex;
+  align-items: center;
+  height: 32px;
+  border-radius: var(--radius-control);
+  background: var(--fill-tertiary);
+}
+.atl-stepper button {
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  background: transparent;
+  color: var(--label-primary);
+  border-radius: var(--radius-control);
+}
+.atl-stepper button:hover:not(:disabled) {
+  background: var(--fill-quaternary);
+}
+.atl-stepper button:disabled {
+  opacity: 0.35;
+}
+.atl-stepper input {
+  width: 56px;
+  height: 28px;
+  border: 0;
+  border-radius: 4px;
+  background: var(--control-bg);
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  user-select: text;
+}
+
+/* -------------------------------------------------- TextField, TextArea, Select */
+.atl-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+.atl-field-label {
+  font: 600 13px/18px var(--font);
+  color: var(--label-secondary);
+}
+.atl-input,
+.atl-textarea,
+.atl-select select {
+  width: 100%;
+  border: 1px solid var(--separator);
+  border-radius: var(--radius-control);
+  background: var(--control-bg);
+  color: var(--label-primary);
+  user-select: text;
+  transition:
+    border-color var(--duration-fast) var(--ease-out),
+    box-shadow var(--duration-fast) var(--ease-out);
+}
+.atl-input {
+  height: 36px;
+  padding: 0 var(--space-3);
+}
+.atl-textarea {
+  padding: var(--space-3) var(--space-4);
+  font: var(--text-body);
+  line-height: 26px;
+  resize: vertical;
+}
+.atl-input::placeholder,
+.atl-textarea::placeholder {
+  color: var(--label-tertiary);
+}
+.atl-input:focus-visible,
+.atl-textarea:focus-visible,
+.atl-select select:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-tint);
+}
+.atl-field[data-invalid='true'] .atl-input,
+.atl-field[data-invalid='true'] .atl-textarea {
+  border-color: var(--danger);
+}
+.atl-field-foot {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-4);
+  font: var(--text-footnote);
+  color: var(--label-tertiary);
+}
+.atl-field-error {
+  color: var(--danger-text);
+}
+.atl-select {
+  position: relative;
+}
+.atl-select select {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 36px;
+  padding: 0 36px 0 var(--space-3);
+}
+.atl-select svg {
+  position: absolute;
+  right: var(--space-3);
+  bottom: 10px;
+  color: var(--label-secondary);
+  pointer-events: none;
+}
+
+/* -------------------------------------------------------------------- Card */
+.atl-card {
+  border-radius: var(--radius-card);
+  background: var(--bg-content);
+  box-shadow: var(--shadow-1);
+  outline: 0.5px solid var(--separator);
+}
+.atl-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-5) 0;
+}
+.atl-card-body {
+  padding: var(--space-4) var(--space-5) var(--space-5);
+}
+.atl-card--flush .atl-card-body {
+  padding: 0;
+}
+
+/* ---------------------------------------------------------- List, ListRow */
+.atl-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-radius: var(--radius-card);
+  background: var(--bg-content);
+  outline: 0.5px solid var(--separator);
+  overflow: hidden;
+}
+.atl-list-title {
+  padding: 0 var(--space-4) var(--space-2);
+  font: 600 13px/18px var(--font);
+  color: var(--label-secondary);
+}
+.atl-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  min-height: 44px;
+  padding: var(--space-2) var(--space-4);
+  border: 0;
+  background: transparent;
+  text-align: left;
+  color: var(--label-primary);
+}
+.atl-row + .atl-row::before,
+li + li > .atl-row::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: var(--space-4);
+  right: 0;
+  height: 0.5px;
+  background: var(--separator);
+}
+button.atl-row:hover:not(:disabled) {
+  background: var(--fill-quaternary);
+}
+.atl-row[aria-selected='true'],
+.atl-row[aria-checked='true'] {
+  background: var(--accent-tint);
+}
+.atl-row-icon {
+  flex: none;
+  color: var(--accent);
+  display: inline-flex;
+}
+.atl-row-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  flex: 1;
+}
+.atl-row-title {
+  font: var(--text-callout);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.atl-row-subtitle {
+  font: var(--text-footnote);
+  color: var(--label-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.atl-row-detail {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--label-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ----------------------------------------------------------------- Sidebar */
+.atl-sidebar {
+  display: flex;
+  flex-direction: column;
+  width: var(--sidebar-width);
+  height: 100%;
+  padding: 0 var(--space-3) var(--space-3);
+  background: var(--bg-sidebar);
+  border-right: 0.5px solid var(--separator);
+  overflow-y: auto;
+}
+html[data-material='true'] .atl-sidebar {
+  background: transparent;
+}
+.atl-sidebar-top {
+  height: var(--toolbar-height);
+  flex: none;
+}
+.atl-sidebar-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  margin-bottom: var(--space-4);
+}
+.atl-sidebar-heading {
+  padding: var(--space-2) var(--space-2) var(--space-1);
+  font: 600 11px/13px var(--font);
+  letter-spacing: 0.2px;
+  color: var(--label-tertiary);
+}
+.atl-sidebar-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  height: 30px;
+  padding: 0 var(--space-2);
+  border: 0;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--label-primary);
+  font: 400 14px/20px var(--font);
+  text-align: left;
+}
+.atl-sidebar-item svg {
+  color: var(--accent);
+  flex: none;
+}
+.atl-sidebar-item:hover {
+  background: var(--fill-quaternary);
+}
+.atl-sidebar-item[aria-current='page'] {
+  background: var(--fill-primary);
+  font-weight: 600;
+}
+.atl-sidebar-label {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.atl-sidebar-count {
+  color: var(--label-secondary);
+  font: 500 13px/18px var(--font);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ----------------------------------------------------------------- Toolbar */
+.atl-toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  height: var(--toolbar-height);
+  flex: none;
+  padding: 0 var(--space-4);
+  background: var(--bg-toolbar);
+  border-bottom: 0.5px solid var(--separator);
+}
+html[data-material='true'] .atl-toolbar--material {
+  background: var(--material);
+  backdrop-filter: var(--material-filter);
+}
+/* macOS: leave room for the traffic lights when the toolbar starts at the window edge. */
+html[data-platform='darwin'] .atl-toolbar--window-edge {
+  padding-left: 84px;
+}
+/* Windows 11: the native controls sit over the right of the toolbar. */
+html[data-platform='win32'] .atl-toolbar--window-edge-right {
+  padding-right: calc(100vw - env(titlebar-area-x, 0px) - env(titlebar-area-width, 100vw) + var(--space-4));
+}
+.atl-toolbar-title {
+  font: var(--text-headline);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.atl-toolbar-spacer {
+  flex: 1;
+}
+.atl-toolbar-group {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* ------------------------------------------- Sheet, Popover, Alert (overlays) */
+.atl-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-8);
+  background: var(--scrim);
+}
+.atl-sheet {
+  display: flex;
+  flex-direction: column;
+  width: min(520px, 100%);
+  max-height: calc(100vh - 2 * var(--space-10));
+  border-radius: var(--radius-sheet);
+  background: var(--material-thick);
+  backdrop-filter: var(--material-filter);
+  box-shadow: var(--shadow-2);
+  outline: 0.5px solid var(--separator);
+  overflow: hidden;
+}
+.atl-sheet--large {
+  width: min(760px, 100%);
+}
+.atl-sheet-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-6) var(--space-6) var(--space-2);
+}
+.atl-sheet-body {
+  padding: var(--space-4) var(--space-6);
+  overflow-y: auto;
+}
+.atl-sheet-foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-6) var(--space-6);
+}
+.atl-icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: var(--fill-tertiary);
+  color: var(--label-secondary);
+}
+.atl-icon-button:hover {
+  background: var(--fill-secondary);
+}
+.atl-popover {
+  position: fixed;
+  z-index: 90;
+  min-width: 240px;
+  max-width: 420px;
+  padding: var(--space-4);
+  border-radius: var(--radius-card);
+  background: var(--material-thick);
+  backdrop-filter: var(--material-filter);
+  box-shadow: var(--shadow-2);
+  outline: 0.5px solid var(--separator);
+}
+.atl-alert {
+  width: 300px;
+  padding: var(--space-6) var(--space-5) var(--space-5);
+  border-radius: var(--radius-sheet);
+  background: var(--material-thick);
+  backdrop-filter: var(--material-filter);
+  box-shadow: var(--shadow-2);
+  outline: 0.5px solid var(--separator);
+  text-align: center;
+}
+.atl-alert-message {
+  margin-top: var(--space-2);
+  font: var(--text-footnote);
+  color: var(--label-secondary);
+}
+.atl-alert-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-top: var(--space-5);
+}
+
+/* ------------------------------------------------------------------ Banner */
+.atl-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-card);
+  background: var(--info-tint);
+  color: var(--label-primary);
+}
+.atl-banner--warning {
+  background: var(--warning-tint);
+}
+.atl-banner--error {
+  background: var(--danger-tint);
+}
+.atl-banner--success {
+  background: var(--success-tint);
+}
+.atl-banner-icon {
+  flex: none;
+  margin-top: 1px;
+  color: var(--accent-text);
+}
+.atl-banner--warning .atl-banner-icon {
+  color: var(--warning-text);
+}
+.atl-banner--error .atl-banner-icon {
+  color: var(--danger-text);
+}
+.atl-banner--success .atl-banner-icon {
+  color: var(--success-text);
+}
+.atl-banner-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.atl-banner-title {
+  font: 600 15px/20px var(--font);
+}
+.atl-banner-body {
+  font: var(--text-footnote);
+  color: var(--label-primary);
+}
+.atl-banner-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex: none;
+}
+
+/* ------------------------------------------------------------------- Badge */
+.atl-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  height: 20px;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-full);
+  background: var(--fill-tertiary);
+  color: var(--label-secondary);
+  font: 600 11px/13px var(--font);
+  letter-spacing: 0.1px;
+  white-space: nowrap;
+}
+.atl-badge--accent {
+  background: var(--accent-tint);
+  color: var(--accent-text);
+}
+.atl-badge--success {
+  background: var(--success-tint);
+  color: var(--success-text);
+}
+.atl-badge--warning {
+  background: var(--warning-tint);
+  color: var(--warning-text);
+}
+.atl-badge--danger {
+  background: var(--danger-tint);
+  color: var(--danger-text);
+}
+
+/* --------------------------------------------------------------- ScorePill */
+.atl-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 40px;
+  height: 24px;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-full);
+  font: 600 13px/18px var(--font);
+  font-variant-numeric: tabular-nums;
+  background: var(--fill-tertiary);
+  color: var(--label-secondary);
+}
+.atl-pill--shortlisted {
+  background: var(--bucket-shortlisted-bg);
+  color: var(--bucket-shortlisted-text);
+}
+.atl-pill--cutoff {
+  background: var(--bucket-cutoff-bg);
+  color: var(--bucket-cutoff-text);
+}
+.atl-pill--rejected {
+  background: var(--bucket-rejected-bg);
+  color: var(--bucket-rejected-text);
+}
+
+/* ------------------------------------------------ Progress, Spinner */
+.atl-ring {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.atl-ring svg {
+  transform: rotate(-90deg);
+}
+.atl-ring-track {
+  stroke: var(--fill-tertiary);
+}
+.atl-ring-value {
+  stroke: var(--accent);
+  transition: stroke-dashoffset var(--duration-slow) var(--ease-out);
+}
+.atl-ring-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+.atl-bar {
+  position: relative;
+  height: 6px;
+  border-radius: var(--radius-full);
+  background: var(--fill-tertiary);
+  overflow: hidden;
+}
+.atl-bar-value {
+  height: 100%;
+  border-radius: inherit;
+  background: var(--accent);
+  transition: width var(--duration-slow) var(--ease-out);
+}
+.atl-bar--indeterminate .atl-bar-value {
+  width: 30%;
+  animation: atl-indeterminate 1.4s var(--ease-in-out) infinite;
+}
+@keyframes atl-indeterminate {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(340%);
+  }
+}
+.atl-spinner {
+  display: inline-block;
+  color: var(--label-secondary);
+  animation: atl-spin 0.9s linear infinite;
+}
+@keyframes atl-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* -------------------------------------------------------------- EmptyState */
+.atl-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-12) var(--space-8);
+  text-align: center;
+  color: var(--label-secondary);
+}
+.atl-empty-icon {
+  margin-bottom: var(--space-2);
+  color: var(--label-tertiary);
+}
+.atl-empty-title {
+  font: var(--text-headline);
+  color: var(--label-primary);
+}
+.atl-empty-message {
+  max-width: 380px;
+  font: var(--text-callout);
+}
+.atl-empty .atl-button {
+  margin-top: var(--space-3);
+}
+
+/* ------------------------------------------------------------------- Toast */
+.atl-toasts {
+  position: fixed;
+  left: 50%;
+  bottom: var(--space-6);
+  z-index: 120;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+.atl-toast {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 280px;
+  max-width: 480px;
+  padding: var(--space-3) var(--space-3) var(--space-3) var(--space-4);
+  border-radius: var(--radius-card);
+  background: var(--material-thick);
+  backdrop-filter: var(--material-filter);
+  box-shadow: var(--shadow-2);
+  outline: 0.5px solid var(--separator);
+  pointer-events: auto;
+}
+.atl-toast-icon {
+  color: var(--success-text);
+  flex: none;
+}
+.atl-toast-text {
+  flex: 1;
+  font: 500 15px/20px var(--font);
+}
+
+/* ---------------------------------------------------------------- KeyValue */
+.atl-kv {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  column-gap: var(--space-6);
+  row-gap: var(--space-2);
+  margin: 0;
+}
+.atl-kv dt {
+  color: var(--label-secondary);
+}
+.atl-kv dd {
+  margin: 0;
+  color: var(--label-primary);
+  font-variant-numeric: tabular-nums;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
