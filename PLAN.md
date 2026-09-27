@@ -59,6 +59,23 @@ The whole screening pipeline, runnable and testable from Python alone.
 **Exit criteria**
 - Installs and runs on a clean Mac (Apple Silicon) and a clean Windows 11 machine with no dev tools.
 
+## Deferred (must finish before real use)
+
+Found by the first run on real data (`docs/summaries/smoke-test-1.md`). Not built in Phase 2 unless a Phase 2 step needs one.
+
+- **1.11a Identity redaction from the résumé itself — BLOCKS use with real student data.** Redaction removes the CSV row's name, but when the résumé's name differs (nickname, initials, order, someone else's file) only the dropped header protects the student; a word from the owner's name line reached the model in smoke test 1. Also redact identity words taken from the résumé's own header (name line, email local part) everywhere in the text.
+
+The rest of the list: `prompts/phase1-11.md` (items 1.11b–g) is not in the repository, so these come from smoke test 1 and are not numbered. Replace them with 1.11b–g when that file is added.
+
+- **Speed and the pre-check limit on CPU-only laptops.** About 141 s per résumé (~25 an hour). The pre-check took 58–83 s against its 120 s limit, so a slower laptop may be told the model can't be used. The pre-check-based estimate is also ~2.5× too optimistic (57.6 s pre-check vs 141.5 s real median).
+- **Scores bunch at the top.** One real résumé scored 95 ten times with identical sub-scores; the strong fictional sample also 95. Needs the Phase 3 eval set before trusting rank order.
+- **Evidence and claim mismatches vary for identical input.** Duplicate quotes are dropped together with their claim; 16% of quotes weren't verbatim; some "mismatches" name criteria items the student never claimed.
+- **CLI wording.** The retry hint prints a literal "…" for the data folder and suggests `retry` when every failure is permanent.
+- **Pre-flight wording.** "links shared by two students" is printed for any group size.
+- **Log wording.** "dropped N of M evidence quotes not found" also counts duplicates, which were found.
+- **Windows redirected output.** "→ ≥ ·" become "?" when CLI output goes to a file (cp1252).
+- **Real-data coverage.** Still untested on real files: varied layouts, scanned PDFs (OCR), résumés over 10 pages, Drive's virus-scan page, Google Doc and folder links, outages mid-run.
+
 ---
 
 ## Design system — Apple-inspired
@@ -107,3 +124,4 @@ A fresh session reads this first. One line per step: date · step · tests · wh
 - 2026-09-27 · 1.8 export · 245 tests · `export_csv(db.export_rows(run), compute_buckets(db.scored_rows(run), …, overrides=db.latest_overrides(run)).placements, path, view=…)`. Raises `ExportError` (recruiter wording) for a locked file or full disk.
 - 2026-09-27 · 1.9 cli · 255 tests (~40 s) · `engine.cli.main(argv, stdout=, stdin=, url_rewrite=, health=, poll_interval=, download_interval=, idle_interval=)` — keyword args are test seams (stubs). Pre-check cache lives in settings key `model_prechecks`. Use `PYTHONIOENCODING=utf-8` on Windows consoles.
 - 2026-09-27 · 1.10 e2e · 257 tests (256 run, 1 skipped: live) · **Phase 1 done.** Next session: read `docs/summaries/PHASE1_SUMMARY.md` §6 (risks) and §7 (what Phase 2 needs: expose `Worker.recover()`, add `Worker.cancel()`, clear-filters DB method, model pull). The owner still has to run `ATLAS_LIVE=1` and try real Drive links.
+- 2026-09-28 · 2.0 deferred list + engine gaps · 310 tests (309 run, 1 skipped: live) · **Deferred** section added (1.11a blocks real data; `prompts/phase1-11.md` is missing, other items listed from smoke test 1). `Worker.recover()` runs once per worker (the server calls it at boot; `start()` calls it if nobody did). `Worker.cancel()`, `Worker.attach()` + `run_waiting_to_resume(db)` for auto-resume at boot. Filters apply **once**, when a run leaves draft; `Database.clear_filters` (draft/paused) never touches the locked config. One worker = one active run: starting another while one is *running* raises `WorkerBusyError`; paused/completed/cancelled runs are detached. `load_table` reads .csv/.xlsx (`load_csv` wraps it; .xls refused). `OllamaClient.pull()` yields `PullProgress`; the Ollama stub has `/api/pull`. `engine/estimate.py` is pure; scoring times per model live in settings `scoring_seconds`.

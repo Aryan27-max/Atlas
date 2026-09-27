@@ -79,6 +79,16 @@ class Flag:
     UNSUPPORTED_HIGH_SCORE = "High score without supporting evidence"
 
 
+class Pull:
+    """Model download messages (Ollama ``/api/pull``)."""
+
+    FAILED = "The model couldn't be downloaded. Check your internet connection and try again."
+
+    @staticmethod
+    def not_found(model: str) -> str:
+        return f'There is no model called "{model}". Check the name at ollama.com/library.'
+
+
 # Only these resume on their own, when the health probe succeeds again.
 AUTO_RESUME_REASONS = frozenset({Pause.NO_INTERNET, Pause.OLLAMA_DOWN})
 
@@ -104,6 +114,14 @@ class SystemUnavailable(AtlasError):
     def __init__(self, reason: str) -> None:
         super().__init__(reason)
         self.reason = reason
+
+
+class PullError(AtlasError):
+    """Ollama couldn't download a model. ``message`` is for the recruiter."""
+
+    def __init__(self, message: str) -> None:
+        super().__init__(message)
+        self.message = message
 
 
 class TransientError(AtlasError):

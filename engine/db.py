@@ -836,6 +836,40 @@ class Database:
                 self._event(c, run_id, None, "info", f"Retrying {len(rows)} failed candidates")
             return len(rows)
 
+    def clear_filters(self, run_id: int) -> int:
+        """Send candidates removed by a hard filter back to the queue. Returns how many.
+
+        Only while the run is a draft or paused. The run's filter settings are
+        not touched (they stay locked, CLAUDE.md rule 11): the worker applies
+        filters once, when a run leaves draft, so these candidates are screened
+        when the run continues.
+        """
+        with self.transaction() as c:
+            run = c.execute("SELECT status FROM runs WHERE id = ?", (run_id,)).fetchone()
+            if run is None:
+                raise NotFoundError(f"Run {run_id} does not exist.")
+            if run["status"] not in ("draft", "paused"):
+                raise RunLockedError("Filtered candidates can be added back only while screening is paused.")
+            rows = c.execute(
+                "SELECT id FROM candidates WHERE run_id = ? AND state = 'filtered' ORDER BY id", (run_id,)
+            ).fetchall()
+            for row in rows:
+                self._transition(c, row["id"], "filtered", "queued")
+            if rows:
+                self._event(c, run_id, None, "info", f"{len(rows)} filtered candidates will be screened after all")
+            return len(rows)
+
+    def scoring_durations(self, run_id: int) -> list[float]:
+        """Seconds each scored candidate of the run took, oldest first (for the ETA)."""
+        rows = self._query(
+            """SELECT e.duration_seconds AS seconds FROM evaluations e
+               JOIN candidates c ON c.id = e.candidate_id
+               WHERE c.run_id = ? AND e.duration_seconds IS NOT NULL
+               ORDER BY e.created_at, e.candidate_id""",
+            (run_id,),
+        )
+        return [float(r["seconds"]) for r in rows]
+
     # ---- crash recovery --------------------------------------------------- #
 
     def recover_after_crash(self, downloads_dir: Path | str | None = None) -> RecoveryReport:

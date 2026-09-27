@@ -1,0 +1,2 @@
+# Test-only dependencies (pre-approved in the Phase 2 prompt).
+-r requirements.txt

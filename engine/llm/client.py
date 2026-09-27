@@ -21,11 +21,11 @@ import json
 import logging
 import time
 from dataclasses import dataclass
-from typing import Any, Callable, Protocol
+from typing import Any, Callable, Iterator, Protocol
 
 import requests
 
-from engine.errors import Pause, Reason, SystemUnavailable, TransientError
+from engine.errors import Pause, Pull, PullError, Reason, SystemUnavailable, TransientError
 
 log = logging.getLogger("atlas.llm")
 
@@ -51,6 +51,13 @@ class ChatResult:
     done_reason: str | None     # "stop", or "length" when num_predict cut the answer off
     eval_count: int             # tokens generated
     duration: float             # wall-clock seconds for this call
+
+
+@dataclass(frozen=True)
+class PullProgress:
+    status: str          # Ollama's words: "pulling manifest", "pulling <digest>", "success"
+    completed: int       # bytes of the current layer
+    total: int           # bytes of the current layer (0 while unknown)
 
 
 class ChatDeadline(TransientError):
@@ -134,6 +141,58 @@ class OllamaClient:
                 return value
         return FALLBACK_CONTEXT
 
+    def pull(self, name: str) -> Iterator[PullProgress]:
+        """Download a model from the Ollama registry, yielding progress.
+
+        Ollama does the downloading; Atlas only asks and listens. Stop iterating
+        (or ``close()`` the generator) to cancel: the connection is closed and
+        Ollama abandons the pull, keeping finished layers for next time.
+        Raises ``SystemUnavailable`` if Ollama isn't running and ``PullError``
+        (recruiter wording) if the pull itself fails.
+        """
+        try:
+            response = self._session.post(
+                f"{self.base_url}/api/pull",
+                json={"model": name, "stream": True},
+                stream=True,
+                timeout=(self._connect, self._read),
+            )
+        except requests.RequestException:
+            raise SystemUnavailable(Pause.OLLAMA_DOWN) from None
+        try:
+            if response.status_code != 200:
+                raise PullError(self._pull_message(name, _error_text(response)))
+            for line in response.iter_lines():
+                if not line:
+                    continue
+                try:
+                    chunk = json.loads(line)
+                except ValueError:
+                    continue
+                if chunk.get("error"):
+                    raise PullError(self._pull_message(name, str(chunk["error"])))
+                progress = PullProgress(
+                    status=str(chunk.get("status") or ""),
+                    completed=int(chunk.get("completed") or 0),
+                    total=int(chunk.get("total") or 0),
+                )
+                yield progress
+                if progress.status == "success":
+                    return
+        except requests.RequestException:
+            raise PullError(Pull.FAILED) from None
+        finally:
+            response.close()
+        raise PullError(Pull.FAILED)     # the stream ended without "success"
+
+    @staticmethod
+    def _pull_message(name: str, detail: str) -> str:
+        lowered = detail.lower()
+        if "not exist" in lowered or "not found" in lowered or "manifest unknown" in lowered:
+            return Pull.not_found(name)
+        log.info("model pull failed: %s", detail[:200])
+        return Pull.FAILED
+
     # ---- chat ------------------------------------------------------------- #
 
     def chat_json(
@@ -216,3 +275,11 @@ class OllamaClient:
         if timeout is not None:
             return ChatDeadline("ollama", Reason.MODEL_STOPPED, detail)
         return TransientError("ollama", Reason.MODEL_STOPPED, detail)
+
+
+def _error_text(response: requests.Response) -> str:
+    """Ollama's ``{"error": …}`` body, or the status code."""
+    try:
+        return str(response.json().get("error") or response.status_code)
+    except ValueError:
+        return str(response.status_code)

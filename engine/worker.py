@@ -21,7 +21,12 @@ Whose problem is it? (§8)
   row, then the run pauses instead of failing everyone.
 
 Only runs paused for "No internet connection" or "Ollama isn't running"
-resume on their own, when the probe (polled every 5 s) says so.
+resume on their own, when the probe (polled every 5 s) says so. After an
+app restart, ``attach`` watches such a run again (``run_waiting_to_resume``).
+
+One worker processes one run at a time. Starting another run is refused
+while the current one is running; a paused, finished or cancelled run is
+detached first (it keeps its status).
 """
 
 from __future__ import annotations
@@ -36,7 +41,7 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, Callable, Iterator, Protocol
 
-from engine.db import Database, DatabaseError, InvalidTransitionError
+from engine.db import Database, DatabaseError, InvalidTransitionError, RecoveryReport
 from engine.errors import (
     AUTO_RESUME_REASONS,
     CandidateError,
@@ -46,6 +51,7 @@ from engine.errors import (
     SystemUnavailable,
     TransientError,
 )
+from engine.estimate import TIMING_SETTING, remember
 from engine.extract.pdf import MAX_PAGES, Extraction
 from engine.extract.sections import split_sections
 from engine.ingest.downloader import Downloaded
@@ -55,6 +61,8 @@ from engine.llm.scorer import ScoreResult
 log = logging.getLogger("atlas.worker")
 
 WORKING_STATES = ("queued", "downloading", "downloaded", "extracted", "scoring")
+IN_FLIGHT_STATES = ("downloading", "downloaded", "scoring")
+DETACH_TIMEOUT = 10.0       # seconds to wait for the previous run's threads to finish their item
 
 
 class DownloaderLike(Protocol):
@@ -114,6 +122,8 @@ class Worker:
         self._control = threading.RLock()         # start / pause / resume / stop
         self._state = threading.Lock()            # busy flags, error streak, poll time
         self._busy: dict[str, bool] = {"fetch": False, "extract": False, "score": False}
+        self._alive = 0                           # threads still inside _loop
+        self._recovered = False
         # Per stage: (signature of the last unexpected error, how many in a row).
         self._streaks: dict[str, tuple[tuple[str, ...] | None, int]] = {}
         self._last_poll: float | None = None
@@ -123,34 +133,91 @@ class Worker:
     # ------------------------------------------------------------------ #
 
     def start(self, run_id: int) -> None:
-        """Begin or continue a run: filters, crash recovery, then the threads."""
+        """Begin or continue a run: filters (when it leaves draft), crash
+        recovery (once per worker), then the threads."""
         with self._control:
             if self._threads_alive():
-                if self._run_id != run_id:
-                    raise WorkerBusyError("Another run is already being processed.")
-                self.resume(run_id)
-                return
+                if self._run_id == run_id and not self._stop.is_set():
+                    self.resume(run_id)
+                    return
+                self._detach()
             run = self.db.get_run(run_id)
             if run["status"] == "cancelled":
                 raise InvalidTransitionError("A cancelled run can't be started.")
-            self._apply_filters(run)
-            self._recover()
+            if run["status"] == "draft":
+                # Once, when the run leaves draft. Later starts (resume, Retry
+                # failed) must not re-filter candidates the recruiter put back
+                # with clear_filters.
+                self._apply_filters(run)
+            if not self._recovered:
+                self.recover()
             if self.db.get_run(run_id)["status"] in ("draft", "paused", "completed"):
                 self.db.set_run_status(run_id, "running")
             log.info("run %d started", run_id)
-            self._run_id = run_id
-            self._scorer = None
-            with self._state:
-                self._streaks.clear()
-                self._last_poll = None
-            self._stop.clear()
-            self._threads = [
-                threading.Thread(target=self._loop, args=(name, step), name=f"atlas-{name}", daemon=True)
-                for name, step in (("fetch", self._fetch_step), ("extract", self._extract_step),
-                                   ("score", self._score_step))
-            ]
-            for thread in self._threads:
-                thread.start()
+            self._launch(run_id)
+
+    def recover(self) -> RecoveryReport:
+        """Crash recovery. Run once when the engine boots, before any run starts.
+
+        Puts in-flight candidates back (``recover_after_crash``), deletes
+        orphaned downloads, and releases whatever a cancelled run still holds
+        (a PDF downloaded just before the cancel). ``start`` calls it too if it
+        hasn't run yet, so the CLI needs no extra step.
+        """
+        with self._control:
+            if self._threads_alive():
+                raise WorkerBusyError("Recovery runs before any screening starts.")
+            report = self.db.recover_after_crash(self.downloads_dir)
+            for orphan in report.orphan_pdf_paths:
+                _delete(orphan)
+            released = sum(self._release_in_flight(run["id"])
+                           for run in self.db.list_runs() if run["status"] == "cancelled")
+            if (report.candidates_requeued or report.candidates_rewound_to_extracted
+                    or report.orphan_pdf_paths or released):
+                log.info("recovered: %d re-queued, %d back to extracted, %d orphan files deleted, "
+                         "%d released from cancelled runs",
+                         report.candidates_requeued, report.candidates_rewound_to_extracted,
+                         len(report.orphan_pdf_paths), released)
+            self._recovered = True
+            return report
+
+    def attach(self, run_id: int) -> None:
+        """Watch a run paused for "No internet connection" or "Ollama isn't
+        running", so it resumes by itself when the probe succeeds. Used when the
+        engine boots; the run stays paused until then."""
+        with self._control:
+            run = self.db.get_run(run_id)
+            if run["status"] != "paused" or run["pause_reason"] not in AUTO_RESUME_REASONS:
+                raise InvalidTransitionError("Only a run paused for a connection problem resumes by itself.")
+            if self._threads_alive():
+                if self._run_id == run_id and not self._stop.is_set():
+                    return
+                self._detach()
+            if not self._recovered:
+                self.recover()
+            log.info("run %d: waiting to resume (%s)", run_id, run["pause_reason"])
+            self._launch(run_id)
+
+    def cancel(self, run_id: int, timeout: float = 5.0) -> None:
+        """Cancel a run, whether it is running, paused or a draft.
+
+        Stops claiming its work, hands back what is in flight and deletes its
+        downloaded PDFs. Results already scored are kept. If a thread is still
+        mid-item after ``timeout`` (a model call can take minutes on a CPU),
+        this returns anyway and the last thread to exit does the clean-up;
+        ``recover`` does it at the next boot if the app is closed first.
+        """
+        with self._control:
+            if self.db.get_run(run_id)["status"] != "cancelled":
+                self.db.set_run_status(run_id, "cancelled")   # a completed run raises: nothing to cancel
+            mine = self._run_id == run_id and self._threads_alive()
+            if mine:
+                self._stop.set()
+        log.info("run %d cancelled", run_id)
+        if mine:
+            self._join(timeout)       # the last thread out calls _release_in_flight
+        else:
+            self._release_in_flight(run_id)
 
     def pause(self, run_id: int, reason: str = Pause.BY_USER) -> None:
         """Stop claiming new work. Anything mid-flight finishes normally."""
@@ -159,7 +226,7 @@ class Worker:
 
     def resume(self, run_id: int) -> None:
         with self._control:
-            if not self._threads_alive() or self._run_id != run_id:
+            if not self._threads_alive() or self._run_id != run_id or self._stop.is_set():
                 self.start(run_id)
                 return
             try:
@@ -182,10 +249,7 @@ class Worker:
                 except DatabaseError:
                     log.exception("could not mark the run paused while stopping")
             self._stop.set()
-            deadline = time.monotonic() + timeout
-            for thread in self._threads:
-                thread.join(max(0.0, deadline - time.monotonic()))
-            self._threads = [t for t in self._threads if t.is_alive()]
+            self._join(timeout)
             log.info("worker stopped")
 
     def wait_idle(self, timeout: float | None = None) -> bool:
@@ -206,7 +270,64 @@ class Worker:
     # Thread loop
     # ------------------------------------------------------------------ #
 
+    def _launch(self, run_id: int) -> None:
+        self._run_id = run_id
+        self._scorer = None
+        with self._state:
+            self._streaks.clear()
+            self._last_poll = None
+        self._stop.clear()
+        self._threads = [
+            threading.Thread(target=self._loop, args=(name, step), name=f"atlas-{name}", daemon=True)
+            for name, step in (("fetch", self._fetch_step), ("extract", self._extract_step),
+                               ("score", self._score_step))
+        ]
+        with self._state:
+            self._alive = len(self._threads)
+        for thread in self._threads:
+            thread.start()
+
+    def _join(self, timeout: float) -> None:
+        deadline = time.monotonic() + timeout
+        for thread in self._threads:
+            thread.join(max(0.0, deadline - time.monotonic()))
+        self._threads = [t for t in self._threads if t.is_alive()]
+
+    def _detach(self) -> None:
+        """Stop the current run's threads so another run can start. The run
+        keeps its status (paused, completed or cancelled)."""
+        assert self._run_id is not None
+        before = self.db.get_run(self._run_id)
+        if before["status"] == "running" and not self._stop.is_set():
+            raise WorkerBusyError("Another screening is running. Pause it before starting this one.")
+        self._stop.set()
+        self._join(DETACH_TIMEOUT)
+        if self._threads_alive():
+            raise WorkerBusyError("Atlas is still finishing the previous screening. Try again in a minute.")
+        # An auto-resume may have flipped the old run to running just before the stop.
+        if before["status"] == "paused" and self.db.get_run(self._run_id)["status"] == "running":
+            self.db.set_run_status(self._run_id, "paused", reason=before["pause_reason"])
+
     def _loop(self, name: str, step: Callable[[], bool]) -> None:
+        try:
+            self._loop_body(name, step)
+        finally:
+            self._thread_exited()
+
+    def _thread_exited(self) -> None:
+        """The last thread out finishes a cancel: release what the run still holds."""
+        with self._state:
+            self._alive -= 1
+            last = self._alive == 0
+        if not last or self._run_id is None:
+            return
+        try:
+            if self.db.get_run(self._run_id)["status"] == "cancelled":
+                self._release_in_flight(self._run_id)
+        except (DatabaseError, sqlite3.Error):
+            log.exception("could not release a cancelled run's work; recovery will at the next start")
+
+    def _loop_body(self, name: str, step: Callable[[], bool]) -> None:
         while not self._stop.is_set():
             try:
                 did_work = step()
@@ -405,8 +526,16 @@ class Worker:
         )
         assert self._run_id is not None
         self.db.log_event(self._run_id, f"Scored {evaluation.overall_score}", candidate_id=cid)
+        self._remember_duration(result.model, result.duration_seconds)
         log.info("candidate %d (%s): scored %d in %.1fs", cid, ra, evaluation.overall_score, result.duration_seconds)
         self._success("score")
+
+    def _remember_duration(self, model: str, seconds: float) -> None:
+        """Keep recent scoring times per model for the next run's estimate."""
+        try:
+            self.db.set_setting(TIMING_SETTING, remember(self.db.get_setting(TIMING_SETTING), model, seconds))
+        except (DatabaseError, sqlite3.Error):
+            log.warning("could not record the scoring time")
 
     def _get_scorer(self) -> ScorerLike:
         if self._scorer is None:
@@ -533,7 +662,7 @@ class Worker:
                 return
             self._last_poll = now
         healthy = self.health.internet_ok() if reason == Pause.NO_INTERNET else self.health.ollama_ok()
-        if healthy:
+        if healthy and not self._stop.is_set():
             try:
                 self.db.set_run_status(run["id"], "running")
                 log.info("run %d resumed automatically (%s is back)", run["id"],
@@ -580,14 +709,37 @@ class Worker:
             self.db.log_event(run["id"], f"{filtered} candidates filtered out before scoring")
             log.info("run %d: %d candidates filtered", run["id"], filtered)
 
-    def _recover(self) -> None:
-        report = self.db.recover_after_crash(self.downloads_dir)
-        for orphan in report.orphan_pdf_paths:
-            _delete(orphan)
-        if report.candidates_requeued or report.candidates_rewound_to_extracted or report.orphan_pdf_paths:
-            log.info("recovered: %d re-queued, %d back to extracted, %d orphan files deleted",
-                     report.candidates_requeued, report.candidates_rewound_to_extracted,
-                     len(report.orphan_pdf_paths))
+    def _release_in_flight(self, run_id: int) -> int:
+        """Hand back a stopped run's in-flight candidates and delete their PDFs.
+
+        Only call when no thread is working on this run. The database is
+        updated first; a crash before the delete leaves an unreferenced file,
+        which recovery deletes as an orphan.
+        """
+        released = 0
+        for candidate in self.db.list_candidates(run_id, states=IN_FLIGHT_STATES):
+            cid = candidate["id"]
+            try:
+                if candidate["state"] == "scoring":
+                    self.db.return_to_extracted(cid)
+                else:
+                    self.db.return_to_queue(cid)
+            except InvalidTransitionError:
+                continue                   # moved on in the meantime
+            if candidate["pdf_path"]:
+                _delete(candidate["pdf_path"])
+            _delete(self.downloads_dir / f"{cid}.part")
+            released += 1
+        return released
+
+
+def run_waiting_to_resume(db: Database) -> int | None:
+    """At boot: the run to ``attach`` (the most recent one paused for a reason
+    that resumes by itself), or ``None``."""
+    waiting = [r for r in db.list_runs() if r["status"] == "paused" and r["pause_reason"] in AUTO_RESUME_REASONS]
+    if not waiting:
+        return None
+    return max(waiting, key=lambda r: (r["updated_at"], r["id"]))["id"]
 
 
 def _department_key(value: str) -> str:

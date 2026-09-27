@@ -522,5 +522,58 @@ class OverrideAndSettingsTests(DbTestCase):
         self.assertTrue(any("Not a PDF" in m for m in messages))
 
 
+
+class ClearFiltersTests(DbTestCase):
+    def filtered_run(self) -> tuple[int, list[int]]:
+        run_id, ids = self.new_run(4)
+        self.db.configure_run(run_id, model_name="qwen3:8b")
+        for cid in ids[:2]:
+            self.db.mark_filtered(cid, reason="CGPA 7 is below the minimum of 8.")
+        return run_id, ids
+
+    def test_filtered_candidates_go_back_to_the_queue_while_paused(self) -> None:
+        run_id, ids = self.filtered_run()
+        self.db.set_run_status(run_id, "running")
+        self.db.set_run_status(run_id, "paused", reason="Paused by you")
+        self.assertEqual(self.db.clear_filters(run_id), 2)
+        for cid in ids[:2]:
+            candidate = self.db.get_candidate(cid)
+            self.assertEqual(candidate["state"], "queued")
+            self.assertIsNone(candidate["filter_reason"])
+        self.assertTrue(any("screened after all" in e["message"] for e in self.db.events(run_id)))
+        self.assertEqual(self.db.clear_filters(run_id), 0)
+
+    def test_allowed_for_a_draft(self) -> None:
+        run_id, _ = self.filtered_run()
+        self.assertEqual(self.db.clear_filters(run_id), 2)
+
+    def test_refused_while_running_or_after_completion(self) -> None:
+        run_id, ids = self.filtered_run()
+        self.db.set_run_status(run_id, "running")
+        with self.assertRaises(RunLockedError):
+            self.db.clear_filters(run_id)
+        self.db.set_run_status(run_id, "completed")
+        with self.assertRaises(RunLockedError):
+            self.db.clear_filters(run_id)
+        self.assertEqual(self.db.get_candidate(ids[0])["state"], "filtered")
+
+    def test_unknown_run(self) -> None:
+        with self.assertRaises(NotFoundError):
+            self.db.clear_filters(999)
+
+
+class ScoringDurationTests(DbTestCase):
+    def test_durations_oldest_first_and_only_this_run(self) -> None:
+        run_id, ids = self.new_run(3)
+        other, other_ids = self.new_run(1)
+        for cid, seconds in zip(ids, (30.0, 10.0, 20.0)):
+            self.drive_to_scoring(cid)
+            self.db.save_evaluation(cid, **self.evaluation(), duration_seconds=seconds)
+        self.drive_to_scoring(other_ids[0])
+        self.db.save_evaluation(other_ids[0], **self.evaluation(), duration_seconds=99.0)
+        self.assertEqual(self.db.scoring_durations(run_id), [30.0, 10.0, 20.0])
+        self.assertEqual(self.db.scoring_durations(other), [99.0])
+
+
 if __name__ == "__main__":
     unittest.main()

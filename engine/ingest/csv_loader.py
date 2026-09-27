@@ -1,6 +1,9 @@
-"""Load a recruiter's CSV and build the pre-flight report (ARCHITECTURE §10).
+"""Load a recruiter's CSV or Excel file and build the pre-flight report (ARCHITECTURE §10).
 
-``load_csv`` is pure: it reads the file and returns a :class:`PreflightReport`.
+``load_table`` is pure: it reads the file and returns a :class:`PreflightReport`.
+It takes ``.csv`` and ``.xlsx`` (first sheet, the text each cell shows, the
+hyperlink target for résumé-link cells); an old ``.xls`` is refused with a
+clear message. ``load_csv`` is kept as a wrapper for existing callers.
 It never touches the database. The recruiter reads the report, and only
 after they confirm does the caller pass ``report.rows`` to
 ``Database.add_candidates`` (which inserts all rows or none).
@@ -13,9 +16,11 @@ CGPA, two students sharing one link, unused columns).
 from __future__ import annotations
 
 import csv
+import datetime as dt
 import io
 import re
 import unicodedata
+import warnings
 from dataclasses import dataclass, field
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
@@ -201,16 +206,33 @@ def normalise_cgpa(raw: str) -> tuple[float | None, str | None]:
 # --------------------------------------------------------------------------- #
 
 
-def load_csv(path: Path | str) -> PreflightReport:
-    """Read and validate a recruiter CSV. Never writes anything."""
+XLS_MESSAGE = "Save this file as .xlsx or CSV and try again."
+_ZIP_MAGIC = b"PK\x03\x04"                         # .xlsx is a zip file
+_OLE2_MAGIC = b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1"   # old binary .xls
+
+
+def load_table(path: Path | str) -> PreflightReport:
+    """Read and validate a recruiter file (.csv or .xlsx). Never writes anything."""
     path = Path(path)
     report = PreflightReport(source=path.name)
-
     try:
         raw = path.read_bytes()
     except OSError:
         return _fail(report, "unreadable", "The file couldn't be opened. Check that it still exists.")
+    suffix = path.suffix.lower()
+    if raw.startswith(_OLE2_MAGIC) or suffix == ".xls":
+        return _fail(report, "xls_unsupported", XLS_MESSAGE)
+    if raw.startswith(_ZIP_MAGIC) or suffix in (".xlsx", ".xlsm"):
+        return _load_xlsx(report, raw)
+    return _load_csv_bytes(report, raw)
 
+
+def load_csv(path: Path | str) -> PreflightReport:
+    """Same as :func:`load_table` (kept for callers written before .xlsx support)."""
+    return load_table(path)
+
+
+def _load_csv_bytes(report: PreflightReport, raw: bytes) -> PreflightReport:
     text, encoding = _decode(raw)
     if text is None:
         return _fail(
@@ -228,7 +250,78 @@ def load_csv(path: Path | str) -> PreflightReport:
         records = list(csv.reader(io.StringIO(text, newline=""), delimiter=delimiter))
     except csv.Error:
         return _fail(report, "not_csv", "The file isn't a valid CSV. Export it from Excel as CSV.")
+    return _build_report(report, records)
 
+
+def _load_xlsx(report: PreflightReport, raw: bytes) -> PreflightReport:
+    """First sheet of an .xlsx, each cell as the text Excel shows."""
+    try:
+        import openpyxl  # imported here so CSV-only use never needs it
+    except ImportError:
+        return _fail(report, "xlsx_unavailable", "Excel files can't be read on this computer. " + XLS_MESSAGE)
+    try:
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")        # openpyxl warns about unsupported Excel extras
+            workbook = openpyxl.load_workbook(io.BytesIO(raw), data_only=True)
+    except Exception:  # noqa: BLE001 — a damaged or foreign file can fail in many ways inside openpyxl
+        return _fail(report, "not_xlsx",
+                     "The Excel file couldn't be read. Open it in Excel, save it again as .xlsx or CSV, "
+                     "and try again.")
+    report.encoding = "xlsx"
+    sheet = workbook.worksheets[0]
+    records: list[list[str]] = []
+    links: dict[tuple[int, int], str] = {}
+    for r, row in enumerate(sheet.iter_rows()):
+        records.append([_cell_text(cell.value, cell.number_format) for cell in row])
+        for c, cell in enumerate(row):
+            target = getattr(cell.hyperlink, "target", None) if cell.hyperlink is not None else None
+            if target:
+                links[(r, c)] = str(target)
+    workbook.close()
+    return _build_report(report, records, links)
+
+
+def _cell_text(value: Any, number_format: str) -> str:
+    """The text a spreadsheet cell shows.
+
+    Whole numbers are written out in full: a 12-digit phone stored as a number
+    is shown by Excel as 9.19877E+11 only because of the column width, and the
+    digits are all there. Other numbers keep up to 15 significant digits (so
+    8.1 stays "8.1", not "8.0999999"), or the decimals the format asks for.
+    """
+    if value is None:
+        return ""
+    if isinstance(value, bool):
+        return "TRUE" if value else "FALSE"
+    if isinstance(value, (dt.datetime, dt.date)):
+        day = value.date() if isinstance(value, dt.datetime) else value
+        return day.isoformat()
+    if isinstance(value, dt.time):
+        return value.isoformat(timespec="minutes")
+    if isinstance(value, int):
+        return str(value)
+    if isinstance(value, float):
+        fmt = number_format or "General"
+        if "%" in fmt:
+            decimals = _format_decimals(fmt)
+            return f"{value * 100:.{decimals}f}%"
+        if fmt not in ("General", "@") and re.search(r"[0#]", fmt):
+            return f"{value:.{_format_decimals(fmt)}f}"
+        if value.is_integer() and abs(value) < 1e16:
+            return str(int(value))
+        return format(value, ".15g")
+    return str(value)
+
+
+def _format_decimals(number_format: str) -> int:
+    match = re.search(r"\.([0#]+)", number_format)
+    return len(match.group(1)) if match else 0
+
+
+def _build_report(
+    report: PreflightReport, records: list[list[str]], links: dict[tuple[int, int], str] | None = None
+) -> PreflightReport:
+    """Everything after reading: header, columns, rows, issues, summary."""
     header_index = _find_header(records)
     if header_index is None:
         return _fail(report, "empty_file", "The file is empty.")
@@ -252,6 +345,15 @@ def load_csv(path: Path | str) -> PreflightReport:
     if missing or report.file_errors:
         report.summary = _summarise(report, rows_read=sum(1 for _, r in data if _non_blank(r)))
         return report
+
+    # A résumé-link cell that shows "Resume" but links somewhere: use the link.
+    link_column = columns.get("resume_link")
+    if links and link_column is not None:
+        for index, record in enumerate(records):
+            target = links.get((index, link_column))
+            if index > header_index and target and re.match(r"^https?://", target, re.IGNORECASE) \
+                    and link_column < len(record):
+                record[link_column] = target
 
     # Trailing empty header cells (",,,," after the last column) are not columns.
     width = max((i + 1 for i, h in enumerate(header) if _clean_cell(h)), default=0)

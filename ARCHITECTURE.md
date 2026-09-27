@@ -138,7 +138,7 @@ flowchart TB
         ext["extract/ pdf, ocr, sections (Built)"]
         llm["llm/ client, redact, prompt, schema, verify, scorer, precheck (Built)"]
         exp["export.py (Built)"]
-        est["estimate.py (Planned)"]
+        est["estimate.py (Built, Phase 2)"]
     end
     subgraph L4["Core"]
         db["db.py (Built)"]
@@ -290,7 +290,7 @@ stateDiagram-v2
 
     failed --> queued : retry_failed (no text yet)
     failed --> extracted : retry_failed (text exists, no re-download)
-    filtered --> queued : clear filters (Planned)
+    filtered --> queued : clear_filters (draft or paused)
 
     scored --> [*]
 ```
@@ -306,6 +306,7 @@ stateDiagram-v2
 | `return_to_queue` | downloading, downloaded | queued | `pdf_path = NULL` |
 | `return_to_extracted` | scoring | extracted | — |
 | `retry_failed` | failed | queued or extracted | event |
+| `clear_filters` *(Phase 2)* | filtered | queued | event; only for a draft or paused run. The run's filter settings stay locked; the worker applies filters **once, when a run leaves draft**, so cleared candidates are screened when the run continues |
 | `claim_next_download` | queued | downloading | the prefetch-gate check and the claim in **one** transaction (added for the worker) |
 | `claim_next_scoring` | extracted | scoring | oldest first (added for the worker) |
 
@@ -351,6 +352,11 @@ stateDiagram-v2
 | "The model "X" is no longer installed in Ollama. Install it again, then press Resume." *(added)* | scorer: Ollama answers 404 for the model | when the user presses Resume |
 
 Automatic resume only applies to the two health-probe reasons. A run paused by a crash or by the user never restarts on its own.
+
+**Built in Phase 2 (`worker.py`):**
+- **Auto-resume survives a restart.** At boot the engine runs `Worker.recover()` once, then `run_waiting_to_resume(db)` picks the most recently paused run with an automatic reason and `Worker.attach(run_id)` starts the threads for it without changing its status; it resumes when the probe succeeds.
+- **Cancel** (`Worker.cancel`) works on a draft, running or paused run: the run becomes `cancelled`, the worker stops claiming its work, in-flight candidates go back (`downloading`/`downloaded` → `queued`, `scoring` → `extracted`) and their PDFs are deleted. Scores already saved are kept. If a model call is still running (minutes on a CPU), `cancel` returns anyway and the last worker thread to exit does the clean-up; `recover()` does it at the next boot if the app closes first.
+- **One active run per worker** (one worker per engine). Starting another run is refused (`WorkerBusyError`) while the current one is `running`; a paused, completed or cancelled run is detached first and keeps its status and pause reason.
 
 ---
 
@@ -481,7 +487,9 @@ Both kill tests use `Popen.kill()` (SIGKILL on POSIX, `TerminateProcess` on Wind
 
 ## 10. CSV ingest and pre-flight
 
-**Built** (`engine/ingest/csv_loader.py`, `engine/ingest/links.py`). `load_csv(path)` parses and validates everything and returns a `PreflightReport`; it never touches the database. Nothing is written until the recruiter confirms, and then `add_candidates` inserts all rows or none.
+**Built** (`engine/ingest/csv_loader.py`, `engine/ingest/links.py`). `load_table(path)` parses and validates everything and returns a `PreflightReport`; it never touches the database. Nothing is written until the recruiter confirms, and then `add_candidates` inserts all rows or none. (`load_csv` is kept as a wrapper.)
+
+**Excel input** *(Phase 2)*: `.xlsx` is read with openpyxl — first sheet only, each cell as the text Excel shows (whole numbers written out in full, so a phone stored as a number never becomes `9.19877E+11`; other numbers up to 15 significant digits or the decimals of the cell's format; dates as `YYYY-MM-DD`), and a résumé-link cell that shows a word ("Resume") uses its hyperlink target. Other columns' hyperlinks (e.g. `mailto:` on an email) are ignored. The file type is decided by its first bytes, then its extension. An old binary `.xls` is refused: "Save this file as .xlsx or CSV and try again." After reading, CSV and Excel go through exactly the same header matching, normalisation and report.
 
 **Expected fields**, with header aliases matched case- and punctuation-insensitively:
 
@@ -702,7 +710,17 @@ flowchart TD
 
 ## 15. Time estimate
 
-**Planned** (`engine/estimate.py`).
+**Minimal version built in Phase 2** (`engine/estimate.py`, pure; the server supplies the numbers). `estimate(remaining, measured=, history=, precheck_seconds=)` returns `{low_seconds, high_seconds, basis, per_resume_seconds, label}`:
+
+| Basis | When | Per-résumé figure | Range |
+|---|---|---|---|
+| `measured` ("Measured") | ≥ 5 résumés of this run scored | EWMA (α 0.3) of this run's scoring times, oldest first (`Database.scoring_durations`) | ×0.85 – ×1.2 |
+| `history` ("Based on earlier runs on this computer") | earlier runs with this model | median of the last 200 scoring times for the model, kept by the worker in `settings["scoring_seconds"]` | ×0.8 – ×1.3 |
+| `precheck` ("Rough estimate") | nothing else known | the model pre-check's duration | ×0.7 – ×1.5 |
+
+Scoring times are measured inside the model call, so paused time never counts. Known weakness (smoke test 1): the pre-check résumé is short, so the `precheck` basis is about 2.5× too optimistic on a CPU-only laptop (57.6 s pre-check vs 141.5 s median). The plan below replaces it in Phase 3.
+
+Phase 3 plan:
 
 1. **Before the run:** detect the hardware (CPU cores, RAM, Apple Silicon or not, NVIDIA GPU present, from Ollama's `/api/ps`, or `nvidia-smi` if available). Pick a seconds-per-résumé figure from a small calibration table, multiply by the candidate count, and add a download allowance. Show it as a **range** with the disclaimer: *"Rough estimate. Atlas shows a measured time after the first few résumés."*
 2. **After 5 scored résumés:** switch to a measured estimate, using an exponentially weighted moving average of real per-candidate time × remaining. Pauses are excluded from the timing.
@@ -842,7 +860,8 @@ atlas/
 │   ├── llm/client.py · redact.py · prompt.py · schema.py · verify.py · scorer.py · precheck.py   Built
 │   ├── worker.py · health.py · logs.py                              Built
 │   ├── export.py                                                     Built
-│   ├── estimate.py · server.py                                       Planned
+│   ├── estimate.py                                                   Built (Phase 2)
+│   ├── server.py                                                     Planned
 │   └── tests/
 ├── app/
 │   ├── main/        Electron main + preload

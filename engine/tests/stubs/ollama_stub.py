@@ -62,6 +62,9 @@ class OllamaStub(StubServer):
         self.delay = delay                     # seconds per chat, to make a run take time
         self.chats: list[dict[str, Any]] = []  # request payloads, in order
         self._script: list[str] = []
+        self.pullable: set[str] = {"stub-small:latest"}   # names /api/pull can "download"
+        self.pull_step_delay = 0.0             # seconds between pull progress lines
+        self.pulls: list[str] = []
 
     def start(self) -> "OllamaStub":
         super().start()
@@ -117,6 +120,8 @@ class OllamaStub(StubServer):
                 with stub._lock:
                     stub.requests.append(self.path)
                 payload = self._body()
+                if self.path == "/api/pull":
+                    return self._pull(str(payload.get("model") or payload.get("name") or ""))
                 if self.path == "/api/show":
                     if not stub._known(payload.get("model", "")):
                         return self._json(404, {"error": "model not found"})
@@ -128,6 +133,37 @@ class OllamaStub(StubServer):
                 with stub._lock:
                     stub.chats.append(payload)
                 self._chat(payload, stub._next_mode())
+
+            def _pull(self, name: str) -> None:
+                full = name if ":" in name else f"{name}:latest"
+                with stub._lock:
+                    stub.pulls.append(full)
+                self.send_response(200)
+                self.send_header("Content-Type", "application/x-ndjson")
+                self.end_headers()
+                lines: list[dict[str, Any]] = [{"status": "pulling manifest"}]
+                if full not in stub.pullable:
+                    lines.append({"error": "pull model manifest: file does not exist"})
+                else:
+                    for layer in range(2):
+                        total = 4_000_000
+                        for done in (0, 1_000_000, 2_500_000, total):
+                            lines.append({"status": f"pulling layer{layer}", "digest": f"sha256:layer{layer}",
+                                          "total": total, "completed": done})
+                    lines += [{"status": "verifying sha256 digest"}, {"status": "writing manifest"},
+                              {"status": "success"}]
+                try:
+                    for line in lines:
+                        if stub.pull_step_delay:
+                            time.sleep(stub.pull_step_delay)
+                        self.wfile.write(json.dumps(line).encode() + b"\n")
+                        self.wfile.flush()
+                        if line.get("status") == "success":
+                            with stub._lock:
+                                if full not in stub.models:
+                                    stub.models.append(full)
+                except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError):
+                    pass
 
             def _chat(self, payload: dict[str, Any], mode: str) -> None:
                 if stub.delay:
