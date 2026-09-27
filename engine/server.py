@@ -616,7 +616,8 @@ class Engine:
         if needle:
             out = [row for row in out if needle in row.name.casefold() or needle in row.ra_number.casefold()]
         if sort == "name":
-            out.sort(key=lambda row: (row.name.casefold(), row.ra_number))
+            # Rows without a name go last, not first.
+            out.sort(key=lambda row: (not row.name.strip(), row.name.casefold(), row.ra_number))
         elif sort == "score":
             out.sort(key=lambda row: (row.score is None, -(row.score or 0), row.ra_number))
         else:

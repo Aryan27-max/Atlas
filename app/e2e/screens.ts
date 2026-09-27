@@ -24,6 +24,8 @@ export async function capture(page: Page, name: string, theme: ThemeName, full?:
   mkdirSync(SCREENS_DIR, { recursive: true })
   // Screens are captured from the top, however far a test scrolled.
   await page.evaluate(() => document.querySelectorAll('.screen-scroll').forEach((el) => el.scrollTo(0, 0)))
+  // No hover highlight left over from the last click.
+  await page.mouse.move(1, 799)
   await page.waitForTimeout(100)
   if (full) {
     await page.addStyleTag({

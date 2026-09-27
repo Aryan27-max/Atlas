@@ -149,9 +149,11 @@ export interface PopoverProps {
   label: string
   children: ReactNode
   align?: 'start' | 'end'
+  /** Fixed width in px (still fits a narrow window). */
+  width?: number
 }
 
-export function Popover({ open, onClose, anchor, label, children, align = 'end' }: PopoverProps) {
+export function Popover({ open, onClose, anchor, label, children, align = 'end', width }: PopoverProps) {
   const ref = useRef<HTMLDivElement>(null)
   const [position, setPosition] = useState<{ top: number; left?: number; right?: number }>({ top: 0 })
   useModal(open, ref, onClose)
@@ -183,7 +185,7 @@ export function Popover({ open, onClose, anchor, label, children, align = 'end' 
           aria-modal="true"
           tabIndex={-1}
           className="atl-popover"
-          style={position}
+          style={width ? { ...position, width, maxWidth: 'calc(100vw - 16px)' } : position}
           initial={{ opacity: 0, y: -6, scale: 0.98 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: -4, scale: 0.98 }}

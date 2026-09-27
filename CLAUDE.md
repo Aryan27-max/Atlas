@@ -68,7 +68,7 @@ atlas/
     ├── main/            ← engine process, IPC validation, SSE, window, keep-awake [done]
     ├── preload/         ← window.atlas bridge (no token, sandboxed)     [done]
     ├── renderer/design/ ← tokens.css + components + #/design gallery   [done]
-    ├── renderer/screens/← Welcome, setup flow, Progress [done]; Results [next], then Settings
+    ├── renderer/screens/← Welcome, setup flow, Progress, Results [done]; Settings [next]
     ├── src/shared/      ← api-schema.json → api-types.ts (generated), bridge.ts [done]
     └── e2e/, tests/     ← Playwright (Electron) and Vitest              [done]
 ```

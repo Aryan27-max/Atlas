@@ -7,6 +7,7 @@ import { Button, Spinner, ToastProvider } from './design'
 import { Gallery } from './design/Gallery'
 import { Placeholder } from './screens/Placeholder'
 import { Progress } from './screens/Progress'
+import { Results } from './screens/results/Results'
 import { Welcome } from './screens/Welcome'
 import { SetupFlow } from './screens/setup/SetupFlow'
 import { useNav } from './state/nav'
@@ -127,7 +128,7 @@ function Screens() {
       {view.name === 'welcome' && <Welcome />}
       {view.name === 'setup' && <SetupFlow key={view.runId} runId={view.runId} step={view.step} />}
       {view.name === 'progress' && <Progress key={view.runId} runId={view.runId} />}
-      {view.name === 'results' && <Placeholder title="Results" />}
+      {view.name === 'results' && <Results key={view.runId} runId={view.runId} />}
       {view.name === 'settings' && <Placeholder title="Settings" />}
     </div>
   )

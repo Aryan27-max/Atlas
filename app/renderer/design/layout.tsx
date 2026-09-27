@@ -1,6 +1,7 @@
 import { Check, ChevronRight, type LucideIcon } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { cx } from './cx'
+import { AnimatedNumber } from './number'
 
 // ---------------------------------------------------------------------- Card
 
@@ -168,7 +169,7 @@ export function Sidebar<T extends string>({ label, sections, selected, onSelect,
                 <span className="atl-sidebar-label">{item.label}</span>
                 {item.count !== undefined && (
                   <span className="atl-sidebar-count" aria-label={`${item.count.toLocaleString()} candidates`}>
-                    {item.count.toLocaleString()}
+                    <AnimatedNumber value={item.count} />
                   </span>
                 )}
               </button>

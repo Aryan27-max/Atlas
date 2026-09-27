@@ -339,6 +339,13 @@ class FlowTests(ServerTestCase):
         self.assertEqual([e["code"] for e in report["file_errors"]], ["missing_column"])
         self.assertError(self.client.post(f"/runs/{run_id}/table/confirm"), 409, "upload_not_ready")
 
+    def test_sort_by_name_puts_rows_without_a_name_last(self) -> None:
+        link = self.drive.serve("EXTRA", Pdf(self.pdf("extra", 50)))
+        run_id = self.ready_run([70], extra=[["", "RA999001", "9.5", "a@example.com", "CSE", "9876500000", "", link],
+                                             ["alpha", "RA999002", "9.5", "b@example.com", "CSE", "9876500000", "", link]])
+        rows = self.client.get(f"/runs/{run_id}/results", params={"sort": "name"}).json()["rows"]
+        self.assertEqual([r["ra_number"] for r in rows], ["RA999002", "RA000001", "RA999001"])
+
     def test_retry_failed_and_clear_filters(self) -> None:
         private = self.drive.serve("PRIVATE", SignIn())
         run_id = self.ready_run([70, 60, 50], cgpa_min=8.0,
