@@ -129,7 +129,7 @@ flowchart TB
         dl["ingest/downloader.py (Built)"]
         ext["extract/ pdf, ocr, sections (Built)"]
         llm["llm/ client, redact, prompt, schema, verify, scorer, precheck (Built)"]
-        exp["export.py (Planned)"]
+        exp["export.py (Built)"]
         est["estimate.py (Planned)"]
     end
     subgraph L4["Core"]
@@ -148,8 +148,6 @@ flowchart TB
     worker --> ext
     worker --> llm
     worker --> db
-    exp --> db
-    exp --> buckets
 ```
 
 **Stage modules never import `db.py`.** They take plain inputs and return results or raise typed errors. Only `worker.py` and `server.py` write to the database. That keeps every stage testable with no database at all.
@@ -704,13 +702,13 @@ flowchart TD
 
 ## 16. Export
 
-**Planned** (`engine/export.py`).
+**Built** (`engine/export.py`). `export_csv(rows, placements, path, *, view)` takes plain data (`Database.export_rows(run_id)` and the placements from `compute_buckets`) and never imports `db.py`.
 
-- One CSV per view: All, Shortlisted, Cutoff, Rejected, Failed. The "All" export has a `Bucket` column.
-- Columns: Rank, RA Number, Name, Email, Phone, Section, Department, CGPA, Overall Score, sub-scores, Bucket, How placed (score / filled to minimum / moved by recruiter), Reasons, Claim mismatches, Failure reason, Model.
+- One CSV per view: All, Shortlisted, Cutoff, Rejected, Failed. The "All" export has a `Bucket` column: Shortlisted, Cutoff, Rejected, Failed, Filtered or "Not scored yet", in that order (scored rows by rank).
+- Columns: Rank, RA Number, Name, Email, Phone, Section, Department, CGPA, Overall Score, sub-scores (Technical, Projects, Experience, Achievements, Communication, Criteria Fit), Bucket, How placed (Score / Filled to minimum / Moved by recruiter), Reasons, Claim mismatches, **Flags** *(added: the schema v2 recruiter notes)*, Failure reason (or filter reason), Model. List cells are joined with " | ".
 - UTF-8 with BOM (Excel shows Indian names correctly), CRLF line endings, `csv.QUOTE_ALL`.
-- **Formula-injection guard:** any cell starting with `=`, `+`, `-`, `@`, tab or CR is prefixed with `'`.
-- Written to a temp file and atomically renamed, so a crash never leaves half a CSV.
+- **Formula-injection guard:** any cell starting with `=`, `+`, `-`, `@`, tab or CR is prefixed with `'`. This also applies after leading spaces (`"   =1+1"`), which Excel would otherwise still evaluate.
+- Written to a temp file in the same folder, fsynced, and atomically renamed, so a crash never leaves half a CSV and a failed export leaves the previous file untouched. A target file open in Excel (Windows lock) raises `ExportError`: "export.csv is open in another program. Close it and export again." 
 
 ---
 
@@ -818,7 +816,8 @@ atlas/
 │   ├── extract/pdf.py · ocr.py · sections.py  Built
 │   ├── llm/client.py · redact.py · prompt.py · schema.py · verify.py · scorer.py · precheck.py   Built
 │   ├── worker.py · health.py · logs.py                              Built
-│   ├── estimate.py · export.py · server.py                           Planned
+│   ├── export.py                                                     Built
+│   ├── estimate.py · server.py                                       Planned
 │   └── tests/
 ├── app/
 │   ├── main/        Electron main + preload

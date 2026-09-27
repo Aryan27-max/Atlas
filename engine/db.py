@@ -935,6 +935,25 @@ class Database:
             (run_id,),
         )
 
+    def export_rows(self, run_id: int) -> list[dict[str, Any]]:
+        """Every candidate of a run with its evaluation (if any), JSON decoded.
+
+        Plain data for ``export.export_csv`` and the results screen.
+        """
+        rows = self._query(
+            """SELECT c.id AS candidate_id, c.ra_number, c.name, c.email, c.phone, c.section,
+                      c.department, c.cgpa, c.state, c.failure_kind, c.failure_reason, c.filter_reason,
+                      e.overall_score, e.sub_scores, e.summary, e.reasons, e.evidence,
+                      e.claim_mismatches, e.flags, e.model_name
+               FROM candidates c LEFT JOIN evaluations e ON e.candidate_id = c.id
+               WHERE c.run_id = ? ORDER BY c.id""",
+            (run_id,),
+        )
+        for row in rows:
+            for key in ("sub_scores", "reasons", "evidence", "claim_mismatches", "flags"):
+                row[key] = json.loads(row[key]) if row[key] else None
+        return rows
+
     # ---- events & settings ------------------------------------------------ #
 
     @staticmethod

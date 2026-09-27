@@ -57,7 +57,8 @@ atlas/
 │   ├── worker.py        ← resumable job loop                            [done]
 │   ├── health.py        ← internet / Ollama probes                      [done]
 │   ├── logs.py          ← engine.log (rotating, PII scrubbed)           [done]
-│   ├── export.py        ← CSV export                                    [next]
+│   ├── export.py        ← CSV export                                    [done]
+│   ├── cli.py           ← headless proof of Phase 1                     [next]
 │   ├── server.py        ← local API for the UI
 │   └── tests/
 └── app/                 ← Electron + React (Phase 2)
