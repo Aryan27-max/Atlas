@@ -106,3 +106,20 @@ export async function nextMessageBoxAnswers(app: ElectronApplication, index: num
 export function tempDir(prefix = 'atlas-e2e-'): string {
   return mkdtempSync(join(tmpdir(), prefix))
 }
+
+/** Record "Show in folder" / "Open logs folder" instead of opening Explorer or Finder. */
+export async function recordShellOpens(app: ElectronApplication): Promise<void> {
+  await app.evaluate(({ shell }) => {
+    const opened: string[] = []
+    ;(globalThis as { __opened?: string[] }).__opened = opened
+    shell.openPath = (async (path: string) => {
+      opened.push(path)
+      return ''
+    }) as typeof shell.openPath
+    shell.showItemInFolder = ((path: string) => void opened.push(path)) as typeof shell.showItemInFolder
+  })
+}
+
+export function shellOpened(app: ElectronApplication): Promise<string[]> {
+  return app.evaluate(() => [...((globalThis as { __opened?: string[] }).__opened ?? [])])
+}

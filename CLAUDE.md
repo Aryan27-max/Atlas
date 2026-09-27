@@ -68,9 +68,9 @@ atlas/
     ├── main/            ← engine process, IPC validation, SSE, window, keep-awake [done]
     ├── preload/         ← window.atlas bridge (no token, sandboxed)     [done]
     ├── renderer/design/ ← tokens.css + components + #/design gallery   [done]
-    ├── renderer/screens/← Welcome, setup flow, Progress, Results [done]; Settings [next]
+    ├── renderer/screens/← Welcome, setup flow, Progress, Results, Settings [done]
     ├── src/shared/      ← api-schema.json → api-types.ts (generated), bridge.ts [done]
-    └── e2e/, tests/     ← Playwright (Electron) and Vitest              [done]
+    └── e2e/, tests/     ← Playwright (Electron) and Vitest [done]; 2.9 end-to-end flows + performance [next]
 ```
 
 Update the `[done]` / `[next]` markers when a step lands.

@@ -9,9 +9,8 @@ import { type ReactNode, createContext, useContext, useEffect } from 'react'
 import type { RunOut } from '@shared/api-types'
 import { api } from '../../api/client'
 import { Button, Spinner, Toolbar } from '../../design'
-import { SETUP_STEPS, type SetupStep, useNav } from '../../state/nav'
+import { SETUP_STEPS, type SetupStep, useNav, viewForRun } from '../../state/nav'
 import { useSetup } from '../../state/setup'
-import { Placeholder } from '../Placeholder'
 import { Criteria } from './Criteria'
 import { Cutoffs } from './Cutoffs'
 import { Review } from './Review'
@@ -72,15 +71,18 @@ export function SetupFlow({ runId, step }: { runId: number; step: SetupStep }) {
     return () => window.removeEventListener('keydown', onKey)
   })
 
-  if (!run.data) {
+  // A run that has started is no longer set up here: show its own screen.
+  const started = run.data && run.data.status !== 'draft' ? run.data : null
+  useEffect(() => {
+    if (started) go(viewForRun(started))
+  }, [started, go])
+
+  if (!run.data || started) {
     return (
       <div className="gate" aria-busy="true">
         <Spinner size={24} />
       </div>
     )
-  }
-  if (run.data.status !== 'draft') {
-    return <Placeholder title={run.data.name} />
   }
   return (
     <Flow.Provider value={{ run: run.data, step, next, back }}>

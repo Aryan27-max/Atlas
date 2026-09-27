@@ -99,6 +99,12 @@ export class RunWatcher {
     }
   }
 
+  /** Settings changed (or were reset): re-read them now, not in five seconds. */
+  async preferencesChanged(): Promise<void> {
+    await this.refreshPreferences(true)
+    await this.apply()
+  }
+
   async apply(): Promise<void> {
     await this.refreshPreferences()
     const want = this.preferences.keep_awake && this.anyRunning()

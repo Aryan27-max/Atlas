@@ -21,6 +21,8 @@ interface NavState {
   previous: View
   go: (view: View) => void
   back: () => void
+  /** A run was deleted: never go back to it. */
+  forget: (runId: number) => void
 }
 
 export const useNav = create<NavState>((set) => ({
@@ -28,6 +30,10 @@ export const useNav = create<NavState>((set) => ({
   previous: { name: 'welcome' },
   go: (view) => set((state) => ({ view, previous: view.name === 'settings' ? state.view : state.previous })),
   back: () => set((state) => ({ view: state.previous, previous: { name: 'welcome' } })),
+  forget: (runId) =>
+    set((state) =>
+      'runId' in state.previous && state.previous.runId === runId ? { previous: { name: 'welcome' } } : {},
+    ),
 }))
 
 /** Screen for a run, by its status. */

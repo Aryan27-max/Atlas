@@ -192,3 +192,8 @@ export function validateNotification(value: unknown): NotificationRequest {
     throw new InvalidArgument('Bad notification.')
   return { title: title.slice(0, 120), body: body.slice(0, 400) }
 }
+
+/** Requests after which main's copy of the settings (keep awake, notify) is stale. */
+export function settingsWrite(method: string, path: string): boolean {
+  return (method === 'PUT' && path === '/settings') || (method === 'DELETE' && path === '/data')
+}

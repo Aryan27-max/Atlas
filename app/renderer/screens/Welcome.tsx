@@ -7,7 +7,7 @@ import { Badge, type BadgeTone, Banner, Button, Card, List, ListRow, ProgressBar
 import { defaultRunName, formatDate, greeting, plural } from '../format'
 import { useNav, viewForRun } from '../state/nav'
 
-const STATUS: Record<RunOut['status'], { label: string; tone: BadgeTone }> = {
+export const STATUS: Record<RunOut['status'], { label: string; tone: BadgeTone }> = {
   draft: { label: 'Not started', tone: 'neutral' },
   running: { label: 'Screening', tone: 'accent' },
   paused: { label: 'Paused', tone: 'warning' },

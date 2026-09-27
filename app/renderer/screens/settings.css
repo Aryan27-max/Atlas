@@ -1,0 +1,33 @@
+/* Settings: a single column of cards, applied as you change them. */
+
+.settings-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+.settings-label {
+  display: block;
+  margin-bottom: var(--space-1);
+}
+.settings-run-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.settings-danger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding-top: var(--space-4);
+  border-top: 0.5px solid var(--separator);
+}
+.settings-danger p {
+  margin: 0;
+}
+.settings-note {
+  margin: var(--space-3) 0 0;
+}
+.settings-model {
+  max-width: 360px;
+}

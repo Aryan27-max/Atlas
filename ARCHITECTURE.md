@@ -858,7 +858,7 @@ flowchart LR
     r -.-> s
 ```
 
-**As built (Phase 2):** Welcome is the entry point; the setup flow shows four numbered steps (Students & model · Criteria · Cutoffs · Review) with Back on the left, one primary button on the right, and Esc = Back. **New screening** creates the draft run (so the name and each choice are saved on it as the recruiter goes); the students are inserted only when the recruiter presses Start screening (`/table/confirm`). Screens: Welcome and Students & model built in 2.4.
+**As built (Phase 2):** Welcome is the entry point; the setup flow shows four numbered steps (Students & model · Criteria · Cutoffs · Review) with Back on the left, one primary button on the right, and Esc = Back. **New screening** creates the draft run (so the name and each choice are saved on it as the recruiter goes); the students are inserted only when the recruiter presses Start screening (`/table/confirm`). Screens: Welcome and Students & model built in 2.4. Criteria, Cutoffs and Review in 2.5; Progress in 2.6. **Results (2.7)** uses a bucket sidebar; *Adjust cutoffs* is a popover whose changes are a live preview (`/results?shortlist&band&min`, nothing saved) until *Save cutoffs*; overrides are made in the candidate detail sheet ("Move to…" + note); Export is a sheet that ends in the native save dialog. **Settings (2.8)** is a single column of cards, not a sidebar (five short groups don't need navigation), and every change applies at once (no Save button). Its defaults (model, score bands, minimum) are applied by the engine when a draft is created. Deleting a screening uses a destructive Alert; deleting all data needs the word DELETE typed.
 
 **UI rules that come from the architecture:**
 - The renderer never computes a bucket, score or state. It asks the API.
@@ -882,7 +882,7 @@ The design tokens and platform rules are in PLAN.md → *Design system*. **Built
 | CSV formula injection | escaping on export (§16) |
 | Bias | identity fields never sent to the LLM |
 | PII on disk | PDFs deleted after extraction; no résumé text in log files; `raw_response` stored only in SQLite |
-| Retention | "Delete run" removes everything under the run (cascade), with VACUUM offered |
+| Retention | "Delete run" removes everything under the run (cascade), then VACUUM runs automatically; "Delete all data" (typed confirmation) also clears uploads, downloads, exports kept by Atlas, logs and settings. CSVs the recruiter saved elsewhere are untouched (**Built, 2.8**) |
 | Unexpected network use | outbound only to résumé links, public profile URLs and the Ollama registry |
 | India DPDP Act | the firm is the data fiduciary; Atlas provides deletion and local-only processing. See open decisions. |
 

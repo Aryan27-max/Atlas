@@ -3,6 +3,7 @@ import {
   InvalidArgument,
   MAIN_ONLY_ROUTES,
   ROUTES,
+  settingsWrite,
   validateApiRequest,
   validateFileName,
   validateFolderTarget,
@@ -139,5 +140,14 @@ describe('small validators', () => {
     expect(validateNotification({ title: 'Done', body: 'x'.repeat(1000) }).body).toHaveLength(400)
     expect(() => validateNotification({ title: '', body: '' })).toThrow(InvalidArgument)
     expect(() => validateNotification(null)).toThrow(InvalidArgument)
+  })
+})
+
+describe('settingsWrite', () => {
+  it('is true only for saving settings and deleting all data', () => {
+    expect(settingsWrite('PUT', '/settings')).toBe(true)
+    expect(settingsWrite('DELETE', '/data')).toBe(true)
+    expect(settingsWrite('GET', '/settings')).toBe(false)
+    expect(settingsWrite('DELETE', '/runs/1')).toBe(false)
   })
 })

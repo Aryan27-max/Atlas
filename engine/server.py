@@ -365,7 +365,8 @@ class Engine:
     def create_run(self, body: m.RunCreateIn) -> m.RunOut:
         run_id = self.db.create_run(" ".join(body.name.split()))
         prefs = self.preferences()
-        self.db.configure_run(run_id, shortlist_cutoff=prefs.default_shortlist,
+        # Settings' defaults; the model is only preselected, the recruiter can change it.
+        self.db.configure_run(run_id, model_name=prefs.default_model, shortlist_cutoff=prefs.default_shortlist,
                               maybe_cutoff=min(prefs.default_band, prefs.default_shortlist),
                               min_shortlist=prefs.default_min)
         return self.get_run(run_id)

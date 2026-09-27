@@ -57,6 +57,17 @@ describe('RunWatcher', () => {
     expect(w.holdingKeepAwake()).toBe(false)
   })
 
+  it('picks up a settings change at once', async () => {
+    const settings = { keep_awake: true, notify_done: true }
+    const { w, keepAwake } = watcher(settings)
+    await w.handle(run('running'))
+    expect(w.holdingKeepAwake()).toBe(true)
+    settings.keep_awake = false
+    await w.preferencesChanged()
+    expect(keepAwake.stop).toHaveBeenCalledWith(7)
+    expect(w.holdingKeepAwake()).toBe(false)
+  })
+
   it('respects "Keep computer awake" off', async () => {
     const { w, keepAwake } = watcher({ keep_awake: false, notify_done: true })
     await w.handle(run('running'))

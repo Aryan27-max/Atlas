@@ -278,7 +278,15 @@ if (!app.requestSingleInstanceLock()) {
       e2e,
       material,
     }
-    registerIpc({ engine, getWindow: () => window, dataDir: userData, logsDir: join(userData, 'logs'), info, setTheme })
+    registerIpc({
+      engine,
+      getWindow: () => window,
+      dataDir: userData,
+      logsDir: join(userData, 'logs'),
+      info,
+      setTheme,
+      onSettingsChanged: () => void watcher.preferencesChanged(),
+    })
     buildMenu()
     engine.on('state', (state) => window?.webContents.send(Channels.engineStateChanged, state))
     engine.on('ready', () => void watcher.seed())

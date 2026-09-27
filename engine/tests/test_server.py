@@ -530,6 +530,13 @@ class SettingsAndDataTests(ServerTestCase):
         self.assertError(self.client.put("/settings", json={"appearance": "sepia"}), 422, "invalid_request")
         self.assertEqual(self.client.post("/runs", json={"name": "After"}).json()["shortlist_cutoff"], 70)
 
+    def test_a_new_screening_starts_with_the_default_model(self) -> None:
+        self.assertIsNone(self.client.post("/runs", json={"name": "No default"}).json()["model_name"])
+        self.client.put("/settings", json={"default_model": "stub-model:latest"})
+        self.assertEqual(self.client.post("/runs", json={"name": "Default"}).json()["model_name"], "stub-model:latest")
+        self.client.put("/settings", json={"default_model": None})
+        self.assertIsNone(self.client.get("/settings").json()["default_model"])
+
     def test_delete_a_run_and_all_data(self) -> None:
         keep = self.ready_run([70])
         gone = self.create_run("Gone")

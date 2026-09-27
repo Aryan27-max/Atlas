@@ -26,6 +26,7 @@ import {
   validateRunIdOrNull,
   validateTheme,
   validateUploadSource,
+  settingsWrite,
   validateView,
 } from './validate'
 
@@ -36,6 +37,8 @@ export interface IpcContext {
   logsDir: string
   info: AppInfo
   setTheme: (theme: 'system' | 'light' | 'dark') => void
+  /** After a successful PUT /settings or DELETE /data. */
+  onSettingsChanged?: () => void
 }
 
 const TOO_LARGE: ApiResult<never> = {
@@ -60,9 +63,11 @@ export function registerIpc(ctx: IpcContext): void {
     })
   }
 
-  handle(Channels.apiRequest, (_event, method, path, body) => {
+  handle(Channels.apiRequest, async (_event, method, path, body) => {
     const checked = validateApiRequest(method, path, body)
-    return ctx.engine.request(checked.method, checked.path, checked.body)
+    const result = await ctx.engine.request(checked.method, checked.path, checked.body)
+    if (result.ok && settingsWrite(checked.method, checked.path)) ctx.onSettingsChanged?.()
+    return result
   })
 
   handle(Channels.subscribe, (event, id, runId) => {
