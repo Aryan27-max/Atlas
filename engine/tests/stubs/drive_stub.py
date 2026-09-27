@@ -15,11 +15,12 @@ The downloader's ``url_rewrite`` hook points real Drive URLs here::
 
 from __future__ import annotations
 
-import threading
 import time
 from dataclasses import dataclass, field
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from http.server import BaseHTTPRequestHandler
 from urllib.parse import parse_qs, urlsplit
+
+from engine.tests.stubs.base import StubServer
 
 # --------------------------------------------------------------------------- #
 # Behaviours
@@ -112,54 +113,22 @@ def confirm_page(file_id: str) -> str:
 # --------------------------------------------------------------------------- #
 
 
-class DriveStub:
-    def __init__(self) -> None:
-        self.behaviours: dict[str, object] = {}
-        self.requests: list[str] = []          # request paths, in order
-        self._lock = threading.Lock()
-        self._server: ThreadingHTTPServer | None = None
-        self._thread: threading.Thread | None = None
-        self.port = 0
+class DriveStub(StubServer):
+    thread_name = "drive-stub"
 
-    # ---- lifecycle -------------------------------------------------------- #
+    def __init__(self, *, delay: float = 0.0) -> None:
+        super().__init__()
+        self.behaviours: dict[str, object] = {}
+        self.delay = delay            # seconds added to every response (slows a whole run down)
 
     def start(self) -> "DriveStub":
-        self._server = ThreadingHTTPServer(("127.0.0.1", self.port), self._handler())
-        self._server.daemon_threads = True
-        self.port = self._server.server_address[1]
-        self._thread = threading.Thread(target=self._server.serve_forever, name="drive-stub", daemon=True)
-        self._thread.start()
+        super().start()
         return self
-
-    def stop(self) -> None:
-        if self._server is not None:
-            self._server.shutdown()
-            self._server.server_close()
-            self._server = None
-        if self._thread is not None:
-            self._thread.join(timeout=5)
-            self._thread = None
-
-    def go_offline(self) -> None:
-        """Stop listening: new connections are refused, as with no network."""
-        self.stop()
-
-    def go_online(self) -> None:
-        """Listen again on the same port."""
-        if self._server is None:
-            self.start()
 
     def __enter__(self) -> "DriveStub":
         return self.start()
 
-    def __exit__(self, *exc: object) -> None:
-        self.stop()
-
     # ---- configuration ---------------------------------------------------- #
-
-    @property
-    def base_url(self) -> str:
-        return f"http://127.0.0.1:{self.port}"
 
     def serve(self, file_id: str, behaviour: object) -> str:
         """Register a behaviour; returns the Drive link a student would paste."""
@@ -196,6 +165,8 @@ class DriveStub:
             def do_GET(self) -> None:  # noqa: N802 — http.server naming
                 with stub._lock:
                     stub.requests.append(self.path)
+                if stub.delay:
+                    time.sleep(stub.delay)
                 parts = urlsplit(self.path)
                 query = parse_qs(parts.query)
                 if parts.path.startswith("/document/"):

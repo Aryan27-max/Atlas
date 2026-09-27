@@ -371,6 +371,56 @@ class StateMachineTests(DbTestCase):
         self.db.return_to_extracted(ids[1])
         self.assertEqual(self.db.get_candidate(ids[1])["state"], "extracted")
 
+    def test_claim_next_download_respects_the_gate_and_csv_order(self) -> None:
+        run_id, ids = self.new_run(4)
+        first = self.db.claim_next_download(run_id, max_in_flight=2)
+        second = self.db.claim_next_download(run_id, max_in_flight=2)
+        self.assertEqual([first["id"], second["id"]], ids[:2])
+        self.assertEqual((first["state"], first["attempts"]), ("downloading", 1))
+        self.assertIsNone(self.db.claim_next_download(run_id, max_in_flight=2))   # gate closed
+        self.db.mark_failed(ids[0], kind="retryable", reason="x")                   # frees a slot
+        self.assertEqual(self.db.claim_next_download(run_id, max_in_flight=2)["id"], ids[2])
+
+    def test_scoring_does_not_count_against_the_gate(self) -> None:
+        run_id, ids = self.new_run(3)
+        self.drive_to_scoring(ids[0])                      # in "scoring": not counted
+        self.assertIsNotNone(self.db.claim_next_download(run_id, max_in_flight=1))
+        self.assertIsNone(self.db.claim_next_download(run_id, max_in_flight=1))
+
+    def test_concurrent_download_claims_never_exceed_the_gate(self) -> None:
+        run_id, _ = self.new_run(30)
+        claimed: list[int] = []
+
+        def claim() -> None:
+            for _ in range(10):
+                row = self.db.claim_next_download(run_id, max_in_flight=2)
+                if row:
+                    claimed.append(row["id"])
+
+        threads = [threading.Thread(target=claim) for _ in range(6)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+        self.assertEqual(len(claimed), 2)
+        self.assertEqual(self.db.state_counts(run_id)["downloading"], 2)
+
+    def test_claim_next_scoring(self) -> None:
+        run_id, ids = self.new_run(2)
+        self.assertIsNone(self.db.claim_next_scoring(run_id))
+        for cid in ids:
+            self.drive_to_scoring(cid)
+            self.db.return_to_extracted(cid)
+        self.assertEqual(self.db.claim_next_scoring(run_id)["id"], ids[0])
+        self.assertEqual(self.db.get_candidate(ids[0])["state"], "scoring")
+
+    def test_failing_clears_the_pdf_path(self) -> None:
+        _, ids = self.new_run(1)
+        self.db.start_download(ids[0])
+        self.db.finish_download(ids[0], self.dir / "1.pdf")
+        self.db.mark_failed(ids[0], kind="permanent", reason="The PDF is damaged or password-protected.")
+        self.assertIsNone(self.db.get_candidate(ids[0])["pdf_path"])
+
     def test_filtered(self) -> None:
         run_id, ids = self.new_run(1)
         self.db.mark_filtered(ids[0], reason="CGPA below 7.0")

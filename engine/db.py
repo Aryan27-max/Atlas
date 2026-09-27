@@ -627,6 +627,43 @@ class Database:
             self._transition(c, candidate_id, "queued", "downloading")
             c.execute("UPDATE candidates SET attempts = attempts + 1 WHERE id = ?", (candidate_id,))
 
+    def claim_next_download(self, run_id: int, *, max_in_flight: int) -> dict[str, Any] | None:
+        """Claim the next queued candidate (CSV order) for download, if the prefetch gate allows.
+
+        The gate — fewer than ``max_in_flight`` candidates in ``downloading``,
+        ``downloaded`` or ``extracted`` — is checked and the claim made in one
+        transaction, so it holds however the worker's threads interleave.
+        """
+        with self.transaction() as c:
+            in_flight = c.execute(
+                "SELECT COUNT(*) FROM candidates WHERE run_id = ? "
+                "AND state IN ('downloading', 'downloaded', 'extracted')",
+                (run_id,),
+            ).fetchone()[0]
+            if in_flight >= max_in_flight:
+                return None
+            row = c.execute(
+                "SELECT id FROM candidates WHERE run_id = ? AND state = 'queued' ORDER BY id LIMIT 1",
+                (run_id,),
+            ).fetchone()
+            if row is None:
+                return None
+            self._transition(c, row["id"], "queued", "downloading")
+            c.execute("UPDATE candidates SET attempts = attempts + 1 WHERE id = ?", (row["id"],))
+            return dict(c.execute("SELECT * FROM candidates WHERE id = ?", (row["id"],)).fetchone())
+
+    def claim_next_scoring(self, run_id: int) -> dict[str, Any] | None:
+        """Claim the next extracted candidate (CSV order) for scoring."""
+        with self.transaction() as c:
+            row = c.execute(
+                "SELECT id FROM candidates WHERE run_id = ? AND state = 'extracted' ORDER BY id LIMIT 1",
+                (run_id,),
+            ).fetchone()
+            if row is None:
+                return None
+            self._transition(c, row["id"], "extracted", "scoring")
+            return dict(c.execute("SELECT * FROM candidates WHERE id = ?", (row["id"],)).fetchone())
+
     def finish_download(self, candidate_id: int, pdf_path: Path | str) -> None:
         with self.transaction() as c:
             self._transition(c, candidate_id, "downloading", "downloaded", pdf_path=str(pdf_path))
@@ -743,6 +780,10 @@ class Database:
 
         System failures (internet down, Ollama down) must never come here:
         they pause the run instead. See ``worker.py``.
+
+        ``pdf_path`` is cleared: the caller deletes the file next. If the
+        process dies in between, recovery reports the file as an orphan
+        instead of it staying referenced (and on disk) until a retry.
         """
         if kind not in FAILURE_KINDS:
             raise ValidationError(f"Failure kind must be one of {FAILURE_KINDS}.")
@@ -752,7 +793,7 @@ class Database:
         with self.transaction() as c:
             working = ("queued", "downloading", "downloaded", "extracted", "scoring")
             self._transition(
-                c, candidate_id, working, "failed", failure_kind=kind, failure_reason=reason
+                c, candidate_id, working, "failed", failure_kind=kind, failure_reason=reason, pdf_path=None
             )
             run_id = c.execute(
                 "SELECT run_id FROM candidates WHERE id = ?", (candidate_id,)

@@ -121,8 +121,8 @@ flowchart TB
         server["server.py<br/>(Planned)"]
     end
     subgraph L2["Orchestration"]
-        worker["worker.py<br/>(Planned)"]
-        health["health.py<br/>net + Ollama probes (Planned)"]
+        worker["worker.py<br/>(Built)"]
+        health["health.py<br/>net + Ollama probes (Built)"]
     end
     subgraph L3["Stages"]
         csvl["ingest/csv_loader.py (Built)"]
@@ -294,10 +294,12 @@ stateDiagram-v2
 | `commit_extraction` | downloaded | extracted | `resume_texts` row, `pdf_path = NULL` |
 | `start_scoring` | extracted | scoring | — |
 | `save_evaluation` | scoring | scored | `evaluations` row |
-| `mark_failed` | any working state | failed | kind, reason, event |
+| `mark_failed` | any working state | failed | kind, reason, event, `pdf_path = NULL` (the caller deletes the file next; if it dies first, recovery sees an orphan) |
 | `return_to_queue` | downloading, downloaded | queued | `pdf_path = NULL` |
 | `return_to_extracted` | scoring | extracted | — |
 | `retry_failed` | failed | queued or extracted | event |
+| `claim_next_download` | queued | downloading | the prefetch-gate check and the claim in **one** transaction (added for the worker) |
+| `claim_next_scoring` | extracted | scoring | oldest first (added for the worker) |
 
 `scored` is terminal. Recruiter changes after scoring are **overrides**, not state changes.
 
@@ -327,7 +329,7 @@ stateDiagram-v2
     end note
 ```
 
-**Pause reasons and how the run resumes** (Planned, in `worker.py`):
+**Pause reasons and how the run resumes** (Built, in `worker.py`; wording in `engine/errors.py`):
 
 | Reason | Set by | Resumes |
 |---|---|---|
@@ -337,6 +339,8 @@ stateDiagram-v2
 | "Atlas closed unexpectedly" | `recover_after_crash` | when the user presses Resume |
 | "Atlas was closed" | graceful shutdown | when the user presses Resume |
 | "Paused by you" | user | when the user presses Resume |
+| "Atlas hit repeated errors. See logs." *(added)* | worker: the same unexpected error on 5 candidates in a row in one stage | when the user presses Resume |
+| "The model "X" is no longer installed in Ollama. Install it again, then press Resume." *(added)* | scorer: Ollama answers 404 for the model | when the user presses Resume |
 
 Automatic resume only applies to the two health-probe reasons. A run paused by a crash or by the user never restarts on its own.
 
@@ -344,7 +348,9 @@ Automatic resume only applies to the two health-probe reasons. A run paused by a
 
 ## 7. The worker pipeline
 
-**Planned** (`engine/worker.py`). Three stages, connected through the database, not through in-memory queues. Each stage claims work with a state transition, so a crash anywhere leaves work in a known state.
+**Built** (`engine/worker.py`, `engine/health.py`). Three stages, connected through the database, not through in-memory queues. Each stage claims work with a state transition, so a crash anywhere leaves work in a known state.
+
+`Worker(db, data_dir, downloader, extractor, scorer_factory, health, *, prefetch=2, clock, poll_interval=5, …)` with `start(run_id)`, `pause(run_id, reason)`, `resume(run_id)`, `stop()` and `wait_idle(timeout)`.
 
 ```mermaid
 flowchart LR
@@ -377,7 +383,13 @@ flowchart LR
 - **Prefetch window = 2.** Stage 1 claims a new candidate only while fewer than 2 candidates sit between "downloading" and "scored". At most about 2 PDFs are ever on disk, and the scorer never waits on the network.
 - **One scorer.** A laptop runs one 8B model at a time. Parallel LLM calls only add memory pressure.
 - **Delete after commit.** Stage 2 deletes the PDF only after `commit_extraction` returns. If it crashes between the two, recovery reports the file as an orphan and deletes it.
-- **The health gate runs before every network or LLM call.** If the check fails, the stage calls `return_to_queue` or `return_to_extracted`, the run pauses, and the thread waits. It never calls `mark_failed` for a system problem.
+- **The health probe runs when a network or LLM call fails** (not before every call, as first planned: the call itself is the best probe, and this avoids a TCP handshake per candidate). A `TransientError` makes the stage probe the internet or Ollama. If the probe fails, the stage calls `return_to_queue` or `return_to_extracted` and the run pauses. If the probe succeeds, only this candidate is affected: `mark_failed(retryable)`. It never calls `mark_failed` for a system problem.
+- **The gate is enforced in the database:** `claim_next_download` counts `downloading + downloaded + extracted` and claims in one transaction. `scoring` is not counted, so one résumé can be with the model while two more wait.
+- **Auto-resume:** the fetch thread, while the run is paused for "No internet connection" or "Ollama isn't running", polls the matching probe every `poll_interval` (5 s, measured on the injected clock) and resumes the run when it succeeds. No other pause reason resumes on its own.
+- **Completion:** when nothing is left in `queued`, `downloading`, `downloaded`, `extracted` or `scoring`, the run becomes `completed`. Retryable failures don't block it.
+- **Nothing gets stuck:** anything that goes wrong after a claim goes through one guard that fails or hands back the candidate. As a second net, when no stage is busy, a candidate still in `downloading`/`scoring` can't be held by anyone and is handed back (`_reconcile`). Stages mark themselves busy *before* claiming, under the same lock, so this can't race a live claim.
+- **Bugs:** an unexpected exception fails that candidate as retryable ("Something went wrong while processing this résumé.") with the traceback in `engine.log`, and the run goes on. The same error (same type and message, numbers ignored) on 5 candidates in a row *within one stage* pauses the run instead ("Atlas hit repeated errors. See logs."). Counting per stage matters: otherwise successful downloads would keep resetting the count for a scorer that fails everyone.
+- **Timing:** `evaluations.duration_seconds` is the model time per résumé (the pipeline's bottleneck), for the Phase 3 estimate.
 - **Order:** candidates are processed in `id` order, which is CSV order, so progress is predictable.
 - **Hard filters** (CGPA, department) run once, before stage 1 starts, via `mark_filtered`. Filtered candidates never cost a download or an LLM call.
 - **Throttle:** at least 1 s between Drive downloads, with backoff on HTTP 429.
@@ -422,7 +434,7 @@ flowchart TD
 | HTTP 5xx | retryable | The file host returned an error. |
 | LLM returned invalid JSON after all attempts | retryable | The model's answer couldn't be read. |
 
-**How "system problem" is detected:** a network error on one link is followed by an immediate connectivity probe. If the probe also fails, it's a system problem, so the run pauses. If the probe succeeds, it's this candidate's link, so it counts as a retryable failure. Ollama errors are handled the same way, with `/api/tags` as the probe.
+**How "system problem" is detected:** a network error on one link is followed by an immediate connectivity probe. If the probe also fails, it's a system problem, so the run pauses. If the probe succeeds, it's this candidate's link, so it counts as a retryable failure. Ollama errors are handled the same way, with `/api/tags` as the probe. (**Built**: `HealthProbe.internet_ok()` opens a TCP connection, sending no data, to `drive.google.com:443` or `www.google.com:443`. Host *names* are used so that broken DNS, which fails every download, also reads as offline.)
 
 ---
 
@@ -453,7 +465,9 @@ It is idempotent: running it twice changes nothing the second time.
 - every candidate exists exactly once;
 - every `extracted`/`scored` candidate has its text, every `scored` candidate has an evaluation, and no unscored candidate has one.
 
-A worker-level kill test is added with `worker.py`.
+**Worker-level proof** (Built): `engine/tests/test_worker_kill.py` runs a real `Worker` in a child process against the local Drive and Ollama stubs, with 30 candidates. It hard-kills the child at 20 moments; each restart recovers. After a final uninterrupted run: every candidate is scored or failed with the right reason, evaluations = scored candidates, each score matches that candidate's own résumé (so no text was mixed up), no PDFs or `.part` files remain, and `integrity_check` is ok.
+
+Both kill tests use `Popen.kill()` (SIGKILL on POSIX, `TerminateProcess` on Windows) and **run on Windows too**. Doing so found a real Windows issue: reopening the database a few milliseconds after a kill can fail with `disk I/O error` while Windows releases the dead process's `-shm` mapping. `Database()` now retries the open on `SQLITE_IOERR` for about 2 s.
 
 ---
 
@@ -803,7 +817,8 @@ atlas/
 │   ├── ingest/downloader.py · errors.py       Built
 │   ├── extract/pdf.py · ocr.py · sections.py  Built
 │   ├── llm/client.py · redact.py · prompt.py · schema.py · verify.py · scorer.py · precheck.py   Built
-│   ├── worker.py · health.py · estimate.py · export.py · server.py   Planned
+│   ├── worker.py · health.py · logs.py                              Built
+│   ├── estimate.py · export.py · server.py                           Planned
 │   └── tests/
 ├── app/
 │   ├── main/        Electron main + preload
@@ -830,12 +845,12 @@ atlas/
 | Layer | Tool | Must cover |
 |---|---|---|
 | db, buckets | unittest | every transition, invalid transitions, atomic rollback, concurrency, recovery (**Built: 43 tests**) |
-| crash safety | subprocess + SIGKILL | 20 random kills, integrity + consistency (**Built**); worker-level version with `worker.py` |
+| crash safety | subprocess + SIGKILL / TerminateProcess | 20 random kills, integrity + consistency (**Built**: `test_kill.py` and the real-worker `test_worker_kill.py`, both also on Windows) |
 | downloader | unittest + mocked `requests` + local Drive stub | Drive rewrite, login page at HTTP 200, confirm page, 20 MB abort, magic bytes, 403/404/429/5xx, timeouts, reset (**Built: 41 tests**) |
 | csv_loader | unittest + fixture CSVs | aliases, BOM/cp1252, Excel phones, CGPA formats, duplicates, blanks (**Built: 29 tests**) |
 | extraction | unittest + generated PDFs | 1- and 10-page, scanned (OCR), encrypted, corrupt, section splitting (**Built: 29 tests**) |
 | llm | unittest + mocked client | invalid JSON, truncated output, fake quotes, injection text, identity stripped from prompt (**Built: 53 tests**) |
-| worker | unittest + fakes | pause on network/Ollama loss with zero failed candidates, prefetch ≤ 2, delete-after-commit, resume |
+| worker | unittest + fakes | pause on network/Ollama loss with zero failed candidates, prefetch ≤ 2, delete-after-commit, resume (**Built: 19 tests**, plus 8 for health and logs) |
 | eval set | script | 20–30 labelled résumés: bucket agreement, rank correlation, stability across 2 runs (Phase 3) |
 | UI | Playwright for Electron | the happy path, pause/resume banner, light/dark (Phase 2) |
 

@@ -54,8 +54,10 @@ atlas/
 │   ├── ingest/          ← csv_loader.py, links.py, downloader.py      [done]
 │   ├── extract/         ← PDF text, OCR fallback, section extraction    [done]
 │   ├── llm/             ← Ollama client, redaction, prompt, verify, scorer, pre-check [done]
-│   ├── worker.py        ← resumable job loop                            [next]
-│   ├── export.py        ← CSV export
+│   ├── worker.py        ← resumable job loop                            [done]
+│   ├── health.py        ← internet / Ollama probes                      [done]
+│   ├── logs.py          ← engine.log (rotating, PII scrubbed)           [done]
+│   ├── export.py        ← CSV export                                    [next]
 │   ├── server.py        ← local API for the UI
 │   └── tests/
 └── app/                 ← Electron + React (Phase 2)
@@ -83,7 +85,7 @@ Python **3.11+**. Stdlib `unittest` only — no pytest. Tests must not need Olla
 
 - **Tests with every change.** New behaviour → new test. Bug fix → a test that fails before the fix. Don't mark a step done with failing tests.
 - **Failure paths are the feature.** For any new I/O code, write tests for: timeout, connection reset, HTTP 403/404/429/5xx, truncated body, wrong content type, disk full, and process killed mid-operation.
-- **Kill test stays green.** `engine/tests/test_kill.py` SIGKILLs a writer 20× and checks DB integrity. Any change to `db.py` or `worker.py` must keep it passing; extend it when you add states.
+- **Kill tests stay green.** `engine/tests/test_kill.py` kills a DB writer 20× and `engine/tests/test_worker_kill.py` kills the real worker 20×; both check integrity and consistency, and both run on Windows too (`Popen.kill()`). Any change to `db.py` or `worker.py` must keep them passing; extend them when you add states.
 - **Schema changes = migrations.** Bump `SCHEMA_VERSION` in `db.py`, add an `if version < N:` step in `_migrate`. Never edit an existing released schema in place.
 - **Small, reviewable steps.** One PLAN.md step per change. Say which step you're on.
 - **Summarise every step** in `docs/summaries/` (template in `prompts/phase1.md` → Summaries) and add a line to `docs/summaries/CHANGELOG.md`. The owner learns from these, so explain the *why*.
