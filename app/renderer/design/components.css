@@ -238,6 +238,7 @@
 /* ----------------------------------------------------------------- Stepper */
 .atl-stepper {
   display: inline-flex;
+  align-self: flex-start;
   align-items: center;
   height: 32px;
   border-radius: var(--radius-control);
@@ -896,4 +897,126 @@ html[data-platform='win32'] .atl-toolbar--window-edge-right {
   font-variant-numeric: tabular-nums;
   min-width: 0;
   overflow-wrap: anywhere;
+}
+
+/* -------------------------------------------------------------------- Chip */
+.atl-chip {
+  height: 28px;
+  padding: 0 var(--space-3);
+  border: 0.5px solid var(--separator-opaque);
+  border-radius: var(--radius-full);
+  background: var(--bg-content);
+  color: var(--label-primary);
+  font: 500 13px/18px var(--font);
+  white-space: nowrap;
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out);
+}
+.atl-chip:hover {
+  background: var(--fill-quaternary);
+}
+.atl-chip[aria-pressed='true'] {
+  background: var(--accent-tint);
+  border-color: transparent;
+  color: var(--accent-text);
+}
+.atl-chip:focus-visible {
+  border-radius: var(--radius-full);
+}
+
+/* --------------------------------------------------------------- ScoreBand */
+.atl-band {
+  padding: var(--space-6) 12px var(--space-2);
+}
+.atl-band-track {
+  position: relative;
+  height: 44px;
+  border-radius: var(--radius-card);
+  touch-action: none;
+}
+.atl-band-zone {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  font: 600 13px/18px var(--font);
+  transition:
+    left var(--duration-fast) var(--ease-out),
+    width var(--duration-fast) var(--ease-out);
+}
+.atl-band--dragging .atl-band-zone {
+  transition: none;
+}
+.atl-band-zone:first-child {
+  border-radius: var(--radius-card) 0 0 var(--radius-card);
+}
+.atl-band-zone:nth-child(3) {
+  border-radius: 0 var(--radius-card) var(--radius-card) 0;
+}
+.atl-band-zone--rejected {
+  background: var(--bucket-rejected-bg);
+  color: var(--bucket-rejected-text);
+}
+.atl-band-zone--cutoff {
+  background: var(--bucket-cutoff-bg);
+  color: var(--bucket-cutoff-text);
+}
+.atl-band-zone--shortlisted {
+  background: var(--bucket-shortlisted-bg);
+  color: var(--bucket-shortlisted-text);
+}
+.atl-band-thumb {
+  position: absolute;
+  top: -6px;
+  bottom: -6px;
+  width: 24px;
+  margin-left: -12px;
+  display: flex;
+  justify-content: center;
+  cursor: ew-resize;
+  transition: left var(--duration-fast) var(--ease-out);
+}
+.atl-band--dragging .atl-band-thumb {
+  transition: none;
+}
+.atl-band-thumb::before {
+  content: '';
+  width: 6px;
+  height: 100%;
+  border-radius: var(--radius-full);
+  background: #fff;
+  box-shadow:
+    0 0 0 0.5px rgba(0, 0, 0, 0.18),
+    0 2px 6px rgba(0, 0, 0, 0.25);
+}
+.atl-band-thumb:focus-visible {
+  outline-offset: 0;
+  border-radius: var(--radius-control);
+}
+.atl-band-value {
+  position: absolute;
+  bottom: calc(100% + 4px);
+  padding: 1px 6px;
+  border-radius: var(--radius-control);
+  background: var(--label-primary);
+  color: var(--bg-content);
+  font: 600 12px/16px var(--font);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.atl-band-scale {
+  position: relative;
+  height: 18px;
+  margin-top: var(--space-2);
+}
+.atl-band-scale span {
+  position: absolute;
+  transform: translateX(-50%);
+  font: var(--text-caption);
+  color: var(--label-tertiary);
+  font-variant-numeric: tabular-nums;
 }

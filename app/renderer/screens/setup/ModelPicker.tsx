@@ -4,7 +4,7 @@ import { useState } from 'react'
 import type { ModelOut, ModelsOut } from '@shared/api-types'
 import { api, messageOf } from '../../api/client'
 import { type PullEvent, isPullEvent, useAppEvents } from '../../api/events'
-import { Banner, Button, List, ListRow, ProgressBar, Sheet, Spinner, TextField } from '../../design'
+import { Banner, Button, Chip, List, ListRow, ProgressBar, Sheet, Spinner, TextField } from '../../design'
 import { formatBytes } from '../../format'
 
 interface ModelPickerProps {
@@ -213,15 +213,9 @@ function PullSheet({ open, suggestions, onClose, onDone }: PullSheetProps) {
         {suggestions.length > 0 && (
           <div className="chips" role="group" aria-label="Suggested models">
             {suggestions.map((suggestion) => (
-              <button
-                key={suggestion}
-                type="button"
-                className="chip"
-                aria-pressed={clean === suggestion}
-                onClick={() => setName(suggestion)}
-              >
+              <Chip key={suggestion} pressed={clean === suggestion} onClick={() => setName(suggestion)}>
                 {suggestion}
-              </button>
+              </Chip>
             ))}
           </div>
         )}

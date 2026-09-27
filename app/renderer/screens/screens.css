@@ -279,23 +279,6 @@
   flex-wrap: wrap;
   gap: var(--space-2);
 }
-.chip {
-  height: 28px;
-  padding: 0 var(--space-3);
-  border: 0.5px solid var(--separator-opaque);
-  border-radius: var(--radius-full);
-  background: var(--bg-content);
-  color: var(--label-primary);
-  font: 500 13px/18px var(--font);
-}
-.chip:hover {
-  background: var(--fill-quaternary);
-}
-.chip[aria-pressed='true'] {
-  background: var(--accent-tint);
-  border-color: transparent;
-  color: var(--accent-text);
-}
 .pull-progress {
   display: flex;
   flex-direction: column;
@@ -307,4 +290,36 @@
   font: var(--text-footnote);
   color: var(--label-secondary);
   font-variant-numeric: tabular-nums;
+}
+
+/* ------------------------------------------------------------ Cutoffs, Review */
+.cutoff-steppers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-6);
+  margin-top: var(--space-4);
+}
+.cutoff-stepper {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+.field-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.chip-count {
+  margin-left: var(--space-1);
+  opacity: 0.7;
+}
+.estimate {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+.review-criteria {
+  white-space: pre-wrap;
+  max-height: 160px;
+  overflow-y: auto;
 }

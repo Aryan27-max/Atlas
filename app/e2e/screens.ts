@@ -22,6 +22,9 @@ export async function setTheme(page: Page, theme: ThemeName): Promise<void> {
  */
 export async function capture(page: Page, name: string, theme: ThemeName, full?: string): Promise<void> {
   mkdirSync(SCREENS_DIR, { recursive: true })
+  // Screens are captured from the top, however far a test scrolled.
+  await page.evaluate(() => document.querySelectorAll('.screen-scroll').forEach((el) => el.scrollTo(0, 0)))
+  await page.waitForTimeout(100)
   if (full) {
     await page.addStyleTag({
       content: `html, body, #root { height: auto !important; overflow: visible !important; } ${full} { height: auto !important; overflow: visible !important; }`,

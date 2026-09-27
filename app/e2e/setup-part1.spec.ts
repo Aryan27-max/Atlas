@@ -112,6 +112,10 @@ test('Continue saves the model and moves to Criteria; Esc goes back', async () =
     .click()
   await page.getByRole('button', { name: 'Continue' }).click()
   await expect(page.locator('.setup-step[aria-current="step"]')).toContainText('Criteria')
+  // Criteria focuses its text box: the first Esc leaves the field, the second goes back.
+  await expect(page.getByRole('textbox', { name: 'What are you looking for?' })).toBeFocused()
+  await page.keyboard.press('Escape')
+  await expect(page.getByRole('textbox', { name: 'What are you looking for?' })).not.toBeFocused()
   await page.keyboard.press('Escape')
   await expect(page.getByRole('heading', { name: 'Students and model' })).toBeVisible()
   await expect(page.getByText('Everything looks good.')).toBeVisible()

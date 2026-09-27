@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatBytes, formatDuration, formatRange, greeting, plural } from './format'
+import { formatBytes, formatDuration, formatPerResume, formatRange, greeting, plural } from './format'
 
 describe('format', () => {
   it('greets by the time of day', () => {
@@ -24,6 +24,12 @@ describe('format', () => {
     expect(formatRange(40 * 60, 55 * 60)).toBe('About 40–55 minutes')
     expect(formatRange(3500, 3700)).toBe('About 1 hour')
     expect(formatRange(0, 0)).toBe('Under a minute')
+  })
+
+  it('time per résumé', () => {
+    expect(formatPerResume(0.4)).toBe('1 second')
+    expect(formatPerResume(45)).toBe('45 seconds')
+    expect(formatPerResume(141.5)).toBe('2 minutes')
   })
 
   it('plurals', () => {

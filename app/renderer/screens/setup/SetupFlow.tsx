@@ -12,6 +12,9 @@ import { Button, Spinner, Toolbar } from '../../design'
 import { SETUP_STEPS, type SetupStep, useNav } from '../../state/nav'
 import { useSetup } from '../../state/setup'
 import { Placeholder } from '../Placeholder'
+import { Criteria } from './Criteria'
+import { Cutoffs } from './Cutoffs'
+import { Review } from './Review'
 import { UploadModel } from './UploadModel'
 
 const LABELS: Record<SetupStep, string> = {
@@ -84,7 +87,9 @@ export function SetupFlow({ runId, step }: { runId: number; step: SetupStep }) {
       <div className="screen">
         <Toolbar windowEdgeLeft leading={<Steps current={step} />} />
         {step === 'upload' && <UploadModel />}
-        {step !== 'upload' && <Placeholder title={LABELS[step]} />}
+        {step === 'criteria' && <Criteria />}
+        {step === 'cutoffs' && <Cutoffs />}
+        {step === 'review' && <Review />}
       </div>
     </Flow.Provider>
   )

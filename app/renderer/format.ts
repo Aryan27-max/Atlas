@@ -64,3 +64,13 @@ export function defaultRunName(now = new Date()): string {
 export function plural(count: number, one: string, many = `${one}s`): string {
   return `${count.toLocaleString()} ${count === 1 ? one : many}`
 }
+
+/** "about 1 second", "about 45 seconds", "about 2 minutes" (time per résumé). */
+export function formatPerResume(seconds: number): string {
+  if (seconds < 90) {
+    const s = Math.max(1, Math.round(seconds))
+    return `${s} second${s === 1 ? '' : 's'}`
+  }
+  const m = Math.round(seconds / 60)
+  return `${m} minute${m === 1 ? '' : 's'}`
+}
