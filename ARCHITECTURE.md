@@ -119,6 +119,7 @@ Arrows show imports. Dependencies only point downward.
 flowchart TB
     subgraph L1["Interface"]
         server["server.py<br/>(Planned)"]
+        cli["cli.py<br/>(Built, Phase 1)"]
     end
     subgraph L2["Orchestration"]
         worker["worker.py<br/>(Built)"]
@@ -138,6 +139,8 @@ flowchart TB
     end
 
     server --> worker
+    cli --> worker
+    cli --> db
     server --> db
     server --> buckets
     server --> csvl
@@ -150,7 +153,7 @@ flowchart TB
     worker --> db
 ```
 
-**Stage modules never import `db.py`.** They take plain inputs and return results or raise typed errors. Only `worker.py` and `server.py` write to the database. That keeps every stage testable with no database at all.
+**Stage modules never import `db.py`.** They take plain inputs and return results or raise typed errors. Only `worker.py`, `server.py` and (Phase 1) `cli.py` write to the database. That keeps every stage testable with no database at all.
 
 ---
 
@@ -739,6 +742,21 @@ flowchart TD
 | POST | `/shutdown` | graceful stop |
 
 Errors return `{ "code": "...", "message": "<recruiter-readable>" }`, never a stack trace.
+
+### Headless CLI (Built, Phase 1)
+
+`python -m engine.cli` drives the same engine calls the API will wrap, so Phase 1 can be proven without a UI:
+
+| Command | Engine calls |
+|---|---|
+| `preflight --csv` | `load_csv` → `render_report` |
+| `run --csv --model --criteria TEXT\|@file --data-dir [--shortlist --band --min --cgpa-min --departments --yes]` | `load_csv`, confirm, `precheck` (cached per model + digest in `settings.model_prechecks`), `create_run` + `configure_run` + `add_candidates`, `Worker.start`, events feed |
+| `resume --run` | `Worker.resume` (a fresh worker runs recovery first) |
+| `results --run [--shortlist --band --min]` | `compute_buckets(scored_rows, …, latest_overrides)`, previewing other cutoffs without re-scoring |
+| `export --run --view --out` | `export_rows` + `compute_buckets` → `export_csv` |
+| `retry --run [--include-permanent]` | `retry_failed` → `Worker.start` |
+
+Exit codes: 0 finished, 2 paused (resume later), 1 error. Ctrl+C = `Worker.stop()` ("Atlas was closed"). While paused for "No internet connection" / "Ollama isn't running" it keeps waiting, because the worker resumes by itself; any other pause exits with 2. Output names candidates by id and RA number only.
 
 ---
 

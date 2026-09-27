@@ -58,7 +58,7 @@ atlas/
 │   ├── health.py        ← internet / Ollama probes                      [done]
 │   ├── logs.py          ← engine.log (rotating, PII scrubbed)           [done]
 │   ├── export.py        ← CSV export                                    [done]
-│   ├── cli.py           ← headless proof of Phase 1                     [next]
+│   ├── cli.py           ← headless proof of Phase 1                     [done]
 │   ├── server.py        ← local API for the UI
 │   └── tests/
 └── app/                 ← Electron + React (Phase 2)
@@ -76,6 +76,9 @@ python -m unittest discover -s engine/tests -t .
 
 # one module
 python -m unittest engine.tests.test_db -v
+
+# the engine without a UI (see ARCHITECTURE §17 → Headless CLI)
+python -m engine.cli --help
 ```
 
 Python **3.11+**. Stdlib `unittest` only — no pytest. Tests must not need Ollama or the internet: mock `requests`, the Ollama client, and `time.sleep`.
