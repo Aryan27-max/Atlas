@@ -1,0 +1,24 @@
+ROHAN PILLAI
+rohan.pillai@example.com | +91 90000 11111 | github.com/example-rohan
+
+SUMMARY
+Final-year CSE student who builds and runs backend services.
+
+EXPERIENCE
+Backend Engineering Intern, Northwind Payments (May 2025 - August 2025)
+- Built a FastAPI service that reconciles 50,000 UPI transactions a day against bank statements
+- Cut p95 latency of the settlement API from 800 ms to 140 ms by adding Redis caching and query indexes
+- Wrote integration tests with pytest and Testcontainers; coverage went from 41% to 83%
+
+PROJECTS
+Campus Food Queue
+- Built a Django and PostgreSQL ordering system used by 1,200 students across 3 canteens
+- Deployed on AWS ECS with GitHub Actions CI/CD and zero-downtime migrations
+Log Search
+- Wrote a Go service that indexes 2 GB of application logs per day into OpenSearch
+
+SKILLS
+Python, Go, FastAPI, Django, PostgreSQL, Redis, Docker, AWS, GitHub Actions, Linux
+
+ACHIEVEMENTS
+Winner, Smart India Hackathon 2024 (software edition), team of 6

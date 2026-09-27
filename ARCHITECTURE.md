@@ -38,7 +38,14 @@ All diagrams are Mermaid.
 
 ## 1. System context
 
-**Planned.** Everything runs on the recruiter's machine. The only outbound traffic is fetching résumé links and public profile pages, plus model downloads from Ollama.
+**Engine side built (Phase 1); app planned (Phase 2).** Everything runs on the recruiter's machine. The only outbound traffic is fetching résumé links and public profile pages, plus model downloads from Ollama.
+
+As built in Phase 1, the engine's outbound traffic is exactly:
+- HTTP GETs of résumé links (and Drive's confirm-page follow-up);
+- when a download fails, a TCP connection with no data sent to `drive.google.com:443` or `www.google.com:443`, to tell "no internet" from "bad link" (§8);
+- local HTTP to Ollama on `127.0.0.1`.
+
+Public profile pages are not fetched yet (open decision 2).
 
 ```mermaid
 flowchart LR
@@ -868,6 +875,9 @@ atlas/
 | extraction | unittest + generated PDFs | 1- and 10-page, scanned (OCR), encrypted, corrupt, section splitting (**Built: 29 tests**) |
 | llm | unittest + mocked client | invalid JSON, truncated output, fake quotes, injection text, identity stripped from prompt (**Built: 53 tests**) |
 | worker | unittest + fakes | pause on network/Ollama loss with zero failed candidates, prefetch ≤ 2, delete-after-commit, resume (**Built: 19 tests**, plus 8 for health and logs) |
+| end to end | unittest + local Drive and Ollama stubs | 25-student CSV through `cli run --yes`: every failure reason word for word, buckets, page-7 evidence, flags, export escaping and Unicode, **Ollama stopped mid-run → paused, 0 failed, resumes**, no PII or résumé text in `engine.log` (**Built**: `test_e2e.py`) |
+| CLI | unittest + stubs | pre-flight, confirm, pre-check cache, results preview, export, retry, exit codes 0/1/2, Ctrl+C (**Built: 10 tests**) |
+| live model | `ATLAS_LIVE=1` | 3 bundled fictional résumés against a real local Ollama; prints scores and timings (**Built**: `test_live.py`, skipped by default) |
 | eval set | script | 20–30 labelled résumés: bucket agreement, rank correlation, stability across 2 runs (Phase 3) |
 | UI | Playwright for Electron | the happy path, pause/resume banner, light/dark (Phase 2) |
 

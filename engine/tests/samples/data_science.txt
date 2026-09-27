@@ -1,0 +1,21 @@
+ANANYA KRISHNAN
+ananya.k@example.com | +91 90000 22222
+
+OBJECTIVE
+Data science student looking for an analytics internship.
+
+EDUCATION
+B.Tech Computer Science (Data Science), 2022-2026, CGPA 8.9
+
+PROJECTS
+Crop Yield Forecasting
+- Trained a gradient-boosted model on 10 years of district rainfall data; MAPE 12%
+- Presented results to the state agriculture department's analytics cell
+Retail Churn Dashboard
+- Built a Power BI dashboard over a synthetic retail dataset of 200,000 customers
+
+SKILLS
+Python, pandas, scikit-learn, SQL, Power BI, Jupyter
+
+CERTIFICATIONS
+Google Data Analytics Professional Certificate (2024)

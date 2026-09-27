@@ -25,11 +25,13 @@ The whole screening pipeline, runnable and testable from Python alone.
 | 1.6 | `engine/llm/` | Ollama client (reused), fenced prompt, recruiter criteria, claim verification, model pre-check |
 | 1.7 | `engine/worker.py` | Resumable job loop, 2-ahead prefetch, pause on system failure, delete-after-commit |
 | 1.8 | `engine/export.py` | CSV with UTF-8 BOM and formula-injection escaping |
+| 1.9 | `engine/cli.py` | Headless proof: preflight, run, resume, results, export, retry |
+| 1.10 | `engine/tests/stubs/`, `test_e2e.py`, `test_live.py` | Local Drive/Ollama stubs, end-to-end run, live-model check |
 
-**Exit criteria**
-- Kill test: process killed at random points 20 times, every restart resumes with zero lost or duplicated candidates.
-- Network pulled mid-run → run pauses, zero candidates marked failed because of it.
-- A 10-page résumé is scored on all its sections, not the first half-page.
+**Exit criteria**: all met on 2026-09-27 (see `docs/summaries/PHASE1_SUMMARY.md`)
+- Kill test: process killed at random points 20 times, every restart resumes with zero lost or duplicated candidates. → `test_kill.py` + `test_worker_kill.py` (real worker, 20 hard kills; run on Windows too)
+- Network pulled mid-run → run pauses, zero candidates marked failed because of it. → `test_worker.py` network/Ollama loss tests; `test_e2e.py` Ollama outage
+- A 10-page résumé is scored on all its sections, not the first half-page. → `test_extract.py`, `test_llm.py::TenPageTests`, `test_e2e.py` (evidence quoted from page 7)
 
 ## Phase 2 — App (local API + Electron UI)
 
@@ -104,3 +106,4 @@ A fresh session reads this first. One line per step: date · step · tests · wh
 - 2026-09-27 · 1.7 worker · 233 tests (~28 s) · `Worker(db, data_dir, downloader, extractor, scorer_factory, health)`; `start` = filters + recovery + threads; `resume` also restarts a completed run (Retry failed). CLI must call `configure_logging(data_dir)`. Stubs: `engine/tests/stubs/{base,drive_stub,ollama_stub}.py` (`DriveStub(delay=)`, `OllamaStub(delay=)`, `.script("garbage", …)`, `go_offline()`). Stub scores = "grade N out of 100" in the résumé.
 - 2026-09-27 · 1.8 export · 245 tests · `export_csv(db.export_rows(run), compute_buckets(db.scored_rows(run), …, overrides=db.latest_overrides(run)).placements, path, view=…)`. Raises `ExportError` (recruiter wording) for a locked file or full disk.
 - 2026-09-27 · 1.9 cli · 255 tests (~40 s) · `engine.cli.main(argv, stdout=, stdin=, url_rewrite=, health=, poll_interval=, download_interval=, idle_interval=)` — keyword args are test seams (stubs). Pre-check cache lives in settings key `model_prechecks`. Use `PYTHONIOENCODING=utf-8` on Windows consoles.
+- 2026-09-27 · 1.10 e2e · 257 tests (256 run, 1 skipped: live) · **Phase 1 done.** Next session: read `docs/summaries/PHASE1_SUMMARY.md` §6 (risks) and §7 (what Phase 2 needs: expose `Worker.recover()`, add `Worker.cancel()`, clear-filters DB method, model pull). The owner still has to run `ATLAS_LIVE=1` and try real Drive links.

@@ -59,8 +59,8 @@ atlas/
 │   ├── logs.py          ← engine.log (rotating, PII scrubbed)           [done]
 │   ├── export.py        ← CSV export                                    [done]
 │   ├── cli.py           ← headless proof of Phase 1                     [done]
-│   ├── server.py        ← local API for the UI
-│   └── tests/
+│   ├── server.py        ← local API for the UI (Phase 2)                [next]
+│   └── tests/           ← unittest; stubs/ = local fake Drive + Ollama; fixtures.py = generated PDFs
 └── app/                 ← Electron + React (Phase 2)
 ```
 
