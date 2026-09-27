@@ -1,0 +1,91 @@
+# Atlas — Build Plan
+
+Atlas is a desktop app (macOS + Windows) that screens student résumés with a local LLM.
+Input: a recruiter CSV. Output: an in-app results view and an exportable CSV.
+
+The promise we make to the firm is **not** "it can't break". It is:
+
+> No data is ever lost, and any run can be killed at any moment and resumed exactly where it stopped.
+
+Every phase below has **exit criteria**. A phase is not done until they pass.
+
+---
+
+## Phase 1 — Engine (headless, no UI)
+
+The whole screening pipeline, runnable and testable from Python alone.
+
+| Step | File | What |
+|---|---|---|
+| 1.1 | `engine/db.py` | SQLite schema, WAL, candidate state machine, atomic transitions, crash recovery |
+| 1.2 | `engine/buckets.py` | Shortlisted / Cutoff / Rejected computed at view time; min-count fill; ties; overrides |
+| 1.3 | `engine/ingest/csv_loader.py` | Flexible headers, encodings, Excel-mangled phones, CGPA parsing, pre-flight report |
+| 1.4 | `engine/ingest/downloader.py` | Drive link rewriting, 20 MB streaming cap, `%PDF` check, failure taxonomy, throttling |
+| 1.5 | `engine/extract/` | PyMuPDF + OCR fallback (reused), **section extraction** for long résumés |
+| 1.6 | `engine/llm/` | Ollama client (reused), fenced prompt, recruiter criteria, claim verification, model pre-check |
+| 1.7 | `engine/worker.py` | Resumable job loop, 2-ahead prefetch, pause on system failure, delete-after-commit |
+| 1.8 | `engine/export.py` | CSV with UTF-8 BOM and formula-injection escaping |
+
+**Exit criteria**
+- Kill test: process killed at random points 20 times, every restart resumes with zero lost or duplicated candidates.
+- Network pulled mid-run → run pauses, zero candidates marked failed because of it.
+- A 10-page résumé is scored on all its sections, not the first half-page.
+
+## Phase 2 — App (local API + Electron UI)
+
+| Step | File | What |
+|---|---|---|
+| 2.1 | `engine/server.py` | Local API on 127.0.0.1, random port, per-launch token |
+| 2.2 | `app/main/` | Electron main: spawns/monitors engine, `powerSaveBlocker`, window chrome |
+| 2.3 | `app/renderer/design/` | Design tokens + component kit (built **before** any screen) |
+| 2.4 | `app/renderer/screens/` | Welcome → Upload + Model → Criteria → Cutoffs → Timeline/Progress → Results → Settings |
+
+**Exit criteria**
+- Every screen works in light and dark mode, at 1280×800 and full screen.
+- Closing the app mid-run and reopening lands on the same run, paused, resumable.
+
+## Phase 3 — Hardening & shipping
+
+| Step | What |
+|---|---|
+| 3.1 | Ollama detection, install guidance, model pull with progress |
+| 3.2 | Hardware check + spec-based time estimate (replaced by measured rate after 4–5 résumés) |
+| 3.3 | Eval set: 20–30 labelled résumés; score quality measured before each release |
+| 3.4 | Packaging: PyInstaller engine + electron-builder; macOS signing + notarization; Windows signing |
+| 3.5 | Fault-injection suite in CI |
+
+**Exit criteria**
+- Installs and runs on a clean Mac (Apple Silicon) and a clean Windows 11 machine with no dev tools.
+
+---
+
+## Design system — Apple-inspired
+
+Rules, not vibes. Every screen follows these.
+
+**Typography**
+- macOS: system font stack (`-apple-system, BlinkMacSystemFont`) → renders SF Pro natively.
+- Windows: **Inter** bundled. SF Pro's licence only allows use on Apple platforms; shipping it on Windows is a licence violation.
+- Scale (px): 34 large title · 22 title · 17 headline/body · 15 callout · 13 footnote · 11 caption.
+
+**Layout**
+- 8-pt grid. Generous whitespace; one primary action per screen.
+- Radii: 6 controls · 10 cards · 14 sheets/modals.
+- Setup screens (1–5) are a focused stepped flow; Results and Settings use a macOS-style sidebar.
+
+**Colour** (light / dark)
+- Accent: `#007AFF` / `#0A84FF`. Success `#34C759` / `#30D158`. Warning `#FF9500` / `#FF9F0A`. Danger `#FF3B30` / `#FF453A`.
+- Backgrounds are layered greys, not pure white/black. Follow the OS theme by default.
+
+**Materials & chrome**
+- macOS: `titleBarStyle: 'hiddenInset'`, `vibrancy: 'sidebar'` on the sidebar.
+- Windows 11: `backgroundMaterial: 'mica'`, native window controls on the **right**. Apple layout, Windows conventions — an app that fakes traffic lights on Windows looks broken.
+
+**Motion**
+- Spring-based, 200–350 ms. Nothing decorative. Respect `prefers-reduced-motion`.
+
+**Icons**
+- SF Symbols are licensed for Apple platforms only → use Lucide (thin stroke, rounded caps) everywhere.
+
+**Language**
+- Plain, calm, specific. "Link is private — ask the candidate to share it with 'Anyone with the link'", never "Error 403".
