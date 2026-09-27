@@ -52,8 +52,8 @@ atlas/
 │   ├── buckets.py       ← view-time bucketing, min fill, ties          [done]
 │   ├── errors.py        ← CandidateError / SystemUnavailable / TransientError + all recruiter wording [done]
 │   ├── ingest/          ← csv_loader.py, links.py, downloader.py      [done]
-│   ├── extract/         ← PDF text, OCR fallback, section extraction    [next]
-│   ├── llm/             ← Ollama client, prompts, model pre-check
+│   ├── extract/         ← PDF text, OCR fallback, section extraction    [done]
+│   ├── llm/             ← Ollama client, prompts, model pre-check       [next]
 │   ├── worker.py        ← resumable job loop
 │   ├── export.py        ← CSV export
 │   ├── server.py        ← local API for the UI

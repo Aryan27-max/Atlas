@@ -127,7 +127,7 @@ flowchart TB
     subgraph L3["Stages"]
         csvl["ingest/csv_loader.py (Built)"]
         dl["ingest/downloader.py (Built)"]
-        ext["extract/ pdf, ocr, sections (Planned)"]
+        ext["extract/ pdf, ocr, sections (Built)"]
         llm["llm/ client, prompt, schema, precheck (Planned)"]
         exp["export.py (Planned)"]
         est["estimate.py (Planned)"]
@@ -556,12 +556,19 @@ Downloads write to `.part` and are renamed only when complete, so a partial file
 
 ## 12. Text and section extraction
 
-**Planned** (`engine/extract/`). This reuses QWENTUS's PyMuPDF + EasyOCR logic and adds section splitting.
+**Built** (`engine/extract/pdf.py`, `ocr.py`, `sections.py`). This reuses QWENTUS's PyMuPDF + EasyOCR logic and adds section splitting.
 
-1. **Text:** PyMuPDF `get_text` per page. If the whole document is empty, or has fewer than about 50 characters per page (scanned résumé), OCR the pages without text.
-2. **Limits:** at most 10 pages are read (the agreed range is 1–10). Longer documents are cut at page 10 and flagged in the evaluation, not failed.
-3. **Sections:** split on recognised headings (Education, Experience/Internships, Projects, Skills, Achievements/Awards, Certifications, Hackathons, Positions of Responsibility, Publications, Summary), matched on short lines, upper-case or title-case, with or without a colon. Text before the first heading becomes `header`; unrecognised headings go to `other`.
-4. **Stored:** the full text in `resume_texts.text`, and the section map in `resume_texts.sections`.
+1. **Text:** `PdfExtractor(ocr=…).extract(path) -> Extraction(text, page_texts, page_count, ocr_used, truncated_pages)`. PyMuPDF `get_text` per page; **each page** with fewer than about 50 characters is OCR'd (QWENTUS only OCR'd a completely empty document). Text is NFKC-normalised (ligatures "ﬁ" → "fi") and icon-font glyphs are dropped, so headings and evidence quotes match. The PDF is opened from bytes: PyMuPDF keeps the file handle when opening a corrupt file *by path*, which on Windows would stop the worker deleting it.
+2. **Limits:** at most 10 pages are read (the agreed range is 1–10). Longer documents are cut at page 10 and flagged in the evaluation, not failed. `page_count` is the document's real page count, so the flag can be derived later from `resume_texts.page_count > 10`.
+3. **OCR** (`EasyOcrEngine(model_storage_directory)`): optional and lazily imported, `gpu=False`, `download_enabled=False`. No easyocr, or no model files → "This résumé is a scanned image, and text recognition (OCR) isn't installed on this computer." (permanent). OCR ran but found nothing → "No readable text was found in the résumé."
+4. **Sections:** `split_sections(text) -> {name: text}`, names `header, summary, education, experience, projects, skills, achievements, certifications, hackathons, positions, publications, personal, other`. Headings are matched on short lines: upper-case, title-case, letter-spaced (`P R O J E C T S`), with a colon, inline (`SKILLS: Python`), or decorated (`■ Projects`, `— SKILLS —`). Rules:
+   - Text before the first heading → `header`. It holds the name and contact block and is **never sent to the model**. If there is no heading at all, everything goes to `other` instead.
+   - `personal` (Personal Details, Declaration: date of birth, gender, religion) is **never sent to the model** (rule 9, bias). *(Added.)*
+   - Known low-value headings (Hobbies, Languages known, References) → `other`. An unknown heading is not detected; its lines stay in the section above, so nothing is lost.
+   - *Weak* heading words that are also ordinary lines ("Leadership", "Research", "Languages", "Tech Stack") count only when written like a heading: ALL CAPS, trailing colon, or decorated.
+   - Two headings on one line ("EDUCATION | SKILLS", "Awards & Certifications") → the section that comes first in `PROMPT_PRIORITY`.
+   - Inside Projects/Experience/Hackathons/Positions, a skills-type label ("Tech Stack: React", "Skills: Python") belongs to that item and doesn't start a new section.
+5. **Stored:** the full text in `resume_texts.text`, and the section map in `resume_texts.sections`.
 
 **Why sections:** QWENTUS sent the first 2,500 characters, which is about half a page, so page 3 of a 5-page résumé was never read. With sections, the prompt builder (§13) takes the sections that matter from **anywhere** in the document, within a token budget.
 
@@ -780,7 +787,7 @@ atlas/
 │   ├── db.py · buckets.py                     Built
 │   ├── ingest/csv_loader.py · links.py        Built
 │   ├── ingest/downloader.py · errors.py       Built
-│   ├── extract/pdf.py · ocr.py · sections.py  Planned
+│   ├── extract/pdf.py · ocr.py · sections.py  Built
 │   ├── llm/client.py · prompt.py · schema.py · precheck.py   Planned
 │   ├── worker.py · health.py · estimate.py · export.py · server.py   Planned
 │   └── tests/
@@ -812,7 +819,7 @@ atlas/
 | crash safety | subprocess + SIGKILL | 20 random kills, integrity + consistency (**Built**); worker-level version with `worker.py` |
 | downloader | unittest + mocked `requests` + local Drive stub | Drive rewrite, login page at HTTP 200, confirm page, 20 MB abort, magic bytes, 403/404/429/5xx, timeouts, reset (**Built: 41 tests**) |
 | csv_loader | unittest + fixture CSVs | aliases, BOM/cp1252, Excel phones, CGPA formats, duplicates, blanks (**Built: 29 tests**) |
-| extraction | unittest + generated PDFs | 1- and 10-page, scanned (OCR), encrypted, corrupt, section splitting |
+| extraction | unittest + generated PDFs | 1- and 10-page, scanned (OCR), encrypted, corrupt, section splitting (**Built: 29 tests**) |
 | llm | unittest + mocked client | invalid JSON, truncated output, fake quotes, injection text, identity stripped from prompt |
 | worker | unittest + fakes | pause on network/Ollama loss with zero failed candidates, prefetch ≤ 2, delete-after-commit, resume |
 | eval set | script | 20–30 labelled résumés: bucket agreement, rank correlation, stability across 2 runs (Phase 3) |
