@@ -9,6 +9,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+from engine import db as db_module
 from engine.db import (
     SCHEMA_VERSION,
     Database,
@@ -132,6 +133,57 @@ class SchemaTests(DbTestCase):
                 Database(self.dir / "atlas.db")
         sleep.assert_not_called()
         self.db = Database(self.dir / "atlas.db")
+
+
+class MigrationTests(DbTestCase):
+    def make_v1_database(self, path: Path) -> None:
+        """A database exactly as schema v1 left it, with one scored candidate."""
+        now = "2026-09-01T10:00:00.000+00:00"
+        conn = sqlite3.connect(path)
+        conn.executescript(db_module._SCHEMA)
+        conn.execute("PRAGMA user_version=1")
+        conn.execute("INSERT INTO runs (id, name, status, model_name, created_at, updated_at) "
+                     "VALUES (1, 'Old run', 'completed', 'qwen3:8b', ?, ?)", (now, now))
+        conn.execute("INSERT INTO candidates (id, run_id, ra_number, name, resume_link, state, created_at, updated_at) "
+                     "VALUES (1, 1, 'RA1', 'Asha', 'https://x', 'scored', ?, ?)", (now, now))
+        conn.execute("INSERT INTO resume_texts (candidate_id, text, page_count, pdf_sha256, created_at) "
+                     "VALUES (1, 'Skills: Python', 1, 'h', ?)", (now,))
+        conn.execute("INSERT INTO evaluations (candidate_id, overall_score, sub_scores, summary, reasons, evidence, "
+                     "claim_mismatches, model_name, prompt_hash, created_at) "
+                     "VALUES (1, 77, '{\"technical\": 70}', 'Good', '[\"r\"]', '[]', '[]', 'qwen3:8b', 'p', ?)", (now,))
+        conn.commit()
+        conn.close()
+
+    def test_v1_database_upgrades_with_data_intact(self) -> None:
+        path = self.dir / "old.db"
+        self.make_v1_database(path)
+        with Database(path) as db:
+            self.assertEqual(db._conn.execute("PRAGMA user_version").fetchone()[0], 2)
+            ev = db.get_evaluation(1)
+            self.assertEqual((ev["overall_score"], ev["reasons"], ev["flags"]), (77, ["r"], []))
+            self.assertEqual(db.get_candidate(1)["state"], "scored")
+            self.assertEqual(db.get_run(1)["name"], "Old run")
+            self.assertEqual(db._conn.execute("PRAGMA integrity_check").fetchone()[0], "ok")
+        with Database(path) as db:  # opening again changes nothing
+            self.assertEqual(db.get_evaluation(1)["flags"], [])
+
+    def test_interrupted_upgrade_is_safe_to_repeat(self) -> None:
+        # Column added but user_version not bumped: the step must not fail on a duplicate column.
+        path = self.dir / "half.db"
+        self.make_v1_database(path)
+        conn = sqlite3.connect(path)
+        conn.execute("ALTER TABLE evaluations ADD COLUMN flags TEXT NOT NULL DEFAULT '[]'")
+        conn.commit()
+        conn.close()
+        with Database(path) as db:
+            self.assertEqual(db._conn.execute("PRAGMA user_version").fetchone()[0], 2)
+
+    def test_flags_round_trip(self) -> None:
+        _, ids = self.new_run(1)
+        self.drive_to_scoring(ids[0])
+        flags = ["Possible instructions to the AI found in résumé", "High score without supporting evidence"]
+        self.db.save_evaluation(ids[0], **self.evaluation(), flags=flags)
+        self.assertEqual(self.db.get_evaluation(ids[0])["flags"], flags)
 
 
 class RunTests(DbTestCase):

@@ -128,7 +128,7 @@ flowchart TB
         csvl["ingest/csv_loader.py (Built)"]
         dl["ingest/downloader.py (Built)"]
         ext["extract/ pdf, ocr, sections (Built)"]
-        llm["llm/ client, prompt, schema, precheck (Planned)"]
+        llm["llm/ client, redact, prompt, schema, verify, scorer, precheck (Built)"]
         exp["export.py (Planned)"]
         est["estimate.py (Planned)"]
     end
@@ -158,7 +158,7 @@ flowchart TB
 
 ## 4. Data model
 
-**Built** (`engine/db.py`, schema version 1).
+**Built** (`engine/db.py`, schema version 2: v2 added `evaluations.flags`).
 
 ```mermaid
 erDiagram
@@ -224,6 +224,7 @@ erDiagram
         text prompt_hash
         text raw_response
         real duration_seconds
+        text flags "JSON list of recruiter notes (v2)"
     }
     overrides {
         int id PK
@@ -576,7 +577,7 @@ Downloads write to `.part` and are renamed only when complete, so a partial file
 
 ## 13. LLM scoring
 
-**Planned** (`engine/llm/`).
+**Built** (`engine/llm/`): `schema.py` (contract), `client.py` (Ollama), `redact.py` (identity), `prompt.py`, `verify.py` (quotes, injection), `scorer.py` (retries and guardrails), `precheck.py`.
 
 ### Prompt shape
 
@@ -592,6 +593,11 @@ flowchart TD
 ```
 
 **Never included:** name, email, phone, RA number, section, photos, cutoff values.
+
+How that is enforced, as built:
+- `build_prompt(candidate_context, sections, criteria, *, budget_chars)` takes a `CandidateContext(cgpa, department, skills, hackathons)`. There is no field or parameter that *could* carry identity or a cutoff.
+- The résumé text itself contains the student's name and contact details, so `redact.scoring_input(candidate_row, text, sections)` runs once before scoring. It drops the `header` and `personal` sections (§12), replaces the known name (full and each word ≥ 3 letters), email, phone (any separators), RA number and a digit-bearing section code with `[name]`, `[email]`, `[phone]`, `[id]`, `[section]`, and also replaces anything shaped like an email or a 10–13-digit phone number. *(Added module.)*
+- The student's claims are as untrusted as the résumé: a `</resume>` inside them is neutralised just as in the résumé, and they are scanned for injection text too.
 
 **Section budget:** the total résumé budget is set from the model's `num_ctx`, minus the fixed parts and the output reserve. Sections are filled in priority order: Projects, Experience, Skills, Achievements/Hackathons, Certifications, Education, Positions, Summary, then Other. Each section gets a floor share, and whatever is left over goes to the rest in priority order. If a single section is still too long (a 4-page projects list), each item is trimmed to its first lines rather than the whole section being cut off.
 
@@ -621,9 +627,17 @@ flowchart TD
 
 Request options: `format` set to the JSON schema, `temperature 0`, `think false`, `num_ctx` from the model, `num_predict` large enough for the schema (starting at 1024, not QWENTUS's 256).
 
+As built:
+- `num_ctx` = the model's `/api/show` context length, **capped at 8192**: a laptop can't afford a 128k KV cache, and 8k holds the important sections of a 10-page résumé. `keep_alive` 10 min keeps the model loaded between candidates.
+- The résumé budget is `(num_ctx − num_predict − 256 − fixed prompt / 3) × 3` characters (3 characters per token, conservative), at least 1,000.
+- Retry order per answer: cut off (`length`) → double `num_predict` up to 4096; unreadable → 3 attempts, 1 s / 3 s; all quotes fake → once; high score without evidence → once. At most 8 model calls per résumé. If a later retry fails, the last *valid* answer is kept rather than failing the candidate.
+- The JSON schema passed as `format` has `$ref`s inlined and real `minimum`/`maximum` bounds (a Pydantic ordering detail would otherwise emit non-standard `ge`/`le`).
+- A chat that breaks midway raises `TransientError(probe="ollama", "The model stopped before finishing this résumé.")`; the worker probes `/api/tags`. A 404 (model deleted) pauses the run: "The model "X" is no longer installed in Ollama. Install it again, then press Resume."
+- Flags stored with the evaluation: "Possible instructions to the AI found in résumé", "High score without supporting evidence", "Résumé longer than 10 pages; pages 11+ not read" (the last added by the worker).
+
 ### Model pre-check
 
-Before a run can start, the chosen model scores one bundled sample résumé. It must return valid JSON in the contract within 120 s. Otherwise: "This model can't be used for screening. Choose another." The result is cached per model name and digest in `settings`.
+Before a run can start, the chosen model scores one bundled sample résumé (`engine/llm/sample_resume.txt`, fictional). It must return valid JSON in the contract within 120 s. Otherwise: "This model can't be used for screening. Choose another." A model that isn't installed, or Ollama not running, gets its own message. The result carries the model digest; the caller caches it per model name and digest in `settings`.
 
 ---
 
@@ -788,7 +802,7 @@ atlas/
 │   ├── ingest/csv_loader.py · links.py        Built
 │   ├── ingest/downloader.py · errors.py       Built
 │   ├── extract/pdf.py · ocr.py · sections.py  Built
-│   ├── llm/client.py · prompt.py · schema.py · precheck.py   Planned
+│   ├── llm/client.py · redact.py · prompt.py · schema.py · verify.py · scorer.py · precheck.py   Built
 │   ├── worker.py · health.py · estimate.py · export.py · server.py   Planned
 │   └── tests/
 ├── app/
@@ -820,7 +834,7 @@ atlas/
 | downloader | unittest + mocked `requests` + local Drive stub | Drive rewrite, login page at HTTP 200, confirm page, 20 MB abort, magic bytes, 403/404/429/5xx, timeouts, reset (**Built: 41 tests**) |
 | csv_loader | unittest + fixture CSVs | aliases, BOM/cp1252, Excel phones, CGPA formats, duplicates, blanks (**Built: 29 tests**) |
 | extraction | unittest + generated PDFs | 1- and 10-page, scanned (OCR), encrypted, corrupt, section splitting (**Built: 29 tests**) |
-| llm | unittest + mocked client | invalid JSON, truncated output, fake quotes, injection text, identity stripped from prompt |
+| llm | unittest + mocked client | invalid JSON, truncated output, fake quotes, injection text, identity stripped from prompt (**Built: 53 tests**) |
 | worker | unittest + fakes | pause on network/Ollama loss with zero failed candidates, prefetch ≤ 2, delete-after-commit, resume |
 | eval set | script | 20–30 labelled résumés: bucket agreement, rank correlation, stability across 2 runs (Phase 3) |
 | UI | Playwright for Electron | the happy path, pause/resume banner, light/dark (Phase 2) |

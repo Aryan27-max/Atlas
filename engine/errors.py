@@ -71,6 +71,14 @@ class Pause:
         return f'The model "{model}" is no longer installed in Ollama. Install it again, then press Resume.'
 
 
+class Flag:
+    """Notes attached to a scored candidate for the recruiter (``evaluations.flags``)."""
+
+    PAGES_NOT_READ = "Résumé longer than 10 pages; pages 11+ not read"
+    INJECTION = "Possible instructions to the AI found in résumé"
+    UNSUPPORTED_HIGH_SCORE = "High score without supporting evidence"
+
+
 # Only these resume on their own, when the health probe succeeds again.
 AUTO_RESUME_REASONS = frozenset({Pause.NO_INTERNET, Pause.OLLAMA_DOWN})
 

@@ -1,0 +1,28 @@
+MEERA NAIR
+meera.nair@example.com | +91 90000 00000 | github.com/example-meera
+Kochi, Kerala
+
+SUMMARY
+Final-year information technology student who likes building small, reliable web services.
+
+EDUCATION
+B.Tech Information Technology, 2022-2026, CGPA 8.1
+Higher Secondary, CBSE, 2022, 91%
+
+EXPERIENCE
+Backend Intern, Harbour Logistics (June 2025 - August 2025)
+- Wrote a Flask API that returns shipment status for 40 warehouses
+- Added PostgreSQL indexes that cut the slowest report from 9 seconds to 2 seconds
+
+PROJECTS
+Mess Menu Voting App
+- Built a Django app where 600 hostel students vote on the weekly menu
+- Deployed on a free cloud tier with a nightly database backup
+Bus Tracker
+- Built an Android app in Kotlin that shows the college bus location from a GPS module
+
+SKILLS
+Python, Flask, Django, PostgreSQL, Kotlin, Git, Linux
+
+ACHIEVEMENTS
+Finalist, state-level hackathon on public transport, 2024

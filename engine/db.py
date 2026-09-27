@@ -29,7 +29,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable, Iterator, Mapping
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 # --------------------------------------------------------------------------- #
 # State machines
@@ -323,8 +323,18 @@ class Database:
                     f"this build understands up to {SCHEMA_VERSION}."
                 )
             if version < 1:
-                self._conn.executescript(_SCHEMA)
-                self._conn.execute(f"PRAGMA user_version={SCHEMA_VERSION}")
+                self._conn.executescript(_SCHEMA)          # the released v1 schema, never edited
+                self._conn.execute("PRAGMA user_version=1")
+                version = 1
+            if version < 2:
+                # v2: evaluations.flags — notes for the recruiter (JSON list).
+                # The column check keeps this safe to repeat if a previous
+                # attempt was interrupted.
+                with self.transaction() as c:
+                    columns = {r["name"] for r in c.execute("PRAGMA table_info(evaluations)")}
+                    if "flags" not in columns:
+                        c.execute("ALTER TABLE evaluations ADD COLUMN flags TEXT NOT NULL DEFAULT '[]'")
+                    c.execute("PRAGMA user_version=2")
 
     def close(self) -> None:
         with self._lock:
@@ -680,8 +690,13 @@ class Database:
         prompt_hash: str,
         raw_response: str | None = None,
         duration_seconds: float | None = None,
+        flags: Iterable[str] = (),
     ) -> None:
-        """Store the LLM result and mark the candidate ``scored`` in one go."""
+        """Store the LLM result and mark the candidate ``scored`` in one go.
+
+        ``flags`` are short notes for the recruiter (schema v2), e.g.
+        "Possible instructions to the AI found in résumé".
+        """
         if not isinstance(overall_score, int) or isinstance(overall_score, bool):
             raise ValidationError("overall_score must be an integer.")
         if not 0 <= overall_score <= 100:
@@ -697,8 +712,8 @@ class Database:
                 """INSERT OR REPLACE INTO evaluations
                    (candidate_id, overall_score, sub_scores, summary, reasons, evidence,
                     claim_mismatches, model_name, prompt_hash, raw_response,
-                    duration_seconds, created_at)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    duration_seconds, flags, created_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
                     candidate_id,
                     overall_score,
@@ -711,6 +726,7 @@ class Database:
                     prompt_hash,
                     raw_response,
                     duration_seconds,
+                    json.dumps([str(f) for f in flags]),
                     _now(),
                 ),
             )
@@ -718,7 +734,7 @@ class Database:
     def get_evaluation(self, candidate_id: int) -> dict[str, Any] | None:
         row = self._query_one("SELECT * FROM evaluations WHERE candidate_id = ?", (candidate_id,))
         if row:
-            for key in ("sub_scores", "reasons", "evidence", "claim_mismatches"):
+            for key in ("sub_scores", "reasons", "evidence", "claim_mismatches", "flags"):
                 row[key] = json.loads(row[key])
         return row
 

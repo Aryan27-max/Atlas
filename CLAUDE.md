@@ -53,8 +53,8 @@ atlas/
 │   ├── errors.py        ← CandidateError / SystemUnavailable / TransientError + all recruiter wording [done]
 │   ├── ingest/          ← csv_loader.py, links.py, downloader.py      [done]
 │   ├── extract/         ← PDF text, OCR fallback, section extraction    [done]
-│   ├── llm/             ← Ollama client, prompts, model pre-check       [next]
-│   ├── worker.py        ← resumable job loop
+│   ├── llm/             ← Ollama client, redaction, prompt, verify, scorer, pre-check [done]
+│   ├── worker.py        ← resumable job loop                            [next]
 │   ├── export.py        ← CSV export
 │   ├── server.py        ← local API for the UI
 │   └── tests/
