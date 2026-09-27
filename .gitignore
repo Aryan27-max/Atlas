@@ -6,3 +6,11 @@ __pycache__/
 # Runtime data (SQLite + WAL/SHM side files, partial downloads)
 *.db*
 *.part
+
+# Local real data (never committed)
+local/
+*.xlsx
+*.xls
+*.db
+*.db-wal
+*.db-shm
