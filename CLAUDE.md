@@ -70,7 +70,8 @@ atlas/
     ├── renderer/design/ ← tokens.css + components + #/design gallery   [done]
     ├── renderer/screens/← Welcome, setup flow, Progress, Results, Settings [done]
     ├── src/shared/      ← api-schema.json → api-types.ts (generated), bridge.ts [done]
-    └── e2e/, tests/     ← Playwright (Electron) and Vitest [done]; 2.9 end-to-end flows + performance [next]
+    └── e2e/, tests/     ← Playwright (Electron: flows, keyboard, perf, full screen) and Vitest [done]
+                           Phase 2 done on Windows. Next: 1.11a (blocks real data), macOS check, Phase 3 [next]
 ```
 
 Update the `[done]` / `[next]` markers when a step lands.

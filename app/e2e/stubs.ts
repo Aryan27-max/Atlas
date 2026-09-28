@@ -11,8 +11,8 @@ import { join } from 'node:path'
 import type { ElectronApplication } from '@playwright/test'
 import { APP_DIR, type Launched, launch } from './helpers'
 
-const REPO = join(APP_DIR, '..')
-const PYTHON = join(
+export const REPO = join(APP_DIR, '..')
+export const PYTHON = join(
   REPO,
   '.venv',
   process.platform === 'win32' ? 'Scripts' : 'bin',

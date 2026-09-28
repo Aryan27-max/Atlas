@@ -79,7 +79,7 @@ export function Results({ runId }: { runId: number }) {
   const anchor = useRef<HTMLButtonElement>(null)
 
   const q = useDebounced(search.trim(), 200)
-  const live = useDebounced(preview, 150)
+  const live = useDebounced(preview, 80)
   const cutoffQuery = live ? { shortlist: live.shortlist, band: live.band, min: live.min } : {}
 
   const run = useQuery({

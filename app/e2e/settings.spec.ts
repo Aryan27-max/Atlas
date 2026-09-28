@@ -3,9 +3,10 @@
  * Everything applies at once; deleting goes through the engine.
  */
 
+import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { expect, test } from '@playwright/test'
-import { type Launched, close } from './helpers'
+import { APP_DIR, type Launched, close } from './helpers'
 import { SCREENS_DIR, capture } from './screens'
 import { type Stubs, launchWithStubs, recordShellOpens, shellOpened, startStubs } from './stubs'
 
@@ -162,6 +163,9 @@ test('about: versions, and the logs folder opens', async () => {
   const about = page.getByRole('region', { name: 'About Atlas' })
   await expect(about).toContainText('Running · 0.0.0-stub')
   await expect(about).toContainText('0.2.0 · Running')
+  // Atlas's own version (package.json), not Electron's.
+  const version = (JSON.parse(readFileSync(join(APP_DIR, 'package.json'), 'utf8')) as { version: string }).version
+  await expect(about.locator('dd').first()).toHaveText(version)
   await about.getByRole('button', { name: 'Open logs folder' }).click()
   await expect.poll(async () => (await shellOpened(app)).at(-1) ?? '').toMatch(/logs$/)
   await page.getByRole('button', { name: 'Show in folder' }).click()
@@ -178,6 +182,12 @@ test('delete all data: typed confirmation, then a fresh start', async () => {
   const sheet = page.getByRole('dialog', { name: 'Delete all Atlas data?' })
   const confirm = sheet.getByRole('button', { name: 'Delete everything' })
   await expect(confirm).toBeDisabled()
+  for (const theme of ['light', 'dark'] as const) {
+    await page.evaluate((t) => (document.documentElement.dataset.theme = t), theme)
+    await page.waitForTimeout(200)
+    await page.screenshot({ path: join(SCREENS_DIR, `delete-all-${theme}.png`), animations: 'disabled' })
+  }
+  await page.evaluate(() => (document.documentElement.dataset.theme = 'dark'))
   await sheet.getByLabel('Type DELETE to confirm').fill('delet')
   await expect(confirm).toBeDisabled()
   await sheet.getByLabel('Type DELETE to confirm').fill('delete')

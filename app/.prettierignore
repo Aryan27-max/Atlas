@@ -1,3 +1,8 @@
 # Generated from the engine's OpenAPI schema (scripts/gen-api-types.mjs)
 src/shared/api-types.ts
 src/shared/api-schema.json
+
+# Build output and test artefacts
+out/
+test-results/
+playwright-report/

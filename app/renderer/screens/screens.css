@@ -12,6 +12,9 @@
 .screen-scroll {
   flex: 1;
   overflow-y: auto;
+  /* Room for the scrollbar on both sides: the column stays centred, and
+     content doesn't shift when a scrollbar appears. */
+  scrollbar-gutter: stable both-edges;
 }
 .screen-column {
   width: min(720px, 100% - 2 * var(--space-8));

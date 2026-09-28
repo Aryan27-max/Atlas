@@ -26,7 +26,7 @@ export function UploadModel() {
 
   const rename = useMutation({
     mutationFn: (value: string) => api('PATCH /runs/{run_id}', { params: { run_id: run.id }, body: { name: value } }),
-    onSuccess: () => void client.invalidateQueries({ queryKey: ['run', run.id] }),
+    onSuccess: (updated) => client.setQueryData(['run', run.id], updated),
   })
 
   const upload = useMutation({
@@ -55,8 +55,9 @@ export function UploadModel() {
 
   const save = useMutation({
     mutationFn: () => api('PATCH /runs/{run_id}', { params: { run_id: run.id }, body: { model_name: model } }),
-    onSuccess: () => {
-      void client.invalidateQueries({ queryKey: ['run', run.id] })
+    onSuccess: (updated) => {
+      // The engine's answer is the run now; the next step must not see an older copy.
+      client.setQueryData(['run', run.id], updated)
       next()
     },
   })

@@ -48,3 +48,27 @@ describe('the token stays in main', () => {
     }
   })
 })
+
+describe('rule 16: no scoring or bucketing in the renderer', () => {
+  const sources = files(join(APP, 'renderer')).filter((f) => /\.(ts|tsx)$/.test(f) && !/\.test\.tsx?$/.test(f))
+
+  it('never compares a candidate score with anything', () => {
+    // `score >= 60`, `row.score < cutoff`, `70 <= evaluation.overall_score` …
+    // Prettier always spaces comparison operators, so JSX tags (`score</h3>`) don't match.
+    const comparison = /\b(score|overall_score|sub_scores)\b\s+[<>]=?\s|\s[<>]=?\s+[\w.]*\b(score|overall_score)\b/
+    for (const file of sources) {
+      const lines = readFileSync(file, 'utf8').split('\n')
+      lines.forEach((line, i) => {
+        if (/^\s*(\/\/|\*)/.test(line)) return
+        expect(line, `${relative(APP, file)}:${i + 1}`).not.toMatch(comparison)
+      })
+    }
+  })
+
+  it('takes every bucket, rank, fill and tie from the engine', () => {
+    const logic = /compute_?buckets|computeBucket|assignBucket|bucketFor|\.sort\([^)]*score|rank\s*=\s*[^=]/
+    for (const file of sources) {
+      expect(readFileSync(file, 'utf8'), relative(APP, file)).not.toMatch(logic)
+    }
+  })
+})

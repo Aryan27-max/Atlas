@@ -273,7 +273,7 @@ if (!app.requestSingleInstanceLock()) {
     hardenSession(session.defaultSession, devServer)
     const info: AppInfo = {
       platform: process.platform === 'darwin' || process.platform === 'win32' ? process.platform : 'linux',
-      version: app.getVersion(),
+      version: __ATLAS_VERSION__,
       packaged: app.isPackaged,
       e2e,
       material,

@@ -125,6 +125,31 @@ describe('Stepper', () => {
     expect(screen.getByRole('button', { name: 'Increase Minimum' })).toHaveProperty('disabled', true)
   })
 
+  it('shows changes made elsewhere at once and never writes a value back on blur', () => {
+    const onChange = vi.fn()
+    function Linked() {
+      // Like Cutoffs: the score band and the stepper edit the same number.
+      const [value, setValue] = useState(60)
+      return (
+        <>
+          <button type="button" onClick={() => setValue((v) => v + 1)}>
+            Band right
+          </button>
+          <Stepper label="Shortlist" value={value} onChange={onChange} max={100} />
+        </>
+      )
+    }
+    render(<Linked />)
+    const input = screen.getByRole('spinbutton', { name: 'Shortlist' }) as HTMLInputElement
+    fireEvent.focus(input)
+    fireEvent.click(screen.getByRole('button', { name: 'Band right' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Band right' }))
+    expect(input.value).toBe('62')
+    fireEvent.blur(input)
+    fireEvent.keyDown(input, { key: 'Enter' })
+    expect(onChange).not.toHaveBeenCalled()
+  })
+
   it('accepts typed values, clamps them, and keeps decimal steps exact', () => {
     render(<Harness step={0.1} />)
     const input = screen.getByRole('spinbutton', { name: 'Minimum' }) as HTMLInputElement

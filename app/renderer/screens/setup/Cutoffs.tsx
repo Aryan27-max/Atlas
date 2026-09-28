@@ -65,8 +65,9 @@ export function Cutoffs() {
           departments_allowed: departments.length ? departments : null,
         },
       }),
-    onSuccess: () => {
-      void client.invalidateQueries({ queryKey: ['run', run.id] })
+    onSuccess: (updated) => {
+      // The engine's answer is the run now; the next step must not see an older copy.
+      client.setQueryData(['run', run.id], updated)
       next()
     },
   })

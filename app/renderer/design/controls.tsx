@@ -5,7 +5,6 @@ import {
   type KeyboardEvent,
   type ReactNode,
   forwardRef,
-  useEffect,
   useId,
   useRef,
   useState,
@@ -262,19 +261,22 @@ function decimalsOf(step: number): number {
 export function Stepper({ value, onChange, min = 0, max = 100, step = 1, label, disabled }: StepperProps) {
   const decimals = decimalsOf(step)
   const show = (v: number): string => v.toFixed(decimals)
-  const [draft, setDraft] = useState(show(value))
-  useEffect(() => setDraft(value.toFixed(decimals)), [value, decimals])
+  // Only what the recruiter is typing is held here; otherwise the field shows
+  // `value` itself. (A copy kept in sync by an effect could lag behind fast
+  // changes from elsewhere, e.g. the score band, and be written back on blur.)
+  const [draft, setDraft] = useState<string | null>(null)
 
   const clamp = (v: number): number => Math.min(max, Math.max(min, Number(v.toFixed(decimals))))
   const set = (v: number): void => {
     const next = clamp(v)
-    setDraft(show(next))
+    setDraft(null)
     if (next !== value) onChange(next)
   }
   const commit = (): void => {
+    if (draft === null) return
     const parsed = Number(draft.replace(',', '.'))
-    if (Number.isFinite(parsed)) set(parsed)
-    else setDraft(show(value))
+    if (draft.trim() !== '' && Number.isFinite(parsed)) set(parsed)
+    else setDraft(null)
   }
 
   return (
@@ -294,7 +296,7 @@ export function Stepper({ value, onChange, min = 0, max = 100, step = 1, label, 
         aria-valuemax={max}
         aria-valuenow={value}
         inputMode="decimal"
-        value={draft}
+        value={draft ?? show(value)}
         disabled={disabled}
         onChange={(event) => setDraft(event.target.value)}
         onBlur={commit}
