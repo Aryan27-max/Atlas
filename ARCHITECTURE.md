@@ -914,7 +914,7 @@ The design tokens and platform rules are in PLAN.md → *Design system*. **Built
 
 ## 20. Filesystem layout
 
-Electron's `app.getPath('userData')` is passed to the engine as `--data-dir`. **Nothing is hardcoded.**
+Electron's `app.getPath('userData')` is passed to the engine as `--data-dir`. **Nothing is hardcoded.** The installed app lives elsewhere (Windows: `%LOCALAPPDATA%\Programs\Atlas`; macOS: `/Applications/Atlas.app`), so **uninstalling or reinstalling Atlas never touches the data folder**; only Settings → *Delete all data* empties it (*(3.5)*, `nsis.deleteAppDataOnUninstall: false`).
 
 ```text
 <userData>/                          macOS: ~/Library/Application Support/Atlas
@@ -951,20 +951,35 @@ atlas/
 │   ├── scripts/     gen-api-types.mjs
 │   ├── e2e/         Playwright (Electron) tests
 │   └── tests/       Vitest contract tests
-└── packaging/       PyInstaller spec, electron-builder config, signing
+└── packaging/       (Built, 3.5) engine.spec + atlas_engine.py (PyInstaller), build_engine.py,
+                     smoke_engine.py, requirements-build.txt, entitlements.mac.plist, icons/
+                     (the electron-builder config is app/electron-builder.yml)
 ```
 
 ---
 
 ## 21. Packaging
 
-**Planned** (Phase 3).
+**Built (Phase 3, 3.5).**
 
-- **Engine:** PyInstaller `--onedir` per OS/arch (macOS arm64 + x64, Windows x64), shipped in Electron `extraResources`.
-- **OCR size:** EasyOCR pulls in PyTorch, which adds hundreds of MB. Evaluate an ONNX-based OCR (e.g. RapidOCR) in Phase 3. OCR models are bundled, never downloaded at runtime.
-- **Ollama:** not bundled. On first launch the app detects it. If it's missing, Atlas shows install guidance with a link; if the model is missing, Atlas pulls it with progress.
-- **Signing:** macOS Developer ID + notarization (the engine binary is signed too, with hardened runtime); Windows Authenticode. Without them, Gatekeeper and SmartScreen block the app.
-- **Updates:** electron-updater, deferred until a run is not active.
+```mermaid
+flowchart LR
+    spec["packaging/engine.spec<br/>PyInstaller, one folder"] --> eng["dist/engine/atlas-engine/<br/>atlas-engine(.exe) + _internal/"]
+    eng --> smoke["packaging/smoke_engine.py<br/>ATLAS_READY · /health · token · /shutdown"]
+    vite["electron-vite build<br/>app/out/"] --> eb["electron-builder<br/>app/electron-builder.yml"]
+    eng -- "extraResources → resources/engine/" --> eb
+    eb --> win["Windows: NSIS one-click, per user, x64"]
+    eb --> mac["macOS: DMG, one per arch (CI runner)"]
+```
+
+- **Engine:** `python packaging/build_engine.py` runs PyInstaller on `packaging/engine.spec` (one folder, console program so the ready line reaches stdout; Electron hides the window), prints the size and runs the smoke test (`packaging/smoke_engine.py`: starts it like the app does, with the token in the environment, and checks `ATLAS_READY`, `/health`, an authenticated `/system`, a refused unauthenticated call and `/shutdown`). Release builds use **Python 3.12** (CI, `.python-version`). The frozen engine runs in UTF-8 mode (`X utf8_mode=1` in the spec), like `PYTHONUTF8=1` in development. Windows build: 68.5 MB in 99 files, most of it PyMuPDF (38 MB).
+- **OCR is not in the build:** EasyOCR and PyTorch, plus the test, eval and tools packages, are excluded. A scanned résumé gets the existing reason ("…text recognition (OCR) isn't installed on this computer"). Any OCR swap is a non-goal of Phase 3.
+- **App:** `npm run dist` (from `app/`; `predist` stops early if the engine isn't built) runs electron-vite and electron-builder with `app/electron-builder.yml`: app ID `com.atlas.screening`, product name **Atlas**, the engine folder in `extraResources` (where `app/main/engine.ts` looks for it when packaged), only the en-US Chromium language pack, no publishing and no auto-update. Windows: an NSIS **one-click, per-user** installer (x64): no administrator rights, installs into `%LOCALAPPDATA%\Programs\Atlas`, accepts `/S` and `/D=<folder>`. macOS: a DMG; CI builds arm64 and x64 on matching runners because the engine inside is native code. Windows sizes (local test build): installer **125.0 MB**, installed **390 MB** (Electron about 320 MB, the engine 68.5 MB, the app 0.9 MB).
+- **Icon:** a placeholder (`packaging/icons/icon.png`, 1024 px); the owner supplies the real one (`packaging/icons/README.md`).
+- **Ollama:** not bundled. Atlas finds and starts an installed Ollama, or links to its download page (§18, 3.3).
+- **Signing:** only from environment variables or CI secrets (`docs/SIGNING.md`): `CSC_LINK`/`CSC_KEY_PASSWORD` (or `WIN_CSC_*`) for Windows; a Developer ID certificate plus `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD`, `APPLE_TEAM_ID` for macOS signing and notarisation (electron-builder skips notarisation when they're absent). Signed macOS builds use the hardened runtime with `packaging/entitlements.mac.plist` (JIT and library loading for Electron and the bundled Python). Without secrets: Windows builds are unsigned; macOS builds are ad-hoc signed with the hardened runtime off (`-c.mac.identity=- -c.mac.hardenedRuntime=false`).
+- **Packaged-app test:** `app/e2e/packaged.spec.ts` launches the unpacked build (the installer's files) with its own `--user-data-dir`, waits for the bundled engine and checks Welcome. Skipped until a build exists (`ATLAS_PACKAGED_DIR` when it was built elsewhere).
+- **Updates:** none (a Phase 3 non-goal). A new version is installed over the old one; the data folder stays.
 
 ---
 

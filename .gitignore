@@ -19,6 +19,10 @@ local/
 app/node_modules/
 app/out/
 app/dist/
+# Engine build (packaging/build_engine.py): the PyInstaller folder, its work
+# files and the build-only virtual environment
+/dist/
+/build/
 app/test-results/
 app/playwright-report/
 

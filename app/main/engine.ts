@@ -50,7 +50,9 @@ export function engineCommand(opts: {
   const common = ['--data-dir', opts.dataDir, '--port', '0', '--watch-stdin']
   const ollama = opts.env.ATLAS_OLLAMA_URL ? ['--ollama-url', opts.env.ATLAS_OLLAMA_URL] : []
   if (opts.packaged) {
-    // Phase 3 ships a PyInstaller build here.
+    // The PyInstaller one-folder build (packaging/engine.spec), shipped by
+    // electron-builder as <resources>/engine/ (app/electron-builder.yml). It
+    // runs in UTF-8 mode by itself (the spec), like PYTHONUTF8=1 below.
     return {
       command: join(opts.resourcesPath, 'engine', `atlas-engine${exe}`),
       args: [...common, ...ollama],

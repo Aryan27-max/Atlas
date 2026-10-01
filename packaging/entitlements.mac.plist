@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  macOS hardened-runtime entitlements for signed builds (docs/SIGNING.md).
+  Electron's JavaScript engine needs JIT and writable-executable memory; the
+  bundled engine (Python, from PyInstaller) loads its own libraries, which
+  library validation would otherwise refuse. No sandbox, no network server
+  entitlement: Atlas is not a Mac App Store app, and its local API listens on
+  127.0.0.1 only.
+-->
+<plist version="1.0">
+  <dict>
+    <key>com.apple.security.cs.allow-jit</key>
+    <true/>
+    <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
+    <true/>
+    <key>com.apple.security.cs.disable-library-validation</key>
+    <true/>
+  </dict>
+</plist>

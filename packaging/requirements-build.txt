@@ -1,0 +1,4 @@
+# Build-time only (pre-approved in the Phase 3 prompt): turns the engine into
+# one folder with its own Python. Never imported by the engine itself.
+-r ../engine/requirements.txt
+pyinstaller>=6.10

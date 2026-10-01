@@ -68,6 +68,7 @@ atlas/
 │   ├── filters.py       ← CGPA/department filter rule (worker + preview) [done]
 │   ├── tools/           ← read-only tools: graph_audit, graph_query, leak_check (counts only), speed_bench [done]
 │   └── tests/           ← unittest; stubs/ = local fake Drive + Ollama; fixtures.py = generated PDFs
+├── packaging/           ← PyInstaller engine.spec, build_engine.py + smoke_engine.py, icons/ (placeholder), mac entitlements [done]
 └── app/                 ← Electron + React (Phase 2)
     ├── main/            ← engine process, IPC validation, SSE, window, keep-awake, native menus [done]
     ├── preload/         ← window.atlas bridge (no token, sandboxed)     [done]
@@ -75,7 +76,7 @@ atlas/
     ├── renderer/screens/← Welcome, setup flow, Progress, Results, Settings [done]
     ├── src/shared/      ← api-schema.json → api-types.ts (generated), bridge.ts [done]
     └── e2e/, tests/     ← Playwright (Electron: flows, keyboard, perf, full screen) and Vitest [done]
-                           Phase 2 done on Windows. Phase 3: 3.0 graph, 3.1 before real use, 3.2 rubric + eval, 3.3 first run + hardware, 3.4 native-feel quick wins [done]; 3.5 packaging [next]
+                           Phase 2 done on Windows. Phase 3: 3.0 graph, 3.1 before real use, 3.2 rubric + eval, 3.3 first run + hardware, 3.4 native-feel quick wins, 3.5 packaging [done]; 3.6 CI [next]
 ```
 
 Update the `[done]` / `[next]` markers when a step lands.
@@ -112,7 +113,14 @@ python -m engine.server --openapi app/src/shared/api-schema.json
 npm test && npm run typecheck && npm run e2e
 npm run gen:api          # after re-exporting the schema
 npm run dev              # the app with hot reload
+
+# packaging (docs/SIGNING.md): the engine binary first, then the installer for this OS
+python packaging/build_engine.py      # PyInstaller → dist/engine/atlas-engine + smoke test (release: Python 3.12)
+npm run dist                          # from app/ → app/dist/ (installer + unpacked app)
+npx playwright test e2e/packaged.spec.ts   # the packaged app reaches Welcome with its engine
 ```
+
+On Windows with VS Code open on this repository, electron-builder can fail with `EPERM`/`EBUSY` on `app/dist/…/default_app.asar`: VS Code (an Electron app) keeps `.asar` files it has looked at open. Build elsewhere: `npx electron-builder --config electron-builder.yml -c.directories.output=<folder outside the repo>`, then `ATLAS_PACKAGED_DIR=<that folder>` for the packaged test.
 
 Python **3.11+**. Stdlib `unittest` only — no pytest. Tests must not need Ollama or the internet: mock `requests`, the Ollama client, and `time.sleep`.
 

@@ -1,0 +1,82 @@
+# electron-builder configuration (Phase 3, step 3.5). See docs/SIGNING.md.
+#
+#   python packaging/build_engine.py     # first: the engine, into dist/engine/atlas-engine
+#   npm run dist                         # then, from app/: the installer for this computer
+#
+# Signing comes only from environment variables (or CI secrets); without
+# them the build is unsigned and still installs:
+#   Windows  CSC_LINK + CSC_KEY_PASSWORD           a code-signing certificate (.pfx)
+#   macOS    CSC_LINK + CSC_KEY_PASSWORD           a "Developer ID Application" certificate (.p12)
+#            APPLE_ID + APPLE_APP_SPECIFIC_PASSWORD + APPLE_TEAM_ID   notarisation (skipped when absent)
+# Unsigned macOS builds are ad-hoc signed instead:
+#   npx electron-builder --mac -c.mac.identity=- -c.mac.hardenedRuntime=false
+
+appId: com.atlas.screening
+productName: Atlas
+copyright: Copyright © 2026 the Atlas owners
+
+directories:
+  output: dist
+  buildResources: ../packaging
+
+# The renderer, preload and main are bundled by electron-vite into out/;
+# nothing from node_modules is needed at run time.
+files:
+  - out/**/*
+  - '!out/**/*.map'
+  - package.json
+
+# The engine (PyInstaller one-folder build) next to the app, where
+# app/main/engine.ts looks for it: <resources>/engine/atlas-engine(.exe).
+extraResources:
+  - from: ../dist/engine/atlas-engine
+    to: engine
+    filter:
+      - '**/*'
+
+asar: true
+
+# Atlas is in English: keep Chromium's en-US language pack only (saves ~47 MB on disk).
+electronLanguages:
+  - en-US
+
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+  icon: ../packaging/icons/icon.png
+  artifactName: Atlas-Setup-${version}-x64.${ext}
+
+# One-click, per-user: installs into the recruiter's own profile
+# (%LOCALAPPDATA%\Programs\Atlas), no administrator rights, then opens Atlas.
+# Uninstalling keeps the screenings: they live in %APPDATA%\Atlas (userData).
+nsis:
+  oneClick: true
+  perMachine: false
+  deleteAppDataOnUninstall: false
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: Atlas
+  uninstallDisplayName: Atlas
+
+# CI builds each architecture on a matching runner (the engine inside is
+# native code), so no arch is listed here: the default is this computer's.
+mac:
+  target:
+    - target: dmg
+  icon: ../packaging/icons/icon.png
+  category: public.app-category.business
+  hardenedRuntime: true
+  gatekeeperAssess: false
+  entitlements: ../packaging/entitlements.mac.plist
+  entitlementsInherit: ../packaging/entitlements.mac.plist
+  artifactName: Atlas-${version}-${arch}.${ext}
+  # Notarisation runs only when APPLE_ID, APPLE_APP_SPECIFIC_PASSWORD and
+  # APPLE_TEAM_ID are set (electron-builder skips it otherwise).
+
+dmg:
+  sign: false
+
+# No auto-update (a Phase 3 non-goal): nothing is published anywhere.
+publish: null

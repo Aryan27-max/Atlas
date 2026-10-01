@@ -12,6 +12,8 @@
     "gen:api": "node scripts/gen-api-types.mjs",
     "test": "vitest run",
     "e2e": "electron-vite build && playwright test",
+    "predist": "node scripts/check-engine.mjs",
+    "dist": "electron-vite build && electron-builder --config electron-builder.yml --publish never",
     "lint": "eslint scripts",
     "format": "prettier --check \"main/**/*.ts\" \"preload/**/*.ts\" \"renderer/**/*.{ts,tsx,css}\" \"src/**/*.ts\" \"e2e/**/*.ts\" \"scripts/**/*.mjs\""
   },
