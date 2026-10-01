@@ -119,7 +119,10 @@ def main(
     """Entry point. The keyword arguments exist for tests (local stub servers)."""
     out = stdout or sys.stdout
     if out is sys.stdout and hasattr(sys.stdout, "reconfigure"):
-        sys.stdout.reconfigure(errors="replace")   # a Windows console can't print every character
+        # UTF-8, so "→ ≥ ·" survive when the output is redirected to a file on
+        # Windows (cp1252 turned them into "?"); "replace" for any console that
+        # still can't show a character.
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     args = build_parser().parse_args(argv)
     cli = _Cli(out, stdin or sys.stdin, url_rewrite, health, poll_interval, download_interval, idle_interval)
     try:
@@ -327,7 +330,7 @@ class _Cli:
                 status, reason = run["status"], run["pause_reason"]
                 if status == "completed":
                     worker.stop()
-                    self._summary(run_id)
+                    self._summary(run_id, data_dir)
                     return 0
                 if status == "paused" and reason != announced:
                     announced = reason
@@ -351,12 +354,20 @@ class _Cli:
             self.say(f"\nPaused. Continue with: python -m engine.cli resume --run {run_id} --data-dir {data_dir}")
             return 2
 
-    def _summary(self, run_id: int) -> None:
+    def _summary(self, run_id: int, data_dir: Path) -> None:
         assert self.db is not None
         counts = self.db.state_counts(run_id)
         self.say(f"\nDone. Scored {counts['scored']}, failed {counts['failed']}, filtered {counts['filtered']}.")
-        if counts["failed"]:
-            self.say(f"Retry the failed ones with: python -m engine.cli retry --run {run_id} --data-dir …")
+        if not counts["failed"]:
+            return
+        failed = self.db.list_candidates(run_id, states=["failed"])
+        retryable = sum(1 for c in failed if c["failure_kind"] == "retryable")
+        if retryable:
+            self.say(f"Retry the {retryable} that may work next time with: "
+                     f"python -m engine.cli retry --run {run_id} --data-dir {data_dir}")
+        else:
+            self.say("All failures need action from the student (for example, fixing sharing). Fix the links, then "
+                     f"use: python -m engine.cli retry --run {run_id} --data-dir {data_dir} --include-permanent")
 
 
 def _wait(seconds: float) -> None:

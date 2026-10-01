@@ -43,6 +43,7 @@ All diagrams are Mermaid.
 As built in Phase 1, the engine's outbound traffic is exactly:
 - HTTP GETs of résumé links (and Drive's confirm-page follow-up);
 - when a download fails, a TCP connection with no data sent to `drive.google.com:443` or `www.google.com:443`, to tell "no internet" from "bad link" (§8);
+- *(Phase 3, 3.1e)* in the same situations, an HTTP GET with no data and no query to `http://connectivitycheck.gstatic.com/generate_204` (fallback `http://www.gstatic.com/generate_204`), which answers 204 when the internet is really there; anything else means a Wi-Fi sign-in page (captive portal) is in the way (§8);
 - local HTTP to Ollama on `127.0.0.1`.
 
 Public profile pages are not fetched yet (open decision 2).
@@ -360,6 +361,7 @@ stateDiagram-v2
 | Reason | Set by | Resumes |
 |---|---|---|
 | "No internet connection" | health probe | automatically when the probe succeeds |
+| "Connected to Wi-Fi that needs a sign-in page" *(Phase 3)* | health probe: the connectivity check gets a page instead of 204 | automatically when the check gets its 204 (the recruiter signed in) |
 | "Ollama isn't running" | health probe | automatically when `/api/tags` answers |
 | "Disk is full" | worker | when the user presses Resume |
 | "Atlas closed unexpectedly" | `recover_after_crash` | when the user presses Resume |
@@ -368,7 +370,7 @@ stateDiagram-v2
 | "Atlas hit repeated errors. See logs." *(added)* | worker: the same unexpected error on 5 candidates in a row in one stage | when the user presses Resume |
 | "The model "X" is no longer installed in Ollama. Install it again, then press Resume." *(added)* | scorer: Ollama answers 404 for the model | when the user presses Resume |
 
-Automatic resume only applies to the two health-probe reasons. A run paused by a crash or by the user never restarts on its own.
+Automatic resume only applies to the three health-probe reasons (`AUTO_RESUME_REASONS`). A run paused by a crash or by the user never restarts on its own.
 
 **Built in Phase 2 (`worker.py`):**
 - **Auto-resume survives a restart.** At boot the engine runs `Worker.recover()` once, then `run_waiting_to_resume(db)` picks the most recently paused run with an automatic reason and `Worker.attach(run_id)` starts the threads for it without changing its status; it resumes when the probe succeeds.
@@ -416,11 +418,11 @@ flowchart LR
 - **Delete after commit.** Stage 2 deletes the PDF only after `commit_extraction` returns. If it crashes between the two, recovery reports the file as an orphan and deletes it.
 - **The health probe runs when a network or LLM call fails** (not before every call, as first planned: the call itself is the best probe, and this avoids a TCP handshake per candidate). A `TransientError` makes the stage probe the internet or Ollama. If the probe fails, the stage calls `return_to_queue` or `return_to_extracted` and the run pauses. If the probe succeeds, only this candidate is affected: `mark_failed(retryable)`. It never calls `mark_failed` for a system problem.
 - **The gate is enforced in the database:** `claim_next_download` counts `downloading + downloaded + extracted` and claims in one transaction. `scoring` is not counted, so one résumé can be with the model while two more wait.
-- **Auto-resume:** the fetch thread, while the run is paused for "No internet connection" or "Ollama isn't running", polls the matching probe every `poll_interval` (5 s, measured on the injected clock) and resumes the run when it succeeds. No other pause reason resumes on its own.
+- **Auto-resume:** the fetch thread, while the run is paused for "No internet connection", "Connected to Wi-Fi that needs a sign-in page" or "Ollama isn't running", polls the matching probe every `poll_interval` (5 s, measured on the injected clock) and resumes the run when it succeeds. No other pause reason resumes on its own.
 - **Completion:** when nothing is left in `queued`, `downloading`, `downloaded`, `extracted` or `scoring`, the run becomes `completed`. Retryable failures don't block it.
 - **Nothing gets stuck:** anything that goes wrong after a claim goes through one guard that fails or hands back the candidate. As a second net, when no stage is busy, a candidate still in `downloading`/`scoring` can't be held by anyone and is handed back (`_reconcile`). Stages mark themselves busy *before* claiming, under the same lock, so this can't race a live claim.
 - **Bugs:** an unexpected exception fails that candidate as retryable ("Something went wrong while processing this résumé.") with the traceback in `engine.log`, and the run goes on. The same error (same type and message, numbers ignored) on 5 candidates in a row *within one stage* pauses the run instead ("Atlas hit repeated errors. See logs."). Counting per stage matters: otherwise successful downloads would keep resetting the count for a scorer that fails everyone.
-- **Timing:** `evaluations.duration_seconds` is the model time per résumé (the pipeline's bottleneck), for the Phase 3 estimate.
+- **Timing:** `evaluations.duration_seconds` is the model time per résumé (the pipeline's bottleneck), for the estimate. *(Phase 3, schema v3)* `prompt_eval_seconds` and `eval_seconds` store Ollama's own split (reading the prompt vs writing the answer), summed over the calls for that résumé, and `engine.log` prints both.
 - **Order:** candidates are processed in `id` order, which is CSV order, so progress is predictable.
 - **Hard filters** (CGPA, department) run once, before stage 1 starts, via `mark_filtered`. Filtered candidates never cost a download or an LLM call.
 - **Throttle:** at least 1 s between Drive downloads, with backoff on HTTP 429.
@@ -466,6 +468,8 @@ flowchart TD
 | LLM returned invalid JSON after all attempts | retryable | The model's answer couldn't be read. |
 
 **How "system problem" is detected:** a network error on one link is followed by an immediate connectivity probe. If the probe also fails, it's a system problem, so the run pauses. If the probe succeeds, it's this candidate's link, so it counts as a retryable failure. Ollama errors are handled the same way, with `/api/tags` as the probe. (**Built**: `HealthProbe.internet_ok()` opens a TCP connection, sending no data, to `drive.google.com:443` or `www.google.com:443`. Host *names* are used so that broken DNS, which fails every download, also reads as offline.)
+
+**Captive portals (Phase 3, 3.1e).** Behind hotel or campus Wi-Fi that wants a sign-in page, the TCP probe succeeds and every "download" is the portal's HTML, which used to fail every student as "The file isn't a PDF." Now `HealthProbe.internet_problem()` also GETs a connectivity-check URL that must answer **204** (`connectivitycheck.gstatic.com/generate_204`, then `www.gstatic.com/generate_204`; redirects are not followed). A 200 page or a redirect means a sign-in page: the run pauses with "Connected to Wi-Fi that needs a sign-in page" and resumes by itself once the check passes. If the check URL can't be reached at all while the TCP hosts can, the TCP verdict stands, so a firewall that blocks only the check never stops screening. The worker asks this question both after a `TransientError` and when a download fails as "The file isn't a PDF", before failing that student.
 
 ---
 
@@ -643,7 +647,8 @@ flowchart TD
 
 How that is enforced, as built:
 - `build_prompt(candidate_context, sections, criteria, *, budget_chars)` takes a `CandidateContext(cgpa, department, skills, hackathons)`. There is no field or parameter that *could* carry identity or a cutoff.
-- The résumé text itself contains the student's name and contact details, so `redact.scoring_input(candidate_row, text, sections)` runs once before scoring. It drops the `header` and `personal` sections (§12), replaces the known name (full and each word ≥ 3 letters), email, phone (any separators), RA number and a digit-bearing section code with `[name]`, `[email]`, `[phone]`, `[id]`, `[section]`, and also replaces anything shaped like an email or a 10–13-digit phone number. *(Added module.)*
+- The résumé text itself contains the student's name and contact details, so `redact.scoring_input(candidate_row, text, sections)` runs once before scoring. It drops the `header` and `personal` sections (§12), replaces the email, phone (any separators), RA number and a digit-bearing section code with `[email]`, `[phone]`, `[id]`, `[section]`, and also replaces anything shaped like an email or a 10–13-digit phone number. *(Added module.)*
+- **Names come from an identity lexicon that doesn't trust the CSV** *(Phase 3, 3.1a; `engine/llm/identity.py`)*. Smoke test 1 scored a résumé whose owner wasn't in the CSV, so CSV-only name redaction had nothing to remove and a word of the owner's name line reached the model. The lexicon for each résumé is built from: the CSV name; the **résumé's own name line** (the first header line that isn't contact details or "Résumé"; for a résumé without headings, the first line if it reads like a name); the **local part of every email** in the text (split on `. _ - +` and digits); and **usernames in profile URLs** (GitHub, LinkedIn, GitLab, LeetCode, Kaggle, Medium, …). Every word of 2+ letters is redacted to `[name]` anywhere in the text sent to the model, ignoring case, on word boundaries; usernames and email local parts are redacted as whole strings. A word that is also an ordinary word or a technical term (`common_words.txt`: "Rose", "Grace", "Deep", "Ram", "Dev"…) is redacted only next to another identity word ("Rose Kumar"), so "rose to lead" and "deep learning" survive. An initial next to a redacted name ("P. Sharma") goes too. `python -m engine.tools.leak_check --data-dir DIR` rebuilds every prompt in a data folder read-only and prints leak counts only; on the smoke-test-1 data it went from 10 to **0**.
 - The student's claims are as untrusted as the résumé: a `</resume>` inside them is neutralised just as in the résumé, and they are scanned for injection text too.
 
 **Section budget:** the total résumé budget is set from the model's `num_ctx`, minus the fixed parts and the output reserve. Sections are filled in priority order: Projects, Experience, Skills, Achievements/Hackathons, Certifications, Education, Positions, Summary, then Other. Each section gets a floor share, and whatever is left over goes to the rest in priority order. If a single section is still too long (a 4-page projects list), each item is trimmed to its first lines rather than the whole section being cut off.
@@ -655,19 +660,22 @@ How that is enforced, as built:
   "overall_score": 0-100,
   "sub_scores": { "technical": 0-100, "projects": 0-100, "experience": 0-100,
                   "achievements": 0-100, "communication": 0-100, "criteria_fit": 0-100 },
-  "summary": "≤ 2 sentences",
-  "reasons": ["tied to recruiter criteria", "..."],              // ≥ 1
-  "evidence": [{ "claim": "...", "quote": "exact text from résumé" }],
-  "claim_mismatches": ["Claims Docker in CSV; not in résumé"]
+  "summary": "≤ 2 sentences",                                   // ≤ 320 characters
+  "reasons": ["tied to recruiter criteria", "..."],              // 1–4, ≤ 25 words each
+  "evidence": [{ "claim": "...", "quote": "exact text from résumé" }],   // ≤ 5, quote ≤ 20 words
+  "claim_mismatches": ["Claims Docker in CSV; not in résumé"]    // ≤ 5, only items the student claimed
 }
 ```
+
+*(Phase 3, 3.1c)* The caps are `maxItems`/`maxLength` in the schema passed to Ollama (its grammar enforces them while generating) and are repeated in the prompt, because generation time grows with the answer's length. `parse_evaluation` keeps the first N items if a model ignores the schema, instead of rejecting the whole answer.
 
 ### Guardrails
 
 | Check | On failure |
 |---|---|
 | JSON parses and validates | retry (3 attempts total, 1 s / 3 s backoff), then retryable failure |
-| Every `evidence.quote` appears in the résumé text (whitespace- and case-normalised) | drop the fake quotes and log it; if all quotes were fake, retry once |
+| Every `evidence.quote` appears in the résumé text (whitespace- and case-normalised) | drop the fake quotes and log it; if all quotes were fake, retry once. A quote repeated for a second claim is dropped too and logged separately ("duplicate", Phase 3) |
+| Every claim mismatch names an item from the student's own claims (skills, hackathons) *(Phase 3, 3.1b)* | drop it and log the count (smoke test 1: the model listed the recruiter's criteria as "claims"); the prompt also says the criteria are the recruiter's needs |
 | `overall_score ≥ 85` with no surviving evidence | retry once; if it repeats, keep the score but flag "unsupported high score" |
 | Output was truncated (`done_reason = length`) | retry with a larger `num_predict` |
 | Résumé contains instruction-like text ("ignore previous", "score this 100") | still scored, but flagged in the evaluation for the recruiter |
@@ -675,16 +683,16 @@ How that is enforced, as built:
 Request options: `format` set to the JSON schema, `temperature 0`, `think false`, `num_ctx` from the model, `num_predict` large enough for the schema (starting at 1024, not QWENTUS's 256).
 
 As built:
-- `num_ctx` = the model's `/api/show` context length, **capped at 8192**: a laptop can't afford a 128k KV cache, and 8k holds the important sections of a 10-page résumé. `keep_alive` 10 min keeps the model loaded between candidates.
+- `num_ctx` = the model's `/api/show` context length, **capped at 8192**: a laptop can't afford a 128k KV cache, and 8k holds the important sections of a 10-page résumé. `keep_alive` **30 min** *(Phase 3; was 10)* keeps the model loaded between candidates and after the pre-check.
 - The résumé budget is `(num_ctx − num_predict − 256 − fixed prompt / 3) × 3` characters (3 characters per token, conservative), at least 1,000.
-- Retry order per answer: cut off (`length`) → double `num_predict` up to 4096; unreadable → 3 attempts, 1 s / 3 s; all quotes fake → once; high score without evidence → once. At most 8 model calls per résumé. If a later retry fails, the last *valid* answer is kept rather than failing the candidate.
+- Retry order per answer: cut off (`length`) → double `num_predict` up to 2048 *(Phase 3; was 4096: the capped answer is at most ~950 tokens, so 1024 already fits)*; unreadable → 3 attempts, 1 s / 3 s; all quotes fake → once; high score without evidence → once. At most 8 model calls per résumé. If a later retry fails, the last *valid* answer is kept rather than failing the candidate.
 - The JSON schema passed as `format` has `$ref`s inlined and real `minimum`/`maximum` bounds (a Pydantic ordering detail would otherwise emit non-standard `ge`/`le`).
 - A chat that breaks midway raises `TransientError(probe="ollama", "The model stopped before finishing this résumé.")`; the worker probes `/api/tags`. A 404 (model deleted) pauses the run: "The model "X" is no longer installed in Ollama. Install it again, then press Resume."
 - Flags stored with the evaluation: "Possible instructions to the AI found in résumé", "High score without supporting evidence", "Résumé longer than 10 pages; pages 11+ not read" (the last added by the worker).
 
 ### Model pre-check
 
-Before a run can start, the chosen model scores one bundled sample résumé (`engine/llm/sample_resume.txt`, fictional). It must return valid JSON in the contract within 120 s. Otherwise: "This model can't be used for screening. Choose another." A model that isn't installed, or Ollama not running, gets its own message. The result carries the model digest; the caller caches it per model name and digest in `settings`.
+Before a run can start, the chosen model scores one bundled sample résumé (`engine/llm/sample_resume.txt`, fictional). It must return valid JSON in the contract within **300 s** *(Phase 3, 3.1d; was 120 s, which a cold 8B model on a slower CPU laptop could miss)*. Otherwise: "This model can't be used for screening. Choose another." A model that works but takes more than 60 s is still usable and says so: "This model works, but it's slow on this computer: about N résumés an hour." (`slow: true` in the API). A model that isn't installed, or Ollama not running, gets its own message. The result carries the model digest; the caller caches it per model name and digest in `settings`.
 
 ---
 

@@ -7,6 +7,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from engine.errors import Pause
 from engine.health import DEFAULT_HOSTS, HealthProbe
 from engine.logs import configure_logging, remove_logging, scrub
 
@@ -39,6 +40,48 @@ class HealthTests(unittest.TestCase):
     def test_default_hosts_are_names_so_broken_dns_counts_as_offline(self) -> None:
         for host, _ in DEFAULT_HOSTS:
             self.assertRegex(host, r"[a-z]")
+
+    def test_captive_portal_needs_a_204_from_the_check_url(self) -> None:
+        import requests
+
+        class Response:
+            def __init__(self, code: int) -> None:
+                self.status_code = code
+
+            def close(self) -> None:
+                pass
+
+        def probe(*answers: object) -> HealthProbe:
+            replies = list(answers)
+
+            def get(url: str, timeout: float, allow_redirects: bool) -> Response:
+                self.assertFalse(allow_redirects)          # a portal's redirect must be seen, not followed
+                reply = replies.pop(0)
+                if isinstance(reply, BaseException):
+                    raise reply
+                return Response(int(reply))  # type: ignore[call-overload]
+
+            return HealthProbe(hosts=(("h", 443),), connect=lambda a, timeout: FakeSocket(), get=get,
+                               check_urls=("http://first/generate_204", "http://second/generate_204"))
+
+        self.assertIsNone(probe(204).internet_problem())
+        self.assertEqual(probe(200, 200).internet_problem(), Pause.CAPTIVE_PORTAL)   # the sign-in page
+        self.assertEqual(probe(302, 302).internet_problem(), Pause.CAPTIVE_PORTAL)   # a redirect to it
+        self.assertIsNone(probe(requests.ConnectionError(), 204).internet_problem())   # fallback host
+        # The check URL blocked but the TCP hosts fine: trust TCP, don't stop screening.
+        self.assertIsNone(probe(requests.ConnectionError(), requests.Timeout()).internet_problem())
+        self.assertFalse(probe(200, 200).internet_ok())
+
+        def no_tcp(address: object, timeout: float) -> FakeSocket:
+            raise OSError("down")
+
+        self.assertEqual(HealthProbe(connect=no_tcp, check_urls=()).internet_problem(), Pause.NO_INTERNET)
+
+    def test_default_check_urls_send_no_data(self) -> None:
+        from engine.health import DEFAULT_CHECK_URLS
+
+        self.assertEqual(DEFAULT_CHECK_URLS[0], "http://connectivitycheck.gstatic.com/generate_204")
+        self.assertTrue(all(u.endswith("/generate_204") and "?" not in u for u in DEFAULT_CHECK_URLS))
 
     def test_ollama(self) -> None:
         class Client:

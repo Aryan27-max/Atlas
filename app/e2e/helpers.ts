@@ -38,6 +38,13 @@ export async function waitForEngine(page: Page): Promise<void> {
 }
 
 export async function close(launched: Launched, removeData = true): Promise<void> {
+  // If a screening is still running, closing asks "Close Atlas?" in a native
+  // dialog nobody can click; answer it so cleanup can never hang.
+  await launched.app
+    .evaluate(({ dialog }) => {
+      dialog.showMessageBox = (async () => ({ response: 0, checkboxChecked: false })) as typeof dialog.showMessageBox
+    })
+    .catch(() => undefined)
   await launched.app.close()
   if (removeData) rmSync(launched.userData, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 })
 }

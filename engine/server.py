@@ -272,8 +272,8 @@ class Engine:
             return m.PrecheckStatusOut(status="not_checked", message=NOT_CHECKED, seconds=None, checked=None)
         ok = bool(entry.get("ok"))
         return m.PrecheckStatusOut(
-            status="ready" if ok else "cant_use", message=READY if ok else str(entry.get("message") or CANT_USE),
-            seconds=entry.get("seconds"), checked=entry.get("checked"),
+            status="ready" if ok else "cant_use", message=str(entry.get("message") or (READY if ok else CANT_USE)),
+            seconds=entry.get("seconds"), checked=entry.get("checked"), slow=ok and bool(entry.get("slow")),
         )
 
     def precheck_model(self, name: str) -> m.PrecheckOut:
@@ -286,10 +286,10 @@ class Engine:
             cache = self.db.get_setting(PRECHECK_SETTING, {}) or {}
             cache[key] = {"ok": result.ok, "digest": result.digest or (info.digest if info else ""),
                           "seconds": round(result.seconds, 3), "checked": date.today().isoformat(),
-                          "message": result.message}
+                          "message": result.message, "slow": result.slow}
             self.db.set_setting(PRECHECK_SETTING, cache)
             return m.PrecheckOut(ok=result.ok, status="ready" if result.ok else "cant_use",
-                                 message=result.message, seconds=round(result.seconds, 1))
+                                 message=result.message, seconds=round(result.seconds, 1), slow=result.slow)
         finally:
             self._precheck_lock.release()
 

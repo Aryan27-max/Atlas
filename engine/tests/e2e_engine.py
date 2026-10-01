@@ -34,7 +34,8 @@ def options_from_env() -> EngineOptions:
 
     return EngineOptions(
         url_rewrite=rewrite,
-        health=HealthProbe(hosts=((parts.hostname or "127.0.0.1", parts.port or 80),), ollama=OllamaClient(ollama)),
+        health=HealthProbe(hosts=((parts.hostname or "127.0.0.1", parts.port or 80),), ollama=OllamaClient(ollama),
+                           check_urls=(f"{drive}/generate_204",)),
         poll_interval=float(os.environ.get("ATLAS_STUB_POLL", "1.0")),
         download_interval=0.0,
         idle_interval=0.05,

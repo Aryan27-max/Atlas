@@ -15,6 +15,8 @@ from __future__ import annotations
 
 import re
 import unicodedata
+from dataclasses import dataclass
+from typing import Any, Iterator
 
 from engine.errors import Flag
 from engine.llm.schema import Evaluation
@@ -67,20 +69,72 @@ def detect_injection(text: str) -> bool:
     return any(pattern.search(flat) for pattern in _INJECTION)
 
 
-def review(evaluation: Evaluation, resume_text: str) -> tuple[Evaluation, list[str]]:
-    """Drop evidence whose quote isn't in the résumé; flag instruction-like text.
+@dataclass(frozen=True)
+class Review:
+    """What :func:`review` kept and dropped. Unpacks as ``(evaluation, flags)``."""
 
-    Returns ``(cleaned_evaluation, flags)``. The caller compares evidence
-    counts to know how many quotes were dropped.
+    evaluation: Evaluation
+    flags: list[str]
+    quotes_not_found: int = 0       # not in the résumé (paraphrased or invented)
+    quotes_duplicate: int = 0       # the same quote used again for another claim
+    mismatches_dropped: int = 0     # named something the student never claimed
+
+    def __iter__(self) -> Iterator[Any]:
+        return iter((self.evaluation, self.flags))
+
+
+def review(evaluation: Evaluation, resume_text: str, claims: str | None = None) -> Review:
+    """Drop evidence whose quote isn't in the résumé (or repeats one already
+    kept), drop claim mismatches about things the student never claimed, and
+    flag instruction-like text.
+
+    ``claims`` is the student's own form text (skills + hackathons). A
+    mismatch may only name one of those claims (smoke test 1: the model listed
+    the recruiter's criteria as "claims"). ``None`` skips that check.
     """
     haystack = normalise(resume_text)
     kept = []
     seen: set[str] = set()
+    not_found = duplicates = 0
     for item in evaluation.evidence:
         key = normalise(item.quote)
-        if key in seen or not quote_found(item.quote, haystack):
+        if key in seen:
+            duplicates += 1
+            continue
+        if not quote_found(item.quote, haystack):
+            not_found += 1
             continue
         seen.add(key)
         kept.append(item)
+    mismatches = list(evaluation.claim_mismatches)
+    if claims is not None:
+        mismatches = [m for m in mismatches if names_a_claim(m, claims)]
     flags = [Flag.INJECTION] if detect_injection(resume_text) else []
-    return evaluation.model_copy(update={"evidence": kept}), flags
+    cleaned = evaluation.model_copy(update={"evidence": kept, "claim_mismatches": mismatches})
+    return Review(cleaned, flags, not_found, duplicates, len(evaluation.claim_mismatches) - len(mismatches))
+
+
+def _compact(text: str) -> str:
+    return re.sub(r"[^a-z0-9+#]", "", unicodedata.normalize("NFKC", text).lower())
+
+
+def names_a_claim(mismatch: str, claims: str) -> bool:
+    """Does ``mismatch`` name one of the student's claimed items?
+
+    Fuzzy on spelling: "NodeJS" matches "Node.js", "C++" matches "c++", and
+    short claims ("Go", "C") must appear as a whole word.
+    """
+    items = [c.strip() for c in re.split(r"[,;|/\n]", claims) if c.strip()]
+    if not items:
+        return False
+    compact = _compact(mismatch)
+    words = set(re.findall(r"[a-z0-9+#]+", unicodedata.normalize("NFKC", mismatch).lower()))
+    for item in items:
+        key = _compact(item)
+        if not key:
+            continue
+        if len(key) >= 4 and key in compact:
+            return True
+        if len(key) < 4 and key in words:
+            return True
+    return False

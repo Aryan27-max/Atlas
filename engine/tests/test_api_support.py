@@ -126,3 +126,14 @@ class OllamaVersionTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class PrecheckStatusTests(unittest.TestCase):
+    def test_a_slow_but_working_model_shows_its_own_message(self) -> None:
+        from engine.server import Engine
+
+        slow = "This model works, but it's slow on this computer: about 24 résumés an hour."
+        status = Engine._precheck_status({"ok": True, "digest": "d", "message": slow, "seconds": 150.0, "slow": True}, "d")
+        self.assertEqual((status.status, status.message, status.slow), ("ready", slow, True))
+        stale = Engine._precheck_status({"ok": True, "digest": "old", "message": slow}, "new")
+        self.assertEqual(stale.status, "not_checked")

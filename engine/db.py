@@ -29,7 +29,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable, Iterator, Mapping
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 
 # --------------------------------------------------------------------------- #
 # State machines
@@ -350,6 +350,16 @@ class Database:
                     if "flags" not in columns:
                         c.execute("ALTER TABLE evaluations ADD COLUMN flags TEXT NOT NULL DEFAULT '[]'")
                     c.execute("PRAGMA user_version=2")
+                version = 2
+            if version < 3:
+                # v3: Ollama's own timings per résumé (Phase 3, step 3.1c):
+                # prefill (reading the prompt) and generation (writing the answer).
+                with self.transaction() as c:
+                    columns = {r["name"] for r in c.execute("PRAGMA table_info(evaluations)")}
+                    for column in ("prompt_eval_seconds", "eval_seconds"):
+                        if column not in columns:
+                            c.execute(f"ALTER TABLE evaluations ADD COLUMN {column} REAL")
+                    c.execute("PRAGMA user_version=3")
 
     def close(self) -> None:
         with self._lock:
@@ -773,6 +783,8 @@ class Database:
         raw_response: str | None = None,
         duration_seconds: float | None = None,
         flags: Iterable[str] = (),
+        prompt_eval_seconds: float | None = None,
+        eval_seconds: float | None = None,
     ) -> None:
         """Store the LLM result and mark the candidate ``scored`` in one go.
 
@@ -794,8 +806,8 @@ class Database:
                 """INSERT OR REPLACE INTO evaluations
                    (candidate_id, overall_score, sub_scores, summary, reasons, evidence,
                     claim_mismatches, model_name, prompt_hash, raw_response,
-                    duration_seconds, flags, created_at)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    duration_seconds, flags, prompt_eval_seconds, eval_seconds, created_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
                     candidate_id,
                     overall_score,
@@ -809,6 +821,8 @@ class Database:
                     raw_response,
                     duration_seconds,
                     json.dumps([str(f) for f in flags]),
+                    prompt_eval_seconds,
+                    eval_seconds,
                     _now(),
                 ),
             )

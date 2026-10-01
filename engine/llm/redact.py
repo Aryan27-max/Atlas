@@ -9,7 +9,11 @@ Two layers:
    details. :func:`scoring_input` takes the full candidate row once, drops the
    ``header`` and ``personal`` sections entirely, and redacts the known
    identity values plus anything that looks like an email or phone number
-   from everything else. The identity values go no further than this module.
+   from everything else. Names come from an identity lexicon built from the
+   CSV *and* the résumé itself (its name line, email local parts, profile
+   usernames; see :mod:`engine.llm.identity`), so a résumé whose name
+   differs from the CSV, or whose owner isn't in the CSV, is still covered.
+   The identity values go no further than this module.
 """
 
 from __future__ import annotations
@@ -19,11 +23,13 @@ from dataclasses import dataclass
 from typing import Any, Mapping
 
 from engine.extract.sections import PROMPT_PRIORITY, split_sections
+from engine.llm.identity import EMAIL as _EMAIL
+from engine.llm.identity import Lexicon, build_lexicon
+from engine.llm.identity import apply as apply_lexicon
 
 # Sections that never reach the model.
 NEVER_SENT = frozenset({"header", "personal"})
 
-_EMAIL = re.compile(r"[\w.+-]+@[\w-]+(?:\.[\w-]+)+")
 # Phone-like: optional +country code, then digits with at most one separator
 # between groups; 10–13 digits in total (checked in _phone_sub).
 _PHONE = re.compile(r"(?<![\w/])(?:\+\d{1,3}[\s.-]?)?\(?\d{2,5}\)?(?:[\s.-]?\d{2,5}){1,4}(?![\w/])")
@@ -57,6 +63,7 @@ class _Identity:
     phone: str
     ra_number: str
     section: str
+    lexicon: Lexicon
 
 
 def scoring_input(candidate: Mapping[str, Any], text: str, sections: Mapping[str, str] | None) -> ScoringInput:
@@ -65,14 +72,8 @@ def scoring_input(candidate: Mapping[str, Any], text: str, sections: Mapping[str
     ``candidate`` is a full candidate row (as stored in the database);
     ``sections`` may be ``None`` for older rows, in which case the text is split again.
     """
-    identity = _Identity(
-        name=str(candidate.get("name") or ""),
-        email=str(candidate.get("email") or ""),
-        phone=str(candidate.get("phone") or ""),
-        ra_number=str(candidate.get("ra_number") or ""),
-        section=str(candidate.get("section") or ""),
-    )
     raw_sections = dict(sections) if sections else split_sections(text)
+    identity = identity_of(candidate, text, raw_sections)
     clean = {
         name: redacted
         for name, body in raw_sections.items()
@@ -87,6 +88,18 @@ def scoring_input(candidate: Mapping[str, Any], text: str, sections: Mapping[str
         hackathons=redact(str(candidate.get("hackathons") or ""), identity),
     )
     return ScoringInput(context, {n: clean[n] for n in order}, "\n\n".join(clean[n] for n in order))
+
+
+def identity_of(candidate: Mapping[str, Any], text: str, sections: Mapping[str, str]) -> _Identity:
+    """The identity to remove from this résumé: CSV values plus the lexicon."""
+    return _Identity(
+        name=str(candidate.get("name") or ""),
+        email=str(candidate.get("email") or ""),
+        phone=str(candidate.get("phone") or ""),
+        ra_number=str(candidate.get("ra_number") or ""),
+        section=str(candidate.get("section") or ""),
+        lexicon=build_lexicon(candidate, text, sections.get("header") if "header" in sections else None),
+    )
 
 
 def redact(text: str, identity: _Identity) -> str:
@@ -114,11 +127,7 @@ def redact(text: str, identity: _Identity) -> str:
     if name:
         full = r"\s+".join(re.escape(part) for part in name.split())
         text = re.sub(rf"(?<!\w){full}(?!\w)", "[name]", text, flags=re.IGNORECASE)
-        for part in sorted(set(name.split()), key=len, reverse=True):
-            part = part.strip(".,")
-            if len(part) >= 3 and part.isalpha():
-                text = re.sub(rf"(?<![^\W_]){re.escape(part)}(?![^\W_])", "[name]", text, flags=re.IGNORECASE)
-    return text
+    return apply_lexicon(text, identity.lexicon)
 
 
 def _phone_sub(match: re.Match[str]) -> str:

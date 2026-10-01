@@ -3,7 +3,7 @@
 Guardrails, in the order they're checked on every answer:
 
 1. ``done_reason == "length"`` (answer cut off) → retry with ``num_predict``
-   doubled, up to 4096.
+   doubled, up to 2048.
 2. JSON invalid or outside the contract → retry; 3 attempts in total with
    1 s / 3 s back-off.
 3. Every evidence quote fake → retry once.
@@ -34,8 +34,11 @@ from engine.llm.verify import detect_injection, review
 
 log = logging.getLogger("atlas.llm")
 
+# The capped answer (schema.py: 5 evidence, 4 reasons, 5 mismatches, 2-sentence
+# summary) is at most ~3,400 characters of JSON, about 950 tokens, so 1024
+# fits the worst case; 2048 is the ceiling for the length retry (was 4096).
 START_NUM_PREDICT = 1024
-MAX_NUM_PREDICT = 4096
+MAX_NUM_PREDICT = 2048
 MAX_PARSE_ATTEMPTS = 3
 BACKOFF_SECONDS = (1.0, 3.0)
 HIGH_SCORE = 85
@@ -56,6 +59,8 @@ class ScoreResult:
     attempts: int
     included_sections: tuple[str, ...]
     trimmed_sections: tuple[str, ...]
+    prompt_eval_seconds: float | None = None    # Ollama's prefill time, all calls for this résumé
+    eval_seconds: float | None = None           # Ollama's generation time, all calls
 
 
 class Scorer:
@@ -99,6 +104,8 @@ class Scorer:
         suspicious = detect_injection(f"{full_text}\n{claims}")
 
         calls = parse_failures = 0
+        prefill: float | None = None
+        generate: float | None = None
         retried_fake = retried_high = False
         best: tuple[Evaluation, ChatResult, Prompt] | None = None
 
@@ -114,6 +121,10 @@ class Scorer:
                 prompt, SCHEMA, model=self.model, num_ctx=num_ctx, num_predict=num_predict, timeout=remaining
             )
             calls += 1
+            if result.prompt_eval_seconds is not None:
+                prefill = (prefill or 0.0) + result.prompt_eval_seconds
+            if result.eval_seconds is not None:
+                generate = (generate or 0.0) + result.eval_seconds
 
             if result.done_reason == "length" and num_predict < MAX_NUM_PREDICT:
                 num_predict = min(num_predict * 2, MAX_NUM_PREDICT)
@@ -130,10 +141,16 @@ class Scorer:
                 self._sleep(BACKOFF_SECONDS[min(parse_failures, len(BACKOFF_SECONDS)) - 1])
                 continue
 
-            cleaned, _ = review(evaluation, full_text)
-            dropped = len(evaluation.evidence) - len(cleaned.evidence)
-            if dropped:
-                log.info("dropped %d of %d evidence quotes not found in the résumé", dropped, len(evaluation.evidence))
+            checked = review(evaluation, full_text, claims)
+            cleaned = checked.evaluation
+            if checked.quotes_not_found:
+                log.info("dropped %d of %d evidence quotes not found in the résumé",
+                         checked.quotes_not_found, len(evaluation.evidence))
+            if checked.quotes_duplicate:
+                log.info("dropped %d duplicate evidence quotes", checked.quotes_duplicate)
+            if checked.mismatches_dropped:
+                log.info("dropped %d claim mismatches about items the student never claimed",
+                         checked.mismatches_dropped)
             best = (cleaned, result, prompt)
 
             if evaluation.evidence and not cleaned.evidence and not retried_fake:
@@ -163,6 +180,8 @@ class Scorer:
             attempts=calls,
             included_sections=prompt.included_sections,
             trimmed_sections=prompt.trimmed,
+            prompt_eval_seconds=prefill,
+            eval_seconds=generate,
         )
 
     def _context_size(self) -> int:

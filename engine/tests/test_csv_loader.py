@@ -276,8 +276,14 @@ class ReportTests(CsvTestCase):
         self.assertIn("2 ready", text)
         self.assertRegex(text, r"1 duplicate RA numbers\s+→ row 3 \(kept first\)")
         self.assertRegex(text, r"1 missing résumé links\s+→ row 4 \(skipped\)")
-        self.assertRegex(text, r"1 links shared by two students\s+→ RA4 \(warning only\)")
+        self.assertRegex(text, r"1 résumé link is shared by 2 students\s+→ RA4 \(warning only\)")
         self.assertRegex(text, r"1 phone numbers look wrong\s+\(warning only\)")
+
+    def test_shared_links_count_links_and_students(self) -> None:
+        # Smoke test 1 said "18 links shared by two students"; it was 2 links, 10 students each.
+        rows = "".join(f"S{i},RA{i},8,s{i}@x.in,A,CSE,9876543210,,,{drive(1 + i % 2)}\n" for i in range(20))
+        text = render_report(load_csv(self.write(HEADER + "\n" + rows)))
+        self.assertRegex(text, r"2 résumé links are shared by 20 students \(10 each\)")
 
     def test_long_lists_are_shortened(self) -> None:
         body = "".join(f"RA{i},\n" for i in range(15))

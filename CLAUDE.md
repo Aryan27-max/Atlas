@@ -53,7 +53,7 @@ atlas/
 │   ├── errors.py        ← CandidateError / SystemUnavailable / TransientError + all recruiter wording [done]
 │   ├── ingest/          ← csv_loader.py (.csv + .xlsx), links.py, downloader.py [done]
 │   ├── extract/         ← PDF text, OCR fallback, section extraction    [done]
-│   ├── llm/             ← Ollama client, redaction, prompt, verify, scorer, pre-check [done]
+│   ├── llm/             ← Ollama client, identity lexicon + redaction, prompt, verify, scorer, pre-check [done]
 │   ├── worker.py        ← resumable job loop                            [done]
 │   ├── health.py        ← internet / Ollama probes                      [done]
 │   ├── logs.py          ← engine.log (rotating, PII scrubbed)           [done]
@@ -63,7 +63,7 @@ atlas/
 │   ├── server.py        ← local API for the app (FastAPI, 127.0.0.1)     [done]
 │   ├── api_models.py    ← API request/response shapes → OpenAPI → TS types [done]
 │   ├── filters.py       ← CGPA/department filter rule (worker + preview) [done]
-│   ├── tools/           ← read-only privacy tools: graph_audit, graph_query (counts/paths, never data) [done]
+│   ├── tools/           ← read-only tools: graph_audit, graph_query, leak_check (counts only), speed_bench [done]
 │   └── tests/           ← unittest; stubs/ = local fake Drive + Ollama; fixtures.py = generated PDFs
 └── app/                 ← Electron + React (Phase 2)
     ├── main/            ← engine process, IPC validation, SSE, window, keep-awake [done]
@@ -72,7 +72,7 @@ atlas/
     ├── renderer/screens/← Welcome, setup flow, Progress, Results, Settings [done]
     ├── src/shared/      ← api-schema.json → api-types.ts (generated), bridge.ts [done]
     └── e2e/, tests/     ← Playwright (Electron: flows, keyboard, perf, full screen) and Vitest [done]
-                           Phase 2 done on Windows. Phase 3: 3.0 graph [done]; 3.1 before real use (1.11a) [next]
+                           Phase 2 done on Windows. Phase 3: 3.0 graph, 3.1 before real use [done]; 3.2 rubric + eval [next]
 ```
 
 Update the `[done]` / `[next]` markers when a step lands.

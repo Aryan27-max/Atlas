@@ -179,6 +179,13 @@ test('empty buckets say so', async () => {
 
 test('retry all: back to Progress, then complete again', async () => {
   const { page } = launched
+  const completedAt = async (): Promise<string | null> => {
+    const runs = (await page.evaluate(() => window.atlas.api.request('GET', '/runs'))) as {
+      data: Array<{ completed_at: string | null }>
+    }
+    return runs.data[0]?.completed_at ?? null
+  }
+  const before = await completedAt()
   await bucket(/^Needs attention/).click()
   await page.getByRole('button', { name: 'Retry all including fixed links (3)' }).click()
   await page.getByRole('alertdialog').getByRole('button', { name: 'Retry all' }).click()
@@ -187,5 +194,7 @@ test('retry all: back to Progress, then complete again', async () => {
       .getByRole('region', { name: 'Screening progress' })
       .or(page.getByRole('heading', { name: 'Screening complete' })),
   ).toBeVisible()
+  // "completed" is already true before the retry starts: wait for it to complete *again*.
+  await expect.poll(completedAt, { timeout: 60_000 }).not.toBe(before)
   await waitForStatus(page, 'completed', 60_000)
 })

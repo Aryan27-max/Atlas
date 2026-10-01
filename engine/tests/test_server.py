@@ -35,7 +35,7 @@ from engine.health import HealthProbe
 from engine.llm.client import OllamaClient
 from engine.server import ApiError, Engine, EngineOptions, create_app, export_openapi, parse_multipart_file
 from engine.tests.fixtures import make_pdf, simple_resume_text
-from engine.tests.stubs.drive_stub import DriveStub, Pdf, SignIn
+from engine.tests.stubs.drive_stub import DriveStub, Pdf, SignIn, Status
 from engine.tests.stubs.ollama_stub import OllamaStub
 
 TOKEN = "t" * 43
@@ -70,7 +70,8 @@ class ServerTestCase(unittest.TestCase):
         client = OllamaClient(self.ollama.base_url)
         options = EngineOptions(
             url_rewrite=self.drive.rewrite,
-            health=HealthProbe(hosts=(("127.0.0.1", self.drive.port),), ollama=client),
+            health=HealthProbe(hosts=(("127.0.0.1", self.drive.port),), ollama=client,
+                               check_urls=(f"http://127.0.0.1:{self.drive.port}/generate_204",)),
             poll_interval=0.2, download_interval=0.0, idle_interval=0.01, stop_timeout=5.0,
             keepalive_seconds=0.3, event_poll_seconds=0.05, status_poll_seconds=0.05,
         )
@@ -429,6 +430,21 @@ class ShutdownTests(ServerTestCase):
             self.assertEqual((run["status"], run["pause_reason"]), ("paused", Pause.CLOSED))
         finally:
             engine.db.close()
+
+
+class CaptivePortalTests(ServerTestCase):
+    def test_a_wifi_sign_in_page_pauses_the_run_and_fails_nobody(self) -> None:
+        portal = Status(200, b"<html><body>Sign in to Campus Wi-Fi</body></html>")
+        links = [self.drive.serve(f"P{i}", portal) for i in range(3)]
+        extra = [[f"S{i}", f"RA77700{i}", "8.0", f"s{i}@example.com", "CSE", "9876500000", "", link]
+                 for i, link in enumerate(links)]
+        self.drive.captive = True
+        run_id = self.ready_run([], extra=extra)
+        self.client.post(f"/runs/{run_id}/start")
+        self.wait_for(lambda: self.client.get(f"/runs/{run_id}").json()["pause_reason"] == Pause.CAPTIVE_PORTAL,
+                      what="captive-portal pause")
+        run = self.client.get(f"/runs/{run_id}").json()
+        self.assertEqual((run["status"], run["auto_resume"], run["counts"]["failed"]), ("paused", True, 0))
 
 
 class BootTests(ServerTestCase):

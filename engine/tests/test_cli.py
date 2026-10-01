@@ -55,7 +55,8 @@ class CliTestCase(unittest.TestCase):
         code = main(
             list(argv), stdout=out, stdin=io.StringIO(stdin),
             url_rewrite=self.drive.rewrite,
-            health=HealthProbe(hosts=(("127.0.0.1", self.drive.port),), ollama=client),
+            health=HealthProbe(hosts=(("127.0.0.1", self.drive.port),), ollama=client,
+                               check_urls=(f"http://127.0.0.1:{self.drive.port}/generate_204",)),
             poll_interval=0.2, download_interval=0.0, idle_interval=0.01,
         )
         return code, out.getvalue()
@@ -84,6 +85,10 @@ class CliTests(CliTestCase):
         self.assertIn("#1 RA0001: Scored 91", out)
         self.assertIn('#3 RA0003: Failed (permanent): Link is private. Ask the student to set sharing to "Anyone with the link".', out)
         self.assertIn("Done. Scored 3, failed 1, filtered 0.", out)
+        # The only failure is permanent: don't suggest a plain retry, and print the real folder (not "…").
+        self.assertIn("All failures need action from the student", out)
+        self.assertIn(f"retry --run 1 --data-dir {self.data} --include-permanent", out)
+        self.assertNotIn("--data-dir …", out)
         for private in ("Kavya", "kavya", "@example.com", "98765"):
             self.assertNotIn(private, out)                  # ids and RA numbers only
 
@@ -108,6 +113,19 @@ class CliTests(CliTestCase):
         self.assertEqual(code, 0)
         self.assertIn("Retrying 1 candidates.", out)
         self.assertIn("RA0003: Failed (permanent)", out)       # still private
+
+    def test_redirected_output_is_utf8(self) -> None:
+        # Smoke test 1: on Windows, "→ ≥ ·" became "?" when the output went to a file (cp1252).
+        import os
+        import subprocess
+        import sys
+
+        path = self.dir / "dupes.csv"
+        path.write_text("RA Number,Resume Link\nRA1,https://x.example/1\nRA1,https://x.example/2\n", encoding="utf-8")
+        env = {**os.environ, "PYTHONIOENCODING": "cp1252"}
+        done = subprocess.run([sys.executable, "-m", "engine.cli", "preflight", "--csv", str(path)],
+                              capture_output=True, env=env, cwd=Path(__file__).resolve().parents[2], timeout=60)
+        self.assertIn("→ row 3", done.stdout.decode("utf-8"))
 
     def test_declining_saves_nothing(self) -> None:
         code, out = self.cli(*self.run_args(self.csv({1: 70})), stdin="n\n")

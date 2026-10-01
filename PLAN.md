@@ -68,20 +68,28 @@ Scope rule (owner): build first, perfect later — installable, safe with real d
 
 ## Deferred (must finish before real use)
 
-Found by the first run on real data (`docs/summaries/smoke-test-1.md`). Not built in Phase 2 unless a Phase 2 step needs one.
+Found by the first run on real data (`docs/summaries/smoke-test-1.md`); the detailed spec is the 1.11 appendix of the Phase 3 prompt. Phase 3 (step 3.1) closed most of it.
 
-- **1.11a Identity redaction from the résumé itself — BLOCKS use with real student data.** Redaction removes the CSV row's name, but when the résumé's name differs (nickname, initials, order, someone else's file) only the dropped header protects the student; a word from the owner's name line reached the model in smoke test 1. Also redact identity words taken from the résumé's own header (name line, email local part) everywhere in the text.
+**Done in Phase 3**
+- ~~**1.11a Identity redaction from the résumé itself.**~~ **Done (3.1a).** An identity lexicon per résumé (CSV name, the résumé's own name line, every email local part, profile usernames) is redacted everywhere; ordinary-word names only next to another identity word. `python -m engine.tools.leak_check --data-dir local/atlas-data` → **0** (was 10). No longer blocks real data.
+- ~~**Claim mismatches about things never claimed.**~~ **Done (3.1b).** Mismatches must name an item from the student's claims (code drops the rest); duplicate quotes are logged separately from not-found ones.
+- ~~**Pre-check limit on CPU-only laptops.**~~ **Done (3.1d).** 300 s cold; slow-but-working models are allowed with "about N résumés an hour".
+- ~~**CLI / pre-flight / log wording, Windows redirected output.**~~ **Done (3.1e).** Real data folder in the retry hint, `--include-permanent` when every failure is permanent; "2 résumé links are shared by 20 students (10 each)"; UTF-8 stdout.
+- ~~**Captive portals**~~ (Phase 1 risk 6). **Done (3.1e).** The run pauses with "Connected to Wi-Fi that needs a sign-in page" instead of failing everyone.
 
-The rest of the list: `prompts/phase1-11.md` (items 1.11b–g) is not in the repository, so these come from smoke test 1 and are not numbered. Replace them with 1.11b–g when that file is added.
+**Still open**
+- **Speed on CPU-only laptops.** The cheap wins are in (3.1c: capped answer, `keep_alive` 30 m); see `docs/summaries/phase3/step-3.1-before-real-use.md` for before/after. Real résumés on this laptop were ~141 s each (smoke test 1). This Ollama build *detects* the Intel Arc iGPU (Vulkan) but drops it unless `OLLAMA_IGPU_ENABLE=1` is set — a system setting the owner may choose to try; not changed by Atlas.
+- **Scores bunch at the top.** Addressed by the anchored rubric (3.2a) and measured by the eval harness (3.2b) on fictional résumés only; the real set comes from the owner (`docs/EVAL.md`).
+- **Real-data coverage.** Still untested on real files: varied layouts, scanned PDFs (OCR is not in the shipped build), résumés over 10 pages, Drive's virus-scan page, Google Doc and folder links, outages mid-run.
 
-- **Speed and the pre-check limit on CPU-only laptops.** About 141 s per résumé (~25 an hour). The pre-check took 58–83 s against its 120 s limit, so a slower laptop may be told the model can't be used. The pre-check-based estimate is also ~2.5× too optimistic (57.6 s pre-check vs 141.5 s real median).
-- **Scores bunch at the top.** One real résumé scored 95 ten times with identical sub-scores; the strong fictional sample also 95. Needs the Phase 3 eval set before trusting rank order.
-- **Evidence and claim mismatches vary for identical input.** Duplicate quotes are dropped together with their claim; 16% of quotes weren't verbatim; some "mismatches" name criteria items the student never claimed.
-- **CLI wording.** The retry hint prints a literal "…" for the data folder and suggests `retry` when every failure is permanent.
-- **Pre-flight wording.** "links shared by two students" is printed for any group size.
-- **Log wording.** "dropped N of M evidence quotes not found" also counts duplicates, which were found.
-- **Windows redirected output.** "→ ≥ ·" become "?" when CLI output goes to a file (cp1252).
-- **Real-data coverage.** Still untested on real files: varied layouts, scanned PDFs (OCR), résumés over 10 pages, Drive's virus-scan page, Google Doc and folder links, outages mid-run.
+**Non-goals of Phase 3** (kept out on purpose; build later if wanted)
+- OCR in the shipped build, and any OCR engine swap (RapidOCR etc.): scanned résumés get "OCR isn't installed".
+- Auto-update.
+- Native macOS sheets and a native toolbar; the remaining items of PHASE2_SUMMARY §7.
+- Running more than one screening at a time.
+- A screen-reader pass with NVDA or VoiceOver.
+- Tuning scores on real résumés (the harness exists; the real set comes from the owner).
+- Any speed target beyond the cheap wins in 3.1c.
 
 ---
 
@@ -143,3 +151,4 @@ A fresh session reads this first. One line per step: date · step · tests · wh
 - 2026-09-28 · 2.8 settings · engine 351 · Vitest 171 · Playwright 40 · Settings is one column of cards; every change is an optimistic `PUT /settings` of just that field (no Save). Main re-reads keep-awake/notify right after a successful `PUT /settings` or `DELETE /data` (`settingsWrite` → `RunWatcher.preferencesChanged`). `POST /runs` now also applies `default_model`. Delete a run = Alert → `DELETE /runs/{id}` (VACUUM) + `nav.forget`; Delete all = typed DELETE → `DELETE /data` → `resetQueries` → Welcome. `Placeholder` removed (setup on a started run goes to its screen). e2e: `recordShellOpens`/`shellOpened` stand in for Show in folder.
 - 2026-09-28 · 2.9 e2e + performance · engine 351 · Vitest 174 · Playwright 52 · **Phase 2 done (Windows).** `e2e/flows.spec.ts` = DoD flows 1–5 (each in a fresh app; cleanup pre-answers "Close Atlas?" or a running screening hangs `close()`). `e2e/keyboard.spec.ts` (Tab-only setup, `:focus-visible` at every stop), `e2e/perf.spec.ts` (2,000 rows seeded by `engine/tests/e2e_seed.py` through `Database` methods; median live-cutoff response 85–93 ms, 0 long tasks), `e2e/fullscreen.spec.ts` (1280×800, full screen, 1920×1200), `e2e/errors.spec.ts`. Rule 16 is a Vitest contract (`tests/contracts.test.ts`). Fixed: `Stepper` wrote a stale value back on blur (shortlist 62 on screen, 61 saved); setup steps now `setQueryData` the PATCH reply before `next()`; About showed Electron's version (`__ATLAS_VERSION__` from package.json); `scrollbar-gutter: stable both-edges`. Preview debounce 80 ms. Next session: read PHASE2_SUMMARY §8–9; 1.11a still blocks real data; macOS untested; packaging is Phase 3.
 - 2026-10-01 · 3.0 graph · engine 354 · Vitest 174 · Playwright 52 · Privacy audit of `graphify-out/`: 0 `local/` paths, 0 RA numbers, 0 data file names; the 1 e-mail is the vis-network library's in `graph.html`, the digit runs are mtimes/hashes. `.graphifyignore` (gitignore syntax, read by graphify's `detect.py`) excludes local/, .venv/, node_modules/, app/out/, app/dist/, dist/, build/, legacy/, graphify-out/ — verified with `detect()` with and without `.gitignore`. `graphify update .` (no LLM) pruned 453 legacy nodes → 2,738 nodes. Only `GRAPH_REPORT.md` is committed. Tools: `python -m engine.tools.graph_audit` (must print [OK ] ×3), `python -m engine.tools.graph_query callers|callees|find|file X`.
+- 2026-10-01 · 3.1 before real use · engine 378 · Vitest 176 · Playwright 52 · **1.11a done**: identity lexicon (`engine/llm/identity.py`: CSV name + résumé name line + email local parts + profile usernames; ordinary-word names only next to another identity word, list in `common_words.txt`); `leak_check` on smoke-test-1 data 10 → **0**. Mismatches only about claimed items (`verify.names_a_claim`); duplicate vs not-found quotes logged separately. Answer caps in schema + prompt (5 evidence ≤ 20 words, 4 reasons ≤ 25, 5 mismatches); `keep_alive` 30m; schema v3 stores `prompt_eval_seconds`/`eval_seconds`. Speed: no reliable change on the short fictional answers (machine drift ±50% > any effect; prefill only 14%); the caps cut long answers. iGPU: Ollama drops the Arc iGPU unless `OLLAMA_IGPU_ENABLE=1` (not changed). Pre-check 300 s; slow-but-working allowed (`slow` in the API). Captive portals: `HealthProbe.internet_problem()` needs 204 from generate_204 → pause "Connected to Wi-Fi that needs a sign-in page" (auto-resume); the worker also asks before failing "not a PDF". CLI: real data dir in the retry hint, UTF-8 stdout; pre-flight "N résumé links are shared by M students". Test probes point `check_urls` at the Drive stub's `/generate_204`. Fixed flaky `TimingHistoryTests` and the e2e close helper (pre-answers "Close Atlas?").

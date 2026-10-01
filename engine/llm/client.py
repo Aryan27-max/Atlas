@@ -13,6 +13,10 @@ Adapted from QWENTUS ``llm/ollama.py``. What changed and why:
   ``think: false``, ``temperature: 0``, and ``num_ctx``/``num_predict`` come
   from the caller (QWENTUS hard-coded ``num_predict=256``, too small for the
   JSON, so answers were cut off).
+* ``keep_alive: 30m`` keeps the model loaded between résumés and after the
+  pre-check (loading an 8B model on a CPU laptop takes tens of seconds).
+* Ollama's own timings come back with every answer: ``prompt_eval``
+  (reading the prompt, "prefill") and ``eval`` (writing the answer).
 """
 
 from __future__ import annotations
@@ -51,6 +55,9 @@ class ChatResult:
     done_reason: str | None     # "stop", or "length" when num_predict cut the answer off
     eval_count: int             # tokens generated
     duration: float             # wall-clock seconds for this call
+    prompt_eval_count: int = 0                  # prompt tokens Ollama processed (0 if it reused its cache)
+    prompt_eval_seconds: float | None = None    # prefill time, as Ollama reports it
+    eval_seconds: float | None = None           # generation time, as Ollama reports it
 
 
 @dataclass(frozen=True)
@@ -73,7 +80,7 @@ class OllamaClient:
         connect_timeout: float = 3.0,
         read_timeout: float = 300.0,
         tags_timeout: float = 5.0,
-        keep_alive: str = "10m",
+        keep_alive: str = "30m",
         clock: Callable[[], float] = time.monotonic,
     ) -> None:
         self.base_url = base_url.rstrip("/")
@@ -283,6 +290,9 @@ class OllamaClient:
             done_reason=final.get("done_reason"),
             eval_count=int(final.get("eval_count") or 0),
             duration=self._clock() - started,
+            prompt_eval_count=int(final.get("prompt_eval_count") or 0),
+            prompt_eval_seconds=_seconds(final.get("prompt_eval_duration")),
+            eval_seconds=_seconds(final.get("eval_duration")),
         )
 
     @staticmethod
@@ -290,6 +300,13 @@ class OllamaClient:
         if timeout is not None:
             return ChatDeadline("ollama", Reason.MODEL_STOPPED, detail)
         return TransientError("ollama", Reason.MODEL_STOPPED, detail)
+
+
+def _seconds(nanoseconds: Any) -> float | None:
+    """Ollama reports durations in nanoseconds."""
+    if isinstance(nanoseconds, (int, float)) and not isinstance(nanoseconds, bool) and nanoseconds >= 0:
+        return nanoseconds / 1e9
+    return None
 
 
 def _error_text(response: requests.Response) -> str:

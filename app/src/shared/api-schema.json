@@ -1085,6 +1085,11 @@
             "title": "Seconds",
             "type": "number"
           },
+          "slow": {
+            "default": false,
+            "title": "Slow",
+            "type": "boolean"
+          },
           "status": {
             "enum": [
               "ready",
@@ -1131,6 +1136,11 @@
               }
             ],
             "title": "Seconds"
+          },
+          "slow": {
+            "default": false,
+            "title": "Slow",
+            "type": "boolean"
           },
           "status": {
             "enum": [

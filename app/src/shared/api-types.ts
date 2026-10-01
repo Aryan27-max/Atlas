@@ -225,6 +225,7 @@ export interface PrecheckOut {
   message: string
   ok: boolean
   seconds: number
+  slow?: boolean
   status: "ready" | "not_checked" | "cant_use"
 }
 
@@ -232,6 +233,7 @@ export interface PrecheckStatusOut {
   checked: string | null
   message: string
   seconds: number | null
+  slow?: boolean
   status: "ready" | "not_checked" | "cant_use"
 }
 

@@ -71,5 +71,58 @@ class GraphQueryTests(unittest.TestCase):
             self.assertEqual(graph_query.run("file", "engine/worker.py", path), ["Worker  engine/worker.py:90"])
 
 
+class LeakCheckTests(unittest.TestCase):
+    RESUME = ("KAVIN RAGHUNATHAN\nkavin.r@example.org | github.com/kavin-r9 | +91 98765 43210\n"
+              "PROJECTS\nChat app by Kavin; code at github.com/kavin-r9/chat\nEDUCATION\nB.Tech, mentor: Raghunathan")
+
+    def make_db(self, folder: Path) -> Path:
+        from engine.db import Database
+
+        db = Database(folder / "atlas.db")
+        try:
+            run = db.create_run("Fictional")
+            db.configure_run(run, model_name="m", criteria_prompt="Python")
+            db.add_candidates(run, [
+                {"ra_number": "RA0000000001", "name": "K. R.", "email": "kavin.r@example.org",
+                 "phone": "9876543210", "resume_link": "https://example.com/1"},
+                {"ra_number": "RA0000000002", "name": "Meera Iyer", "email": "meera@example.org",
+                 "phone": "9123456780", "resume_link": "https://example.com/2"},
+            ])
+            cid = db.list_candidates(run)[0]["id"]
+            db.start_download(cid)
+            db.finish_download(cid, folder / "1.pdf")
+            db.commit_extraction(cid, text=self.RESUME, page_count=1, ocr_used=False, pdf_sha256="0" * 64)
+        finally:
+            db.close()
+        return folder / "atlas.db"
+
+    def test_zero_when_redaction_works_and_counts_only_when_it_does_not(self) -> None:
+        from engine.llm import redact
+        from engine.tools import leak_check
+
+        with tempfile.TemporaryDirectory() as tmp:
+            db = self.make_db(Path(tmp))
+            before = db.read_bytes()
+            out = io.StringIO()
+            with contextlib.redirect_stdout(out):
+                code = leak_check.main(["--data-dir", tmp])
+            self.assertEqual(code, 0, out.getvalue())
+            self.assertIn("prompts rebuilt: 1", out.getvalue())
+            self.assertIn("TOTAL LEAKS: 0", out.getvalue())
+            self.assertEqual(db.read_bytes(), before)            # read-only
+
+            original = redact.apply_lexicon
+            redact.apply_lexicon = lambda text, lexicon: text     # simulate the old, CSV-only redaction
+            try:
+                out = io.StringIO()
+                with contextlib.redirect_stdout(out):
+                    code = leak_check.main(["--data-dir", tmp])
+            finally:
+                redact.apply_lexicon = original
+            self.assertEqual(code, 1)
+            for value in ("kavin", "Kavin", "raghunathan", "RAGHUNATHAN", "kavin-r9"):
+                self.assertNotIn(value, out.getvalue())
+
+
 if __name__ == "__main__":
     unittest.main()

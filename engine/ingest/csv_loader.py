@@ -110,6 +110,7 @@ class Issue:
     ra_number: str
     code: str
     message: str
+    shared_with_row: int | None = None      # shared_link: the first row that used this link
 
 
 @dataclass
@@ -431,6 +432,7 @@ def _read_rows(
             report.warnings.append(Issue(
                 row_number, ra, "shared_link",
                 f"Same résumé link as {other_ra} (row {other_row}).",
+                shared_with_row=other_row,
             ))
         else:
             seen_link[identity] = (ra, row_number)
@@ -525,6 +527,8 @@ def render_report(report: PreflightReport) -> str:
         if not found:
             continue
         head = f"{len(found):>3} {label}".ljust(width)
+        if code == "shared_link":
+            head = (_shared_links_line(found) + " ").ljust(width)
         if listing == "rows":
             word = "row" if len(found) == 1 else "rows"
             detail = f"→ {word} {_join_limited([str(i.row) for i in found])} "
@@ -543,6 +547,18 @@ def render_report(report: PreflightReport) -> str:
 # --------------------------------------------------------------------------- #
 # Internals
 # --------------------------------------------------------------------------- #
+
+
+def _shared_links_line(found: list[Issue]) -> str:
+    """"2 résumé links are shared by 20 students (10 each)": links and students, counted properly."""
+    groups: dict[int | None, int] = {}
+    for issue in found:
+        groups[issue.shared_with_row] = groups.get(issue.shared_with_row, 1) + 1   # + the first user
+    links, students = len(groups), sum(groups.values())
+    sizes = set(groups.values())
+    noun = "résumé link is" if links == 1 else "résumé links are"
+    each = f" ({sizes.pop()} each)" if len(sizes) == 1 and links > 1 else ""
+    return f"{links:>3} {noun} shared by {students} students{each}"
 
 
 def _fail(report: PreflightReport, code: str, message: str) -> PreflightReport:

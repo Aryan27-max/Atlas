@@ -44,6 +44,7 @@ from typing import Any, Callable, Iterator, Protocol
 from engine.db import Database, DatabaseError, InvalidTransitionError, RecoveryReport
 from engine.errors import (
     AUTO_RESUME_REASONS,
+    INTERNET_PAUSES,
     CandidateError,
     Flag,
     Pause,
@@ -395,6 +396,12 @@ class Worker:
         try:
             downloaded = self.downloader.fetch(candidate["resume_link"], self.downloads_dir, str(cid))
         except CandidateError as exc:
+            # Behind a Wi-Fi sign-in page every download is the portal's HTML,
+            # which looks like "not a PDF". Ask before failing the student (rule 5).
+            if exc.reason == Reason.NOT_PDF and self._internet_problem() == Pause.CAPTIVE_PORTAL:
+                self.db.return_to_queue(cid)
+                self._pause_system(Pause.CAPTIVE_PORTAL)
+                return
             self._fail("fetch", cid, exc.kind, exc.reason)
             return
         except SystemUnavailable as exc:
@@ -524,11 +531,17 @@ class Worker:
             raw_response=result.raw_response,
             duration_seconds=result.duration_seconds,
             flags=flags,
+            prompt_eval_seconds=result.prompt_eval_seconds,
+            eval_seconds=result.eval_seconds,
         )
         assert self._run_id is not None
         self.db.log_event(self._run_id, f"Scored {evaluation.overall_score}", candidate_id=cid)
         self._remember_duration(result.model, result.duration_seconds)
-        log.info("candidate %d (%s): scored %d in %.1fs", cid, ra, evaluation.overall_score, result.duration_seconds)
+        timing = ""
+        if result.prompt_eval_seconds is not None and result.eval_seconds is not None:
+            timing = f" (prefill {result.prompt_eval_seconds:.1f}s, generation {result.eval_seconds:.1f}s)"
+        log.info("candidate %d (%s): scored %d in %.1fs%s", cid, ra, evaluation.overall_score,
+                 result.duration_seconds, timing)
         self._success("score")
 
     def _remember_duration(self, model: str, seconds: float) -> None:
@@ -599,13 +612,23 @@ class Worker:
         self._success(stage)   # a *handled* failure breaks a run of unexpected errors
 
     def _transient(self, stage: str, cid: int, exc: TransientError, give_back: Callable[[int], None]) -> None:
-        healthy = self.health.internet_ok() if exc.probe == "internet" else self.health.ollama_ok()
-        if healthy:
+        if exc.probe == "internet":
+            problem = self._internet_problem()
+        else:
+            problem = None if self.health.ollama_ok() else Pause.OLLAMA_DOWN
+        if problem is None:
             log.info("candidate %d: %s (probe ok, so it's this candidate)", cid, exc.detail or exc.reason)
             self._fail(stage, cid, "retryable", exc.reason)
         else:
             give_back(cid)
-            self._pause_system(Pause.NO_INTERNET if exc.probe == "internet" else Pause.OLLAMA_DOWN)
+            self._pause_system(problem)
+
+    def _internet_problem(self) -> str | None:
+        """The internet pause reason, or ``None``; captive portals if the probe can tell."""
+        check = getattr(self.health, "internet_problem", None)
+        if callable(check):
+            return check()
+        return None if self.health.internet_ok() else Pause.NO_INTERNET
 
     def _unexpected(self, stage: str, cid: int, exc: Exception, give_back: Callable[[int], None]) -> None:
         log.error("candidate %d: unexpected error in %s", cid, stage, exc_info=exc)
@@ -662,12 +685,12 @@ class Worker:
             if self._last_poll is not None and now - self._last_poll < self.poll_interval:
                 return
             self._last_poll = now
-        healthy = self.health.internet_ok() if reason == Pause.NO_INTERNET else self.health.ollama_ok()
+        internet = reason in INTERNET_PAUSES
+        healthy = self._internet_problem() is None if internet else self.health.ollama_ok()
         if healthy and not self._stop.is_set():
             try:
                 self.db.set_run_status(run["id"], "running")
-                log.info("run %d resumed automatically (%s is back)", run["id"],
-                         "internet" if reason == Pause.NO_INTERNET else "Ollama")
+                log.info("run %d resumed automatically (%s is back)", run["id"], "internet" if internet else "Ollama")
             except InvalidTransitionError:
                 pass
 

@@ -60,6 +60,7 @@ class Pause:
     """Run pause reasons (ARCHITECTURE §6)."""
 
     NO_INTERNET = "No internet connection"
+    CAPTIVE_PORTAL = "Connected to Wi-Fi that needs a sign-in page"
     OLLAMA_DOWN = "Ollama isn't running"
     DISK_FULL = "Disk is full"
     CLOSED = "Atlas was closed"
@@ -117,7 +118,9 @@ class Api:
 
 
 # Only these resume on their own, when the health probe succeeds again.
-AUTO_RESUME_REASONS = frozenset({Pause.NO_INTERNET, Pause.OLLAMA_DOWN})
+AUTO_RESUME_REASONS = frozenset({Pause.NO_INTERNET, Pause.CAPTIVE_PORTAL, Pause.OLLAMA_DOWN})
+# Pauses that clear when the internet probe passes again.
+INTERNET_PAUSES = frozenset({Pause.NO_INTERNET, Pause.CAPTIVE_PORTAL})
 
 
 class AtlasError(Exception):

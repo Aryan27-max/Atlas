@@ -56,6 +56,7 @@ class FakeDownloader:
         self.actions: dict[str, Any] = {}      # link → exception or callable
         self.calls: list[str] = []
         self.online = True
+        self.portal = False                     # behind a Wi-Fi sign-in page: every file is its HTML
         self.max_files_seen = 0
         self._lock = threading.Lock()
 
@@ -64,6 +65,8 @@ class FakeDownloader:
             self.calls.append(link)
         if not self.online:
             raise TransientError("internet", Reason.TIMEOUT, "fake: offline")
+        if self.portal:
+            raise CandidateError("permanent", Reason.NOT_PDF)
         action = self.actions.get(link)
         if isinstance(action, BaseException):
             raise action
@@ -136,12 +139,18 @@ class FakeScorer:
 class FakeHealth:
     def __init__(self) -> None:
         self.internet = True
+        self.captive = False
         self.ollama = True
         self.checks: list[str] = []
 
     def internet_ok(self) -> bool:
+        return self.internet_problem() is None
+
+    def internet_problem(self) -> str | None:
         self.checks.append("internet")
-        return self.internet
+        if not self.internet:
+            return Pause.NO_INTERNET
+        return Pause.CAPTIVE_PORTAL if self.captive else None
 
     def ollama_ok(self) -> bool:
         self.checks.append("ollama")
@@ -347,6 +356,35 @@ class SystemProblemTests(WorkerTestCase):
         self.clock.advance(5.0)
         self.wait_until(lambda: self.status(run_id)[0] == "completed", what="auto-resume and completion")
         self.assertEqual(self.counts(run_id), {"scored": 12})
+
+    def test_a_wifi_sign_in_page_pauses_instead_of_failing_everyone(self) -> None:
+        # The TCP probe passes behind a captive portal and every "download" is its HTML page.
+        run_id, _ = self.make_run(10)
+
+        def join_hotel_wifi() -> None:
+            self.downloader.portal = True
+            self.health.captive = True
+
+        self.downloader.actions[LINK.format(4)] = join_hotel_wifi
+        worker = self.worker()
+        worker.start(run_id)
+        self.wait_until(lambda: self.status(run_id) == ("paused", Pause.CAPTIVE_PORTAL), what="captive pause")
+        self.assertTrue(worker.wait_idle(5))
+        self.assertNotIn("failed", self.counts(run_id))
+
+        self.downloader.portal = False             # the recruiter signed in
+        self.health.captive = False
+        self.clock.advance(5.0)
+        self.wait_until(lambda: self.status(run_id)[0] == "completed", what="auto-resume after sign-in")
+        self.assertEqual(self.counts(run_id), {"scored": 10})
+
+    def test_a_real_non_pdf_still_fails_that_student(self) -> None:
+        run_id, _ = self.make_run(3)
+        self.downloader.actions[LINK.format(2)] = CandidateError("permanent", Reason.NOT_PDF)
+        worker = self.worker()
+        worker.start(run_id)
+        self.wait_until(lambda: self.status(run_id)[0] == "completed", what="completion")
+        self.assertEqual(self.counts(run_id), {"scored": 2, "failed": 1})
 
     def test_ollama_loss_returns_scoring_to_extracted_and_auto_resumes(self) -> None:
         run_id, ids = self.make_run(8)

@@ -61,6 +61,7 @@ class PrecheckStatusOut(BaseModel):
     message: str
     seconds: float | None
     checked: str | None
+    slow: bool = False      # ready, but slow on this computer (message says how slow)
 
 
 class ModelOut(BaseModel):
@@ -81,6 +82,7 @@ class PrecheckOut(BaseModel):
     status: PrecheckStatus
     message: str
     seconds: float
+    slow: bool = False
 
 
 class PullStartOut(BaseModel):

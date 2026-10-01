@@ -158,9 +158,10 @@ class MigrationTests(DbTestCase):
         path = self.dir / "old.db"
         self.make_v1_database(path)
         with Database(path) as db:
-            self.assertEqual(db._conn.execute("PRAGMA user_version").fetchone()[0], 2)
+            self.assertEqual(db._conn.execute("PRAGMA user_version").fetchone()[0], SCHEMA_VERSION)
             ev = db.get_evaluation(1)
             self.assertEqual((ev["overall_score"], ev["reasons"], ev["flags"]), (77, ["r"], []))
+            self.assertEqual((ev["prompt_eval_seconds"], ev["eval_seconds"]), (None, None))   # v3: unknown for old rows
             self.assertEqual(db.get_candidate(1)["state"], "scored")
             self.assertEqual(db.get_run(1)["name"], "Old run")
             self.assertEqual(db._conn.execute("PRAGMA integrity_check").fetchone()[0], "ok")
@@ -176,7 +177,28 @@ class MigrationTests(DbTestCase):
         conn.commit()
         conn.close()
         with Database(path) as db:
-            self.assertEqual(db._conn.execute("PRAGMA user_version").fetchone()[0], 2)
+            self.assertEqual(db._conn.execute("PRAGMA user_version").fetchone()[0], SCHEMA_VERSION)
+
+    def test_interrupted_v3_upgrade_is_safe_to_repeat(self) -> None:
+        path = self.dir / "half3.db"
+        self.make_v1_database(path)
+        conn = sqlite3.connect(path)
+        conn.execute("ALTER TABLE evaluations ADD COLUMN flags TEXT NOT NULL DEFAULT '[]'")
+        conn.execute("ALTER TABLE evaluations ADD COLUMN prompt_eval_seconds REAL")
+        conn.execute("PRAGMA user_version=2")
+        conn.commit()
+        conn.close()
+        with Database(path) as db:
+            self.assertEqual(db._conn.execute("PRAGMA user_version").fetchone()[0], 3)
+            columns = {r["name"] for r in db._conn.execute("PRAGMA table_info(evaluations)")}
+            self.assertLessEqual({"prompt_eval_seconds", "eval_seconds"}, columns)
+
+    def test_ollama_timings_round_trip(self) -> None:
+        _, ids = self.new_run(1)
+        self.drive_to_scoring(ids[0])
+        self.db.save_evaluation(ids[0], **self.evaluation(), prompt_eval_seconds=12.5, eval_seconds=40.25)
+        ev = self.db.get_evaluation(ids[0])
+        self.assertEqual((ev["prompt_eval_seconds"], ev["eval_seconds"]), (12.5, 40.25))
 
     def test_flags_round_trip(self) -> None:
         _, ids = self.new_run(1)

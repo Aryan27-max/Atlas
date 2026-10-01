@@ -235,7 +235,8 @@ def stream_lines(content: str, done_reason: str = "stop", pieces: int = 3) -> li
     chunks = [content[i:i + size] for i in range(0, len(content), size)]
     lines = [json.dumps({"message": {"role": "assistant", "content": c}, "done": False}).encode() for c in chunks]
     lines.append(json.dumps({"message": {"role": "assistant", "content": ""}, "done": True,
-                             "done_reason": done_reason, "eval_count": 321}).encode())
+                             "done_reason": done_reason, "eval_count": 321, "prompt_eval_count": 2048,
+                             "prompt_eval_duration": 12_500_000_000, "eval_duration": 40_250_000_000}).encode())
     return lines
 
 
@@ -257,6 +258,9 @@ class ClientTests(unittest.TestCase):
         self.assertEqual(payload["options"], {"temperature": 0, "num_ctx": 8192, "num_predict": 1024})
         self.assertEqual([m["role"] for m in payload["messages"]], ["system", "user"])
         self.assertTrue(kwargs["stream"])
+        self.assertEqual(payload["keep_alive"], "30m")           # the model stays loaded between résumés
+        self.assertEqual((result.prompt_eval_count, result.prompt_eval_seconds, result.eval_seconds),
+                         (2048, 12.5, 40.25))
 
     def test_nothing_is_written_to_disk(self) -> None:
         self.assertFalse({"log_dir", "logs", "paths", "config"} & set(inspect.signature(OllamaClient).parameters))
@@ -405,6 +409,74 @@ class IdentityTests(unittest.TestCase):
         self.assertIn("[phone]", scoring_input(FULL_ROW, "SKILLS\nCall +1 (415) 555-0100", None).full_text)
 
 
+class LexiconTests(unittest.TestCase):
+    """1.11a: redaction that doesn't trust the CSV (smoke test 1, concern 1)."""
+
+    ROW = {"ra_number": "RA0000000001", "name": "", "email": "", "phone": "", "section": "",
+           "cgpa": 8.0, "department": "CSE", "skills": "Python", "hackathons": ""}
+
+    def sent(self, row: dict[str, object], text: str) -> str:
+        data = scoring_input({**self.ROW, **row}, text, split_sections(text))
+        return build_prompt(data.context, data.sections, CRITERIA, budget_chars=1_000_000).user
+
+    def test_a_nickname_on_the_resume_is_redacted_everywhere(self) -> None:
+        text = ("PRIYA SHARMA\npriya@example.com | 98765 43210\nPROJECTS\nCampus App - Project by Priya Sharma\n"
+                "Team: Ravi, - Priya\nACHIEVEMENTS\nP. Sharma won the hackathon")
+        out = self.sent({"name": "Priyanka S."}, text)
+        for word in ("priya", "sharma"):
+            self.assertNotIn(word, out.lower())
+        self.assertIn("Campus App", out)
+        self.assertIn("won the hackathon", out)
+        self.assertNotIn("P. [name]", out)          # the initial goes with the surname
+
+    def test_a_resume_whose_owner_is_not_in_the_csv(self) -> None:
+        text = "Kavin Raghunathan\nkavin.r@example.org\nEXPERIENCE\nIntern; mentored by Raghunathan's team lead\nSKILLS\nGo"
+        out = self.sent({"name": "Someone Else"}, text)
+        self.assertNotIn("kavin", out.lower())
+        self.assertNotIn("raghunathan", out.lower())
+        self.assertIn("mentored by", out)
+
+    def test_two_letter_name_parts(self) -> None:
+        text = "LI NA CHEN\nPROJECTS\nCompiler by Li Na Chen in Rust\nLed by Li, reviewed by Chen."
+        out = self.sent({"name": "Li Na Chen"}, text)
+        self.assertNotIn("by Li", out)
+        self.assertNotIn("Chen", out)
+        self.assertIn(" in Rust", out)               # ordinary 2-letter words stay
+
+    def test_a_name_that_is_also_an_ordinary_word(self) -> None:
+        text = ("ROSE KUMAR\nEXPERIENCE\nRose to lead the team of 6; rose quickly\nACHIEVEMENTS\n"
+                "Award presented to Rose Kumar\nGrace Hopper Celebration scholar; Kumar mentored juniors")
+        out = self.sent({"name": "Rose Kumar"}, text)
+        self.assertIn("Rose to lead the team", out)  # sentence-initial ordinary word, no name next to it
+        self.assertIn("rose quickly", out)
+        self.assertNotIn("Kumar", out)
+        self.assertIn("Award presented to [name]", out)
+        self.assertIn("Grace Hopper", out)
+
+    def test_a_tech_word_that_is_also_a_first_name(self) -> None:
+        text = "DEEP SHAH\nPROJECTS\nDeep Learning classifier\nBuilt by Deep Shah; Shah wrote the API"
+        out = self.sent({"name": "Deep Shah"}, text)
+        self.assertIn("Deep Learning classifier", out)
+        self.assertNotIn("Shah", out)
+        self.assertIn("Built by [name]; [name] wrote the API", out)
+
+    def test_profile_usernames_and_email_local_parts(self) -> None:
+        text = ("Arjun M\ngithub.com/arjun-codes42 | linkedin.com/in/mehta-arjun\nPROJECTS\n"
+                "Source at github.com/arjun-codes42/shop; demo on arjun-codes42.github.io\n"
+                "Contact for the club: mehtaa.dev@example.com; built with mehtaa's library")
+        out = self.sent({"name": "Arjun Mehta"}, text)
+        self.assertNotIn("arjun-codes42", out.lower())
+        self.assertNotIn("mehtaa", out.lower())
+        self.assertIn("/shop", out)
+
+    def test_a_resume_without_headings_uses_its_first_line(self) -> None:
+        text = "Tanvir Alam\nBuilt a chatbot in Python. Tanvir led a team of four."
+        data = scoring_input({**self.ROW, "name": "Another Person"}, text, split_sections(text))
+        self.assertNotIn("Tanvir", data.full_text)
+        self.assertNotIn("Alam", data.full_text)
+        self.assertIn("chatbot in Python", data.full_text)
+
+
 # --------------------------------------------------------------------------- #
 # Prompt
 # --------------------------------------------------------------------------- #
@@ -548,6 +620,63 @@ class VerifyTests(unittest.TestCase):
 # --------------------------------------------------------------------------- #
 # Scorer
 # --------------------------------------------------------------------------- #
+
+
+class MismatchAndCapTests(unittest.TestCase):
+    """3.1b (mismatches only about real claims) and 3.1c (output caps)."""
+
+    def test_a_mismatch_may_only_name_something_the_student_claimed(self) -> None:
+        # The criteria ask for cloud deployment; the student claimed Python, Docker and Kubernetes.
+        data = prepared()
+        reply = answer(70, claim_mismatches=[
+            "Claims cloud deployment experience; not in the résumé",       # a criterion, never claimed
+            "Claims Docker; not mentioned in the résumé",                   # a real claim
+            "No evidence of AWS",                                           # never claimed
+        ])
+        client = FakeClient(reply)
+        scorer = Scorer(client, "qwen3:8b", "Backend interns: Python, cloud deployment, AWS.", sleep=lambda s: None)
+        with self.assertLogs("atlas.llm", "INFO") as logs:
+            result = scorer.score(data.context, data.sections, data.full_text)
+        self.assertEqual(result.evaluation.claim_mismatches, ["Claims Docker; not mentioned in the résumé"])
+        self.assertIn("dropped 2 claim mismatches", "\n".join(logs.output))
+        self.assertIn("Never list a criterion", client.calls[0]["prompt"].system)
+
+    def test_claim_matching_is_fuzzy_but_whole_word_for_short_claims(self) -> None:
+        from engine.llm.verify import names_a_claim
+
+        self.assertTrue(names_a_claim("Claims NodeJS; not shown", "Node.js, SQL"))
+        self.assertTrue(names_a_claim("Claims C++ but no project uses it", "C++; Java"))
+        self.assertTrue(names_a_claim("Claims Go; not in the résumé", "Go"))
+        self.assertFalse(names_a_claim("Claims Django; not in the résumé", "Go"))
+        self.assertFalse(names_a_claim("Claims Docker", ""))
+
+    def test_duplicate_and_missing_quotes_are_counted_separately(self) -> None:
+        fake = "Led a team of fifty engineers at a unicorn"
+        ev = parse_evaluation(json.dumps(answer(70, quotes=(REAL_QUOTE, REAL_QUOTE, fake))))
+        checked = review(ev, simple_resume_text(70))
+        self.assertEqual((checked.quotes_duplicate, checked.quotes_not_found, len(checked.evaluation.evidence)), (1, 1, 1))
+        cleaned, flags = checked                     # still unpacks like before
+        self.assertEqual((len(cleaned.evidence), flags), (1, []))
+
+    def test_the_answer_is_capped_in_the_schema_and_clipped_if_ignored(self) -> None:
+        props = SCHEMA["properties"]
+        self.assertEqual((props["evidence"]["maxItems"], props["reasons"]["maxItems"],
+                          props["claim_mismatches"]["maxItems"]), (5, 4, 5))
+        self.assertEqual(props["evidence"]["items"]["properties"]["quote"]["maxLength"], 160)
+        too_many = answer(70, quotes=(REAL_QUOTE,) * 7, reasons=["r"] * 6, claim_mismatches=["Claims Python"] * 8)
+        ev = parse_evaluation(json.dumps(too_many))
+        self.assertEqual((len(ev.evidence), len(ev.reasons), len(ev.claim_mismatches)), (5, 4, 5))
+        prompt = build_prompt(prepared().context, prepared().sections, CRITERIA, budget_chars=5000)
+        for rule in ("at most 5 items", "at most 20 words", "1 to 4 reasons, each at most 25 words", "At most 5."):
+            self.assertIn(rule, prompt.system)
+
+    def test_prefill_and_generation_time_add_up_over_retries(self) -> None:
+        first = ChatResult('{"overall_score": 5', "stop", 10, 2.0, 900, 3.0, 4.0)
+        second = ChatResult(json.dumps(answer(66)), "stop", 300, 2.0, 0, 0.5, 20.0)
+        client = FakeClient(first, second)
+        data = prepared()
+        result = Scorer(client, "qwen3:8b", CRITERIA, sleep=lambda s: None).score(data.context, data.sections, data.full_text)
+        self.assertEqual((result.prompt_eval_seconds, result.eval_seconds), (3.5, 24.0))
 
 
 class ScorerTests(unittest.TestCase):
@@ -712,9 +841,18 @@ class PrecheckTests(unittest.TestCase):
         result = precheck(FakeClient("junk", "junk", "junk", clock=clock), "qwen3:8b", clock=clock, sleep=clock.sleep)
         self.assertEqual((result.ok, result.message), (False, CANT_USE))
 
-    def test_too_slow(self) -> None:
+    def test_slow_but_working_is_allowed_and_says_how_slow(self) -> None:
+        # Smoke test 1: a cold 8B model on a CPU took 58–83 s and could pass 120 s on a slower laptop.
         clock = FakeClock()
         client = FakeClient(answer(70, quotes=(SAMPLE_QUOTE,)), clock=clock, seconds_per_call=150)
+        result = precheck(client, "qwen3:8b", clock=clock, sleep=clock.sleep)
+        self.assertTrue(result.ok and result.slow)
+        self.assertEqual(result.message,
+                         "This model works, but it's slow on this computer: about 24 résumés an hour.")
+
+    def test_slower_than_the_cold_start_limit(self) -> None:
+        clock = FakeClock()
+        client = FakeClient(answer(70, quotes=(SAMPLE_QUOTE,)), clock=clock, seconds_per_call=301)
         result = precheck(client, "qwen3:8b", clock=clock, sleep=clock.sleep)
         self.assertEqual((result.ok, result.message), (False, CANT_USE))
 

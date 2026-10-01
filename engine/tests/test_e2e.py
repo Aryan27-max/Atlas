@@ -112,7 +112,8 @@ class EndToEndTest(unittest.TestCase):
         code = main(
             [*argv], stdout=out,
             url_rewrite=self.drive.rewrite,
-            health=HealthProbe(hosts=(("127.0.0.1", self.drive.port),), ollama=client),
+            health=HealthProbe(hosts=(("127.0.0.1", self.drive.port),), ollama=client,
+                               check_urls=(f"http://127.0.0.1:{self.drive.port}/generate_204",)),
             poll_interval=0.2, download_interval=0.0, idle_interval=0.01,
         )
         return code, out.getvalue()

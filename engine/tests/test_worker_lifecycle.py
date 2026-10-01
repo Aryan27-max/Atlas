@@ -255,6 +255,10 @@ class TimingHistoryTests(LifecycleTestCase):
         run_id, _ = self.make_run(4)
         self.worker().start(run_id)
         self.wait_until(lambda: self.status(run_id)[0] == "completed", what="completion")
+        # The time is recorded just after the evaluation is saved, so the run can
+        # read "completed" a moment before the 4th time lands: wait for it.
+        self.wait_until(lambda: len((self.db.get_setting(TIMING_SETTING) or {}).get("fake-model", [])) == 4,
+                        what="all four scoring times remembered")
         history = self.db.get_setting(TIMING_SETTING)
         self.assertEqual(len(history["fake-model"]), 4)
         self.assertEqual(self.db.scoring_durations(run_id), [0.25] * 4)

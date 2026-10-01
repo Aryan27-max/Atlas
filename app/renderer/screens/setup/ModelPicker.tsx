@@ -67,7 +67,13 @@ export function ModelPicker({ data, loading, checking, selected, onSelect, onRef
             <ListRow
               key={model.name}
               title={model.name}
-              subtitle={`${formatBytes(model.size_bytes)} · ${testing === model.name ? 'Testing…' : STATUS_TEXT[model.precheck.status]}`}
+              subtitle={`${formatBytes(model.size_bytes)} · ${
+                testing === model.name
+                  ? 'Testing…'
+                  : model.precheck.slow
+                    ? 'Ready · slow on this computer'
+                    : STATUS_TEXT[model.precheck.status]
+              }`}
               icon={
                 model.precheck.status === 'ready'
                   ? CheckCircle2
@@ -86,8 +92,13 @@ export function ModelPicker({ data, loading, checking, selected, onSelect, onRef
 
       {testing && (
         <div className="model-note" role="status">
-          <Spinner size={14} /> Testing this model… (usually under 2 minutes)
+          <Spinner size={14} /> Testing this model… (a minute or two; up to 5 on a slower computer)
         </div>
+      )}
+      {!testing && chosen?.precheck.status === 'ready' && chosen.precheck.slow && (
+        <Banner tone="info" title={chosen.precheck.message}>
+          You can still use it. A long list is best screened overnight, with the computer plugged in.
+        </Banner>
       )}
       {!testing && chosen?.precheck.status === 'cant_use' && (
         <Banner

@@ -120,6 +120,7 @@ class DriveStub(StubServer):
         super().__init__()
         self.behaviours: dict[str, object] = {}
         self.delay = delay            # seconds added to every response (slows a whole run down)
+        self.captive = False          # True: /generate_204 answers like a Wi-Fi sign-in page
 
     def start(self) -> "DriveStub":
         super().start()
@@ -169,6 +170,10 @@ class DriveStub(StubServer):
                     time.sleep(stub.delay)
                 parts = urlsplit(self.path)
                 query = parse_qs(parts.query)
+                if parts.path == "/generate_204":           # the connectivity check (health.py)
+                    if stub.captive:
+                        return self._send(200, b"<html><body>Sign in to Campus Wi-Fi</body></html>", "text/html")
+                    return self._send(204, b"", "text/plain")
                 if parts.path.startswith("/document/"):
                     return self._send(200, GOOGLE_DOC_PAGE.encode(), "text/html; charset=utf-8")
                 if parts.path in ("/download", "/uc"):

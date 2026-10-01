@@ -60,7 +60,8 @@ CHILD = textwrap.dedent(
                    connect_timeout=5, read_timeout=10),
         PdfExtractor(),
         lambda run: Scorer(client, run["model_name"], run["criteria_prompt"]),
-        HealthProbe(hosts=(("127.0.0.1", drive_port),), ollama=client),
+        HealthProbe(hosts=(("127.0.0.1", drive_port),), ollama=client,
+                    check_urls=(f"http://127.0.0.1:{drive_port}/generate_204",)),
         idle_interval=0.01, poll_interval=0.5,
     )
     worker.start(run_id)
