@@ -89,6 +89,8 @@ export interface AtlasBridge {
     onEngineState(listener: (state: EngineState) => void): () => void
     onNavigate(listener: (target: NavigateTarget) => void): () => void
     restartEngine(): Promise<void>
+    /** Opens https://ollama.com/download in the browser (the URL is fixed in main). */
+    openOllamaDownload(): Promise<void>
   }
   notifications: {
     show(notification: NotificationRequest): Promise<void>
@@ -111,5 +113,6 @@ export const Channels = {
   engineStateChanged: 'atlas:engine-state-changed',
   navigate: 'atlas:navigate',
   restartEngine: 'atlas:restart-engine',
+  openOllamaDownload: 'atlas:open-ollama-download',
   notify: 'atlas:notify',
 } as const

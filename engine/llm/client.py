@@ -135,6 +135,24 @@ class OllamaClient:
         finally:
             response.close()
 
+    def running_models(self) -> list[dict[str, Any]]:
+        """Models loaded in memory right now (``/api/ps``), each with ``size_vram``.
+
+        Raises ``SystemUnavailable`` if Ollama isn't running; an odd reply is an empty list.
+        """
+        try:
+            response = self._session.get(f"{self.base_url}/api/ps", timeout=(self._connect, self._tags_timeout))
+        except requests.RequestException:
+            raise SystemUnavailable(Pause.OLLAMA_DOWN) from None
+        try:
+            if response.status_code != 200:
+                return []
+            return [m for m in response.json().get("models", []) if isinstance(m, dict)]
+        except ValueError:
+            return []
+        finally:
+            response.close()
+
     def find_model(self, name: str) -> ModelInfo | None:
         """The installed model called ``name`` (``qwen3`` also matches ``qwen3:latest``)."""
         wanted = {name, name if ":" in name else f"{name}:latest"}

@@ -7,6 +7,7 @@ fictional fixture files into TMP, prints one JSON line with the URLs and file
 paths, then serves a small control API until stdin closes:
 
     POST /ollama/offline   POST /ollama/online   POST /ollama/delay?seconds=N
+    POST /ollama/models?names=a,b   (the installed models; empty = none)
     GET  /stats            → {"chats": n, "pulls": [...]}
 
 All names, emails and phone numbers are made up.
@@ -113,6 +114,9 @@ def control_server(ollama: OllamaStub) -> ThreadingHTTPServer:
                 ollama.go_online()
             elif parts.path == "/ollama/delay":
                 ollama.delay = float(parse_qs(parts.query).get("seconds", ["0"])[0])
+            elif parts.path == "/ollama/models":          # ?names=a,b (empty: no models installed)
+                names = parse_qs(parts.query).get("names", [""])[0]
+                ollama.models[:] = [n for n in names.split(",") if n]
             else:
                 self.send_error(404)
                 return

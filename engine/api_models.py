@@ -36,6 +36,24 @@ class OllamaStatusOut(BaseModel):
     running: bool
     url: str
     version: str | None
+    installed: bool = True       # found on this computer (or running, however it was installed)
+
+
+class HardwareOut(BaseModel):
+    cpu: str
+    cores: int
+    ram_gb: float | None
+    os: str
+    arch: str
+    apple_silicon: bool
+    gpu_in_use: bool | None      # None: unknown until Ollama has a model loaded
+    vram_gb: float | None
+    kind: Literal["cpu", "apple_silicon", "gpu"]
+
+
+class OllamaStartOut(BaseModel):
+    started: bool
+    message: str
 
 
 class SystemOut(BaseModel):
@@ -47,6 +65,7 @@ class SystemOut(BaseModel):
     cpu_count: int
     ollama: OllamaStatusOut
     models_installed: int
+    hardware: HardwareOut | None = None
 
 
 # --------------------------------------------------------------------------- #
@@ -225,7 +244,7 @@ class FilterPreviewOut(BaseModel):
 class EstimateBodyOut(BaseModel):
     low_seconds: int
     high_seconds: int
-    basis: Literal["precheck", "history", "measured"]
+    basis: Literal["precheck", "history", "measured", "hardware"]
     per_resume_seconds: float
     label: str
 
@@ -233,6 +252,7 @@ class EstimateBodyOut(BaseModel):
 class EstimateOut(BaseModel):
     remaining: int
     estimate: EstimateBodyOut | None
+    long_run: bool = False       # over 4 hours and the recruiter wants to be warned
 
 
 class RetryIn(Request):
@@ -457,6 +477,7 @@ class SettingsOut(BaseModel):
     default_model: str | None
     keep_awake: bool
     notify_done: bool
+    warn_long_runs: bool = True
 
 
 class SettingsIn(Request):
@@ -467,6 +488,7 @@ class SettingsIn(Request):
     default_model: str | None = None
     keep_awake: bool | None = None
     notify_done: bool | None = None
+    warn_long_runs: bool | None = None
 
 
 class StoppingOut(BaseModel):

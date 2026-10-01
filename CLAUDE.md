@@ -59,7 +59,9 @@ atlas/
 │   ├── health.py        ← internet / Ollama probes                      [done]
 │   ├── logs.py          ← engine.log (rotating, PII scrubbed)           [done]
 │   ├── export.py        ← CSV export                                    [done]
-│   ├── estimate.py      ← time estimate (pre-check / history / measured) [done]
+│   ├── estimate.py      ← time estimate (measured / history / pre-check / hardware prior) [done]
+│   ├── hardware.py      ← what computer this is (CPU, RAM, GPU in use per Ollama) [done]
+│   ├── ollama_setup.py  ← find the installed Ollama and start it (never installs) [done]
 │   ├── cli.py           ← headless proof of Phase 1                     [done]
 │   ├── server.py        ← local API for the app (FastAPI, 127.0.0.1)     [done]
 │   ├── api_models.py    ← API request/response shapes → OpenAPI → TS types [done]
@@ -73,7 +75,7 @@ atlas/
     ├── renderer/screens/← Welcome, setup flow, Progress, Results, Settings [done]
     ├── src/shared/      ← api-schema.json → api-types.ts (generated), bridge.ts [done]
     └── e2e/, tests/     ← Playwright (Electron: flows, keyboard, perf, full screen) and Vitest [done]
-                           Phase 2 done on Windows. Phase 3: 3.0 graph, 3.1 before real use, 3.2 rubric + eval [done]; 3.3 first run + hardware [next]
+                           Phase 2 done on Windows. Phase 3: 3.0 graph, 3.1 before real use, 3.2 rubric + eval, 3.3 first run + hardware [done]; 3.4 native-feel quick wins [next]
 ```
 
 Update the `[done]` / `[next]` markers when a step lands.

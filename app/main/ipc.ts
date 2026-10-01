@@ -50,6 +50,8 @@ const TOO_LARGE: ApiResult<never> = {
   },
 }
 
+export const OLLAMA_DOWNLOAD_URL = 'https://ollama.com/download'
+
 export function registerIpc(ctx: IpcContext): void {
   const tables = new Map<string, { path: string; name: string }>()
   const exported = new Set<string>()
@@ -193,6 +195,12 @@ export function registerIpc(ctx: IpcContext): void {
 
   handle(Channels.restartEngine, () => {
     ctx.engine.restart()
+    return true
+  })
+
+  // The only web page Atlas opens. Fixed here: the renderer can't choose a URL.
+  handle(Channels.openOllamaDownload, async () => {
+    await shell.openExternal(OLLAMA_DOWNLOAD_URL)
     return true
   })
 

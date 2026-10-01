@@ -28,6 +28,8 @@ export interface Stubs {
   ollamaOffline(): Promise<void>
   ollamaOnline(): Promise<void>
   chatDelay(seconds: number): Promise<void>
+  /** The models the stub Ollama has installed (none: the "no model yet" state). */
+  setModels(names: string[]): Promise<void>
   stop(): void
 }
 
@@ -61,6 +63,7 @@ export async function startStubs(chatDelay = 0.15): Promise<Stubs> {
     ollamaOffline: () => post('/ollama/offline'),
     ollamaOnline: () => post('/ollama/online'),
     chatDelay: (seconds) => post(`/ollama/delay?seconds=${seconds}`),
+    setModels: (names) => post(`/ollama/models?names=${encodeURIComponent(names.join(','))}`),
     stop: () => {
       child.stdin.end()
       child.kill()
@@ -70,13 +73,15 @@ export async function startStubs(chatDelay = 0.15): Promise<Stubs> {
 }
 
 /** Launch Atlas with its engine pointed at the stubs. */
-export function launchWithStubs(stubs: Stubs, userData?: string): Promise<Launched> {
+export function launchWithStubs(stubs: Stubs, userData?: string, env: Record<string, string> = {}): Promise<Launched> {
   return launch(
     {
       ATLAS_ENGINE_MODULE: 'engine.tests.e2e_engine',
       ATLAS_STUB_DRIVE_URL: stubs.drive,
       ATLAS_OLLAMA_URL: stubs.ollama,
+      ATLAS_STUB_CONTROL_URL: stubs.control,
       ATLAS_STUB_POLL: '0.5',
+      ...env,
     },
     userData,
   )
@@ -117,6 +122,7 @@ export async function recordShellOpens(app: ElectronApplication): Promise<void> 
       return ''
     }) as typeof shell.openPath
     shell.showItemInFolder = ((path: string) => void opened.push(path)) as typeof shell.showItemInFolder
+    shell.openExternal = (async (url: string) => void opened.push(url)) as typeof shell.openExternal
   })
 }
 

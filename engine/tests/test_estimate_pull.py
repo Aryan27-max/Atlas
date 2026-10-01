@@ -21,6 +21,21 @@ class EstimateTests(unittest.TestCase):
         self.assertEqual(e.label, "Rough estimate")
         self.assertEqual(e.per_resume_seconds, 60.0)
 
+    def test_hardware_prior_when_nothing_else_is_known(self) -> None:
+        e = estimate(10, hardware="cpu")
+        assert e is not None
+        self.assertEqual((e.basis, e.per_resume_seconds), ("hardware", 140.0))      # smoke test 1: ~141 s on CPU
+        self.assertEqual((e.low_seconds, e.high_seconds), (700, 2800))              # wide: 0.5×–2×
+        self.assertIn("hardware", e.label)
+        self.assertEqual(estimate(10, hardware="apple_silicon").per_resume_seconds, 35.0)   # type: ignore[union-attr]
+        self.assertEqual(estimate(10, precheck_seconds=60.0, hardware="cpu").basis, "precheck")  # type: ignore[union-attr]
+        self.assertIsNone(estimate(10, hardware="toaster"))
+
+    def test_long_run_is_the_middle_of_the_range_over_four_hours(self) -> None:
+        self.assertTrue(estimate(150, hardware="cpu").long_run)       # type: ignore[union-attr]   ~6.5 h mid
+        self.assertFalse(estimate(60, hardware="cpu").long_run)       # type: ignore[union-attr]   ~2.6 h mid
+        self.assertFalse(estimate(25, precheck_seconds=60.0).long_run)  # type: ignore[union-attr]
+
     def test_history_beats_precheck(self) -> None:
         e = estimate(10, history=[100.0, 140.0, 400.0], precheck_seconds=60.0)
         assert e is not None

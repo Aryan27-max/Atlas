@@ -50,6 +50,8 @@ Public profile pages are not fetched yet (open decision 2).
 
 Phase 2 adds no outbound traffic. The engine *listens* on `127.0.0.1` only (the local API); a model download is Ollama's own `/api/pull`, which the engine only asks for and relays progress from.
 
+Phase 3 (3.3) adds none either. When Ollama isn't installed, Welcome's **Open download page** opens `https://ollama.com/download` in the recruiter's own browser (`shell.openExternal` in Electron main, a fixed URL); Atlas sends nothing and never downloads or installs Ollama. **Start Ollama** launches the copy already installed on this computer (`engine/ollama_setup.py`). The hardware profile (§15) is read locally: the registry or `sysctl`, the OS's memory figure, and Ollama's own `/api/ps`.
+
 ```mermaid
 flowchart LR
     rec(["Recruiter"])
@@ -149,6 +151,7 @@ flowchart TB
     subgraph L2["Orchestration"]
         worker["worker.py<br/>(Built)"]
         health["health.py<br/>net + Ollama probes (Built)"]
+        setup["hardware.py · ollama_setup.py<br/>(Built, Phase 3)"]
     end
     subgraph L3["Stages"]
         csvl["ingest/csv_loader.py (Built)"]
@@ -171,6 +174,7 @@ flowchart TB
     server --> csvl
     server --> exp
     server --> est
+    server --> setup
     worker --> health
     worker --> dl
     worker --> ext
@@ -743,21 +747,20 @@ flowchart TD
 
 ## 15. Time estimate
 
-**Minimal version built in Phase 2** (`engine/estimate.py`, pure; the server supplies the numbers). `estimate(remaining, measured=, history=, precheck_seconds=)` returns `{low_seconds, high_seconds, basis, per_resume_seconds, label}`:
+**Built** (Phase 2; hardware prior and long-run warning in Phase 3, 3.3). `engine/estimate.py` is pure; the server supplies the numbers. `estimate(remaining, measured=, history=, precheck_seconds=, hardware=)` returns `{low_seconds, high_seconds, basis, per_resume_seconds, label}`, best basis first:
 
 | Basis | When | Per-résumé figure | Range |
 |---|---|---|---|
 | `measured` ("Measured") | ≥ 5 résumés of this run scored | EWMA (α 0.3) of this run's scoring times, oldest first (`Database.scoring_durations`) | ×0.85 – ×1.2 |
 | `history` ("Based on earlier runs on this computer") | earlier runs with this model | median of the last 200 scoring times for the model, kept by the worker in `settings["scoring_seconds"]` | ×0.8 – ×1.3 |
-| `precheck` ("Rough estimate") | nothing else known | the model pre-check's duration | ×0.7 – ×1.5 |
+| `precheck` ("Rough estimate") | the model passed its pre-check, nothing better known | the model pre-check's duration | ×0.7 – ×1.5 |
+| `hardware` ("Rough estimate from this computer's hardware") *(3.3)* | nothing at all measured yet | `HARDWARE_PRIOR` by kind of computer: `cpu` 140 s, `apple_silicon` 35 s, `gpu` 15 s (an 8B model) | ×0.5 – ×2.0 |
 
-Scoring times are measured inside the model call, so paused time never counts. Known weakness (smoke test 1): the pre-check résumé is short, so the `precheck` basis is about 2.5× too optimistic on a CPU-only laptop (57.6 s pre-check vs 141.5 s median). The plan below replaces it in Phase 3.
+Scoring times are measured inside the model call, so paused time never counts. Known weakness (smoke test 1): the pre-check résumé is short, so the `precheck` basis is about 2.5× too optimistic on a CPU-only laptop (57.6 s pre-check vs 141.5 s median). This is still true: the pre-check résumé is short (about 900 characters), and in the app a model is always pre-checked before Review, so the `hardware` prior below only applies when no pre-check has succeeded yet. `history` and `measured` replace both as soon as there are real numbers.
 
-Phase 3 plan:
+**Hardware profile** (`engine/hardware.py`, 3.3; standard library, read-only, never raises): processor name (Windows registry, macOS `sysctl`, Linux `/proc/cpuinfo`), cores, RAM, OS, architecture, Apple silicon, and whether Ollama runs the model on a GPU (`/api/ps` → `size_vram` > 0, only known while a model is loaded). `Hardware.kind` picks the prior's row: `gpu` if Ollama reports one in use, else `apple_silicon`, else `cpu`. The `cpu` figure is smoke test 1's median (141.5 s); the other two are conservative guesses for the owner to replace with measurements. No `nvidia-smi`: Ollama's own report is what matters, because a GPU Ollama doesn't use doesn't help (this laptop's Intel Arc is skipped by Ollama 0.34 unless `OLLAMA_IGPU_ENABLE=1`).
 
-1. **Before the run:** detect the hardware (CPU cores, RAM, Apple Silicon or not, NVIDIA GPU present, from Ollama's `/api/ps`, or `nvidia-smi` if available). Pick a seconds-per-résumé figure from a small calibration table, multiply by the candidate count, and add a download allowance. Show it as a **range** with the disclaimer: *"Rough estimate. Atlas shows a measured time after the first few résumés."*
-2. **After 5 scored résumés:** switch to a measured estimate, using an exponentially weighted moving average of real per-candidate time × remaining. Pauses are excluded from the timing.
-3. The calibration table is filled in Phase 3 from real runs on the target machines.
+**Long screenings:** `Estimate.long_run` is true when the middle of the range is over 4 hours (`LONG_RUN_SECONDS`). `/estimate` reports it only while the `warn_long_runs` preference is on (default on), and Review then asks before starting (§18).
 
 ---
 
@@ -782,7 +785,8 @@ Phase 3 plan:
 | Method | Path | Purpose |
 |---|---|---|
 | GET | `/health` | alive (no token) |
-| GET | `/system` | engine version, data and logs folders, storage used, OS, CPU count, Ollama running + version, models installed |
+| GET | `/system` | engine version, data and logs folders, storage used, OS, CPU count, Ollama running + version + **installed** *(3.3: running, or found on disk)*, models installed, **hardware** *(3.3, §15)* |
+| POST | `/ollama/start` | *(3.3)* launch the Ollama already installed here (`ollama app.exe` / `Ollama.app`, else `ollama serve`, detached); `404 ollama_not_installed` / `409 ollama_start_failed` with what to do. Never downloads or installs |
 | GET | `/models` | installed models, each with its cached pre-check status (`ready` / `not_checked` / `cant_use`), plus suggested names; `ollama_running: false` instead of an error |
 | POST | `/models/{name}/precheck` | run the pre-check (one at a time), cache it per model + digest |
 | POST / DELETE | `/models/{name}/pull` | start / cancel a pull; progress on `GET /events` (`pull`) |
@@ -793,7 +797,7 @@ Phase 3 plan:
 | POST | `/runs/{id}/table/confirm` | insert the ready rows (draft only, once) |
 | GET | `/runs/{id}/filters/preview?cgpa_min=&departments=` | how many students each filter removes (same rule as the worker, `engine/filters.py`) |
 | POST | `/runs/{id}/filters/clear` | `clear_filters` (draft or paused) |
-| GET | `/runs/{id}/estimate?count=` | §15 estimate for what's left (or for the pending upload before confirm) |
+| GET | `/runs/{id}/estimate?count=` | §15 estimate for what's left (or for the pending upload before confirm), plus `long_run` *(3.3)* |
 | POST | `/runs/{id}/start` · `/pause` · `/resume` · `/cancel` | lifecycle; one active run at a time (`409 busy`) |
 | POST | `/runs/{id}/retry-failed` | `{include_permanent}` → `retry_failed` + restart |
 | GET | `/runs/{id}/progress` | status, pause reason + `auto_resume`, counts, display stages, what's in flight (ids + RA only), failures by reason, estimate |
@@ -803,7 +807,7 @@ Phase 3 plan:
 | GET / POST | `/runs/{id}/export` | `?view=` CSV download / `{view, path}` written straight to the path the save dialog chose (atomic; "…is open in another program") |
 | GET | `/runs/{id}/events` | SSE from the `events` table; `Last-Event-ID` (or `?after=`); keep-alive every 15 s; `?follow=false` returns the backlog and ends |
 | GET | `/events` | SSE, app level: `pull` progress and `run_status` changes (the app's keep-awake and notifications follow these) |
-| GET / PUT | `/settings` | preferences (appearance, default cutoffs and model, keep awake, notify); PUT is a partial update |
+| GET / PUT | `/settings` | preferences (appearance, default cutoffs and model, keep awake, notify, `warn_long_runs` *(3.3)*); PUT is a partial update |
 | DELETE | `/data` | delete every run, the settings, uploads, exports and old logs; VACUUM |
 | POST | `/shutdown` | graceful stop (`202`), then exit |
 
@@ -875,6 +879,8 @@ flowchart LR
 ```
 
 **As built (Phase 2):** Welcome is the entry point; the setup flow shows four numbered steps (Students & model · Criteria · Cutoffs · Review) with Back on the left, one primary button on the right, and Esc = Back. **New screening** creates the draft run (so the name and each choice are saved on it as the recruiter goes); the students are inserted only when the recruiter presses Start screening (`/table/confirm`). Screens: Welcome and Students & model built in 2.4. Criteria, Cutoffs and Review in 2.5; Progress in 2.6. **Results (2.7)** uses a bucket sidebar; *Adjust cutoffs* is a popover whose changes are a live preview (`/results?shortlist&band&min`, nothing saved) until *Save cutoffs*; overrides are made in the candidate detail sheet ("Move to…" + note); Export is a sheet that ends in the native save dialog. **Settings (2.8)** is a single column of cards, not a sidebar (five short groups don't need navigation), and every change applies at once (no Save button). Its defaults (model, score bands, minimum) are applied by the engine when a draft is created. Deleting a screening uses a destructive Alert; deleting all data needs the word DELETE typed.
+
+**First run (Phase 3, 3.3):** Welcome's *This computer* card shows Ollama in one of four states, each with one next action: **not installed** ("Install Ollama to start screening", *Open download page* → the browser, *Check again*); **installed, not running** (*Start Ollama* → `POST /ollama/start`, then a check every second for up to 30 s, and "Ollama didn't start" with manual steps if it doesn't answer); **running, no model** (*Get a model* → the same pull sheet as the model picker, qwen3:8b suggested); **ready** (version and model count). Review asks before starting a screening whose estimate is over 4 hours ("This screening will take about 5–9 hours", *Start anyway* / *Not now*), unless Settings → *Warn me before starting a screening that will take more than 4 hours* is off. Settings → About shows the computer, processor and whether the GPU is in use.
 
 **UI rules that come from the architecture:**
 - The renderer never computes a bucket, score or state. It asks the API.

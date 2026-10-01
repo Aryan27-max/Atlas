@@ -71,6 +71,9 @@ from engine.ingest.downloader import Downloader
 from engine.ingest.links import link_kind
 from engine.llm.client import DEFAULT_URL, OllamaClient
 from engine.llm.precheck import CANT_USE, READY, precheck
+from engine.hardware import Hardware
+from engine.hardware import profile as hardware_profile
+from engine.ollama_setup import OllamaInstall, find_ollama, start_ollama
 from engine.llm.scorer import Scorer
 from engine.logs import configure_logging
 from engine.worker import WORKING_STATES, Worker, WorkerBusyError, run_waiting_to_resume
@@ -92,6 +95,7 @@ DEFAULT_PREFERENCES: dict[str, Any] = {
     "default_model": None,
     "keep_awake": True,
     "notify_done": True,
+    "warn_long_runs": True,
 }
 RESULT_BUCKETS = ("all", "shortlisted", "cutoff", "rejected", "failed", "filtered", "not_scored")
 
@@ -115,6 +119,8 @@ class EngineOptions:
     keepalive_seconds: float = 15.0
     event_poll_seconds: float = 0.5
     status_poll_seconds: float = 1.0
+    ollama_finder: Callable[[], OllamaInstall] | None = None              # where Ollama is installed
+    ollama_starter: Callable[[OllamaInstall], bool] | None = None         # how to start it
 
 
 @dataclass
@@ -245,12 +251,31 @@ class Engine:
             version = self.client.version()
         except SystemUnavailable:
             pass
+        on_disk = running or self._find_ollama().installed
         return m.SystemOut(
             engine_version=ENGINE_VERSION, data_dir=str(self.data_dir), logs_dir=str(self.logs_dir),
             storage_bytes=_folder_size(self.data_dir), platform=platform.system(), cpu_count=os.cpu_count() or 1,
-            ollama=m.OllamaStatusOut(running=running, url=self.client.base_url, version=version),
+            ollama=m.OllamaStatusOut(running=running, url=self.client.base_url, version=version, installed=on_disk),
             models_installed=installed,
+            hardware=m.HardwareOut(**self.hardware().as_dict()),
         )
+
+    def hardware(self) -> Hardware:
+        return hardware_profile(self.client)
+
+    def _find_ollama(self) -> OllamaInstall:
+        return (self.options.ollama_finder or find_ollama)()
+
+    def start_ollama(self) -> m.OllamaStartOut:
+        """Launch the installed Ollama (never downloads or installs anything)."""
+        install = self._find_ollama()
+        if not install.installed:
+            raise ApiError(404, "ollama_not_installed", Api.OLLAMA_NOT_INSTALLED)
+        started = (self.options.ollama_starter or start_ollama)(install)
+        log.info("start Ollama (%s): %s", install.how, "launched" if started else "failed")
+        if not started:
+            raise ApiError(409, "ollama_start_failed", Api.OLLAMA_START_FAILED)
+        return m.OllamaStartOut(started=True, message="Starting Ollama…")
 
     def models(self) -> m.ModelsOut:
         try:
@@ -541,10 +566,13 @@ class Engine:
         history = (self.db.get_setting(TIMING_SETTING, {}) or {}).get(model, []) if model else []
         check = (self.db.get_setting(PRECHECK_SETTING, {}) or {}).get(model) if model else None
         precheck_seconds = check.get("seconds") if check and check.get("ok") else None
-        result = estimate(remaining, measured=self.db.scoring_durations(run_id), history=history,
-                          precheck_seconds=precheck_seconds)
+        measured = self.db.scoring_durations(run_id)
+        kind = None if (measured or history or precheck_seconds) else self.hardware().kind
+        result = estimate(remaining, measured=measured, history=history, precheck_seconds=precheck_seconds,
+                          hardware=kind)
+        warn = bool(result and result.long_run and self.preferences().warn_long_runs)
         return m.EstimateOut(remaining=remaining,
-                             estimate=m.EstimateBodyOut(**result.as_dict()) if result else None)
+                             estimate=m.EstimateBodyOut(**result.as_dict()) if result else None, long_run=warn)
 
     def progress(self, run_id: int) -> m.ProgressOut:
         run = self.db.get_run(run_id)
@@ -974,6 +1002,10 @@ def create_app(engine: Engine | None = None, *, token: str = "", port: int = 0) 
     @app.get("/system", response_model=m.SystemOut)
     def system() -> m.SystemOut:
         return eng().system()
+
+    @app.post("/ollama/start", response_model=m.OllamaStartOut)
+    def ollama_start() -> m.OllamaStartOut:
+        return eng().start_ollama()
 
     @app.get("/models", response_model=m.ModelsOut)
     def models() -> m.ModelsOut:

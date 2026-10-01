@@ -7,7 +7,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { AlertTriangle, ChevronLeft, FileText, FolderOpen, HardDrive, Trash2 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
-import type { RunOut, SettingsOut } from '@shared/api-types'
+import type { HardwareOut, RunOut, SettingsOut } from '@shared/api-types'
 import { api, messageOf } from '../api/client'
 import {
   Alert,
@@ -36,7 +36,6 @@ import './settings.css'
 
 type Changes = Partial<SettingsOut>
 
-const PLATFORM: Record<string, string> = { darwin: 'macOS', win32: 'Windows', linux: 'Linux' }
 const CONFIRM_WORD = 'DELETE'
 
 export function Settings() {
@@ -89,8 +88,7 @@ export function Settings() {
               <About
                 engineVersion={system.data?.engine_version ?? '–'}
                 ollama={system.data?.ollama ?? null}
-                platform={system.data?.platform ?? ''}
-                cores={system.data?.cpu_count ?? 0}
+                hardware={system.data?.hardware ?? null}
               />
             </>
           )}
@@ -213,6 +211,12 @@ function WhileScreening({ settings, onChange }: { settings: SettingsOut; onChang
           onChange={(notify_done) => onChange({ notify_done })}
           label="Notify me"
           description="When a screening finishes or needs you, and Atlas isn't in front."
+        />
+        <Toggle
+          checked={settings.warn_long_runs ?? true}
+          onChange={(warn_long_runs) => onChange({ warn_long_runs })}
+          label="Warn me before starting a screening that will take more than 4 hours"
+          description="Long screenings are best run overnight, with the computer plugged in."
         />
       </div>
     </Card>
@@ -397,8 +401,7 @@ function WipeSheet(props: {
 function About(props: {
   engineVersion: string
   ollama: { running: boolean; version: string | null } | null
-  platform: string
-  cores: number
+  hardware: HardwareOut | null
 }) {
   const info = useQuery({ queryKey: ['app-info'], queryFn: () => window.atlas.app.info(), staleTime: Infinity })
   const ollama = props.ollama
@@ -420,10 +423,9 @@ function About(props: {
             key: 'Ollama',
             value: !ollama ? '–' : ollama.running ? `Running · ${ollama.version ?? 'unknown version'}` : 'Not running',
           },
-          {
-            key: 'This computer',
-            value: `${PLATFORM[props.platform] ?? props.platform} · ${plural(props.cores, 'processor core')}`,
-          },
+          { key: 'This computer', value: computerLine(props.hardware) },
+          { key: 'Processor', value: props.hardware?.cpu ?? '–' },
+          { key: 'Graphics (GPU)', value: gpuLine(props.hardware) },
         ]}
       />
       <p className="atl-footnote atl-secondary settings-note">
@@ -431,4 +433,17 @@ function About(props: {
       </p>
     </Card>
   )
+}
+
+function computerLine(hw: HardwareOut | null): string {
+  if (!hw) return '–'
+  const memory = hw.ram_gb ? ` · ${Math.round(hw.ram_gb)} GB memory` : ''
+  return `${hw.os} · ${plural(hw.cores, 'processor core')}${memory}${hw.apple_silicon ? ' · Apple silicon' : ''}`
+}
+
+/** What Ollama reports; only known while a model is loaded. */
+function gpuLine(hw: HardwareOut | null): string {
+  if (!hw || hw.gpu_in_use === null) return 'Shown while a screening runs'
+  if (hw.gpu_in_use) return `In use${hw.vram_gb ? ` (${hw.vram_gb} GB)` : ''}`
+  return 'Not in use: the model runs on the processor'
 }

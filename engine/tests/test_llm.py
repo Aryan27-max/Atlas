@@ -286,6 +286,15 @@ class ClientTests(unittest.TestCase):
         self.assertEqual((result.prompt_eval_count, result.prompt_eval_seconds, result.eval_seconds),
                          (2048, 12.5, 40.25))
 
+    def test_running_models(self) -> None:
+        loaded = {"models": [{"name": "qwen3:8b", "size": 6_600_000_000, "size_vram": 0}]}
+        client, http = self.client(FakeHttpResponse(payload=loaded))
+        self.assertEqual(client.running_models(), loaded["models"])
+        self.assertEqual(http.requests[0][1], "http://127.0.0.1:11434/api/ps")
+        down, _ = self.client(requests.ConnectionError("refused"))
+        with self.assertRaises(SystemUnavailable):
+            down.running_models()
+
     def test_nothing_is_written_to_disk(self) -> None:
         self.assertFalse({"log_dir", "logs", "paths", "config"} & set(inspect.signature(OllamaClient).parameters))
         with tempfile.TemporaryDirectory() as tmp:

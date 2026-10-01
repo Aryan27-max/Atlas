@@ -116,6 +116,9 @@ class OllamaStub(StubServer):
                     ]})
                 elif self.path == "/api/version":
                     self._json(200, {"version": "0.0.0-stub"})
+                elif self.path == "/api/ps":               # what's loaded: a stub runs on the "CPU"
+                    self._json(200, {"models": [{"name": m, "size": 5_000_000_000, "size_vram": 0}
+                                                for m in stub.models[:1]] if stub.chats else []})
                 else:
                     self._json(404, {"error": "not found"})
 

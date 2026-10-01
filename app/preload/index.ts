@@ -57,6 +57,7 @@ const atlas: AtlasBridge = {
     onEngineState: (listener) => on<EngineState>(Channels.engineStateChanged, listener),
     onNavigate: (listener) => on<NavigateTarget>(Channels.navigate, listener),
     restartEngine: () => ipcRenderer.invoke(Channels.restartEngine),
+    openOllamaDownload: () => ipcRenderer.invoke(Channels.openOllamaDownload),
   },
   notifications: {
     show: (notification) => ipcRenderer.invoke(Channels.notify, notification),

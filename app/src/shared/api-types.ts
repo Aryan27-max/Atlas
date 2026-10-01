@@ -98,7 +98,7 @@ export interface ErrorOut {
 }
 
 export interface EstimateBodyOut {
-  basis: "precheck" | "history" | "measured"
+  basis: "precheck" | "history" | "measured" | "hardware"
   high_seconds: number
   label: string
   low_seconds: number
@@ -107,6 +107,7 @@ export interface EstimateBodyOut {
 
 export interface EstimateOut {
   estimate: EstimateBodyOut | null
+  long_run?: boolean
   remaining: number
 }
 
@@ -160,6 +161,18 @@ export interface FilterPreviewOut {
   total: number
 }
 
+export interface HardwareOut {
+  apple_silicon: boolean
+  arch: string
+  cores: number
+  cpu: string
+  gpu_in_use: boolean | null
+  kind: "cpu" | "apple_silicon" | "gpu"
+  os: string
+  ram_gb: number | null
+  vram_gb: number | null
+}
+
 export interface HealthOut {
   status: "ok"
   version: string
@@ -195,7 +208,13 @@ export interface ModelsOut {
   suggestions: string[]
 }
 
+export interface OllamaStartOut {
+  message: string
+  started: boolean
+}
+
 export interface OllamaStatusOut {
+  installed?: boolean
   running: boolean
   url: string
   version: string | null
@@ -377,6 +396,7 @@ export interface SettingsIn {
   default_shortlist?: number | null
   keep_awake?: boolean | null
   notify_done?: boolean | null
+  warn_long_runs?: boolean | null
 }
 
 export interface SettingsOut {
@@ -387,6 +407,7 @@ export interface SettingsOut {
   default_shortlist: number
   keep_awake: boolean
   notify_done: boolean
+  warn_long_runs?: boolean
 }
 
 export interface StagesOut {
@@ -406,6 +427,7 @@ export interface SystemOut {
   cpu_count: number
   data_dir: string
   engine_version: string
+  hardware?: HardwareOut | null
   logs_dir: string
   models_installed: number
   ollama: OllamaStatusOut
@@ -456,6 +478,12 @@ export interface ApiRoutes {
     query: never
     body: never
     response: PullStartOut
+  }
+  "POST /ollama/start": {
+    params: never
+    query: never
+    body: never
+    response: OllamaStartOut
   }
   "GET /runs": {
     params: never

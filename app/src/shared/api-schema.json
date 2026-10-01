@@ -465,7 +465,8 @@
             "enum": [
               "precheck",
               "history",
-              "measured"
+              "measured",
+              "hardware"
             ],
             "title": "Basis",
             "type": "string"
@@ -508,6 +509,11 @@
                 "type": "null"
               }
             ]
+          },
+          "long_run": {
+            "default": false,
+            "title": "Long Run",
+            "type": "boolean"
           },
           "remaining": {
             "title": "Remaining",
@@ -777,6 +783,85 @@
         "title": "FilterPreviewOut",
         "type": "object"
       },
+      "HardwareOut": {
+        "properties": {
+          "apple_silicon": {
+            "title": "Apple Silicon",
+            "type": "boolean"
+          },
+          "arch": {
+            "title": "Arch",
+            "type": "string"
+          },
+          "cores": {
+            "title": "Cores",
+            "type": "integer"
+          },
+          "cpu": {
+            "title": "Cpu",
+            "type": "string"
+          },
+          "gpu_in_use": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gpu In Use"
+          },
+          "kind": {
+            "enum": [
+              "cpu",
+              "apple_silicon",
+              "gpu"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "os": {
+            "title": "Os",
+            "type": "string"
+          },
+          "ram_gb": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ram Gb"
+          },
+          "vram_gb": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vram Gb"
+          }
+        },
+        "required": [
+          "cpu",
+          "cores",
+          "ram_gb",
+          "os",
+          "arch",
+          "apple_silicon",
+          "gpu_in_use",
+          "vram_gb",
+          "kind"
+        ],
+        "title": "HardwareOut",
+        "type": "object"
+      },
       "HealthOut": {
         "properties": {
           "status": {
@@ -940,8 +1025,31 @@
         "title": "ModelsOut",
         "type": "object"
       },
+      "OllamaStartOut": {
+        "properties": {
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "started": {
+            "title": "Started",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "started",
+          "message"
+        ],
+        "title": "OllamaStartOut",
+        "type": "object"
+      },
       "OllamaStatusOut": {
         "properties": {
+          "installed": {
+            "default": true,
+            "title": "Installed",
+            "type": "boolean"
+          },
           "running": {
             "title": "Running",
             "type": "boolean"
@@ -2086,6 +2194,17 @@
               }
             ],
             "title": "Notify Done"
+          },
+          "warn_long_runs": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Warn Long Runs"
           }
         },
         "title": "SettingsIn",
@@ -2131,6 +2250,11 @@
           },
           "notify_done": {
             "title": "Notify Done",
+            "type": "boolean"
+          },
+          "warn_long_runs": {
+            "default": true,
+            "title": "Warn Long Runs",
             "type": "boolean"
           }
         },
@@ -2211,6 +2335,16 @@
           "engine_version": {
             "title": "Engine Version",
             "type": "string"
+          },
+          "hardware": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/HardwareOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "logs_dir": {
             "title": "Logs Dir",
@@ -3124,6 +3258,124 @@
           }
         },
         "summary": "Model Pull"
+      }
+    },
+    "/ollama/start": {
+      "post": {
+        "operationId": "ollama_start_ollama_start_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OllamaStartOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Content Too Large"
+          },
+          "415": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Unsupported Media Type"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Ollama Start"
       }
     },
     "/runs": {

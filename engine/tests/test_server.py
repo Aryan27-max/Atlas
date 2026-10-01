@@ -579,6 +579,41 @@ class SettingsAndDataTests(ServerTestCase):
         self.assertEqual(self.client.get("/models").json()["ollama_running"], False)
         self.assertEqual(self.client.get("/system").json()["ollama"]["running"], False)
 
+    def test_system_reports_install_state_and_hardware(self) -> None:
+        from engine.ollama_setup import OllamaInstall
+
+        self.engine.options.ollama_finder = lambda: OllamaInstall(False)
+        system = self.client.get("/system").json()
+        self.assertTrue(system["ollama"]["installed"])              # running counts as installed, however it got there
+        self.assertIn(system["hardware"]["kind"], ("cpu", "apple_silicon", "gpu"))
+        self.assertGreater(system["hardware"]["cores"], 0)
+        self.ollama.go_offline()
+        self.assertEqual(self.client.get("/system").json()["ollama"]["installed"], False)
+        self.engine.options.ollama_finder = lambda: OllamaInstall(True, "/x/Ollama.app", "app")
+        self.assertEqual(self.client.get("/system").json()["ollama"]["installed"], True)
+
+    def test_start_ollama_never_installs_and_says_what_to_do(self) -> None:
+        from engine.ollama_setup import OllamaInstall
+
+        started: list[OllamaInstall] = []
+        self.engine.options.ollama_finder = lambda: OllamaInstall(False)
+        self.assertError(self.client.post("/ollama/start"), 404, "ollama_not_installed", Api.OLLAMA_NOT_INSTALLED)
+        self.engine.options.ollama_finder = lambda: OllamaInstall(True, "/x/ollama", "serve")
+        self.engine.options.ollama_starter = lambda install: False
+        self.assertError(self.client.post("/ollama/start"), 409, "ollama_start_failed", Api.OLLAMA_START_FAILED)
+        self.engine.options.ollama_starter = lambda install: started.append(install) or True
+        self.assertEqual(self.client.post("/ollama/start").json(), {"started": True, "message": "Starting Ollama…"})
+        self.assertEqual(started, [OllamaInstall(True, "/x/ollama", "serve")])
+
+    def test_long_run_warning_follows_the_setting(self) -> None:
+        run_id = self.create_run()
+        self.assertIs(self.client.get("/settings").json()["warn_long_runs"], True)
+        body = self.client.get(f"/runs/{run_id}/estimate", params={"count": 400}).json()
+        self.assertEqual(body["estimate"]["basis"], "hardware")    # nothing measured or pre-checked yet
+        self.assertIs(body["long_run"], body["estimate"]["low_seconds"] + body["estimate"]["high_seconds"] > 8 * 3600)
+        self.client.put("/settings", json={"warn_long_runs": False})
+        self.assertIs(self.client.get(f"/runs/{run_id}/estimate", params={"count": 400}).json()["long_run"], False)
+
     def test_model_pull_progress_on_the_app_event_stream(self) -> None:
         self.assertEqual(self.client.post("/models/stub-small/pull").json(), {"name": "stub-small", "status": "started"})
 

@@ -2,7 +2,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { BatteryCharging, Clock, Coffee, Play } from 'lucide-react'
 import type { RunOut } from '@shared/api-types'
 import { api, messageOf } from '../../api/client'
-import { Banner, Button, Card, KeyValue } from '../../design'
+import { useState } from 'react'
+import { Alert, Banner, Button, Card, KeyValue } from '../../design'
 import { formatPerResume, formatRange, plural } from '../../format'
 import { type SetupStep, useNav } from '../../state/nav'
 import { useSetup } from '../../state/setup'
@@ -21,6 +22,7 @@ export function Review() {
   const busy = runs.data?.find((other) => other.id !== run.id && other.status === 'running')
 
   // configure → confirm → start, in that order (the engine checks each step).
+  const [longRun, setLongRun] = useState(false)
   const start = useMutation({
     mutationFn: async () => {
       await api('PATCH /runs/{run_id}', {
@@ -148,11 +150,30 @@ export function Review() {
             icon={Play}
             disabled={needsFile || !run.model_name || !run.criteria_prompt}
             loading={start.isPending}
-            onClick={() => start.mutate()}
+            onClick={() => (estimate.data?.long_run ? setLongRun(true) : start.mutate())}
           >
             Start screening
           </Button>
         }
+      />
+      <Alert
+        open={longRun}
+        title={
+          e
+            ? `This screening will take ${lowerFirst(formatRange(e.low_seconds, e.high_seconds))}`
+            : 'This is a long screening'
+        }
+        message="That's more than 4 hours on this computer. It's best to start it in the evening and let it run overnight, with the computer plugged in. Atlas keeps the computer awake while it screens, and you can turn this warning off in Settings."
+        actions={[
+          {
+            label: 'Start anyway',
+            onClick: () => {
+              setLongRun(false)
+              start.mutate()
+            },
+          },
+        ]}
+        cancel={{ label: 'Not now', onClick: () => setLongRun(false) }}
       />
     </>
   )
@@ -170,4 +191,8 @@ function cutoffItems(run: RunOut): Array<{ key: string; value: string }> {
     { key: 'Departments', value: run.departments_allowed?.length ? run.departments_allowed.join(', ') : 'All' },
   ]
   return items
+}
+
+function lowerFirst(text: string): string {
+  return text.charAt(0).toLowerCase() + text.slice(1)
 }

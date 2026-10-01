@@ -115,6 +115,11 @@ class Api:
     PRECHECK_BUSY = "Another model is being tested. Try again when it finishes."
     EXPORT_PATH = "Choose where to save the file again."
     CUTOFF_ORDER = "The cutoff band must start at or below the shortlist score."
+    OLLAMA_NOT_INSTALLED = "Ollama isn't installed on this computer. Download it from ollama.com, install it, then press Check again."
+    OLLAMA_START_FAILED = (
+        "Atlas couldn't start Ollama. Open the Ollama app yourself (the Start menu on Windows, Applications on "
+        "a Mac), wait a few seconds, then press Check again."
+    )
 
 
 # Only these resume on their own, when the health probe succeeds again.

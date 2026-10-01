@@ -153,7 +153,7 @@ interface PullSheetProps {
   onDone: (name: string) => void
 }
 
-function PullSheet({ open, suggestions, onClose, onDone }: PullSheetProps) {
+export function PullSheet({ open, suggestions, onClose, onDone }: PullSheetProps) {
   const [name, setName] = useState('')
   const [pulling, setPulling] = useState<string | null>(null)
   const [progress, setProgress] = useState<PullEvent | null>(null)

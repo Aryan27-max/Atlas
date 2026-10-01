@@ -4,6 +4,8 @@ import type { Page } from '@playwright/test'
 import { APP_DIR } from './helpers'
 
 export const SCREENS_DIR = join(APP_DIR, '..', 'docs', 'summaries', 'phase2', 'screens')
+/** Screens added or changed in Phase 3. */
+export const PHASE3_SCREENS_DIR = join(APP_DIR, '..', 'docs', 'summaries', 'phase3', 'screens')
 
 export type ThemeName = 'light' | 'dark'
 
@@ -20,8 +22,14 @@ export async function setTheme(page: Page, theme: ThemeName): Promise<void> {
  * Save `<name>-<theme>.png` at the window's 1280×800. With `full`, the
  * scrolling container is let out first so the whole screen is captured.
  */
-export async function capture(page: Page, name: string, theme: ThemeName, full?: string): Promise<void> {
-  mkdirSync(SCREENS_DIR, { recursive: true })
+export async function capture(
+  page: Page,
+  name: string,
+  theme: ThemeName,
+  full?: string,
+  dir: string = SCREENS_DIR,
+): Promise<void> {
+  mkdirSync(dir, { recursive: true })
   // Screens are captured from the top, however far a test scrolled.
   await page.evaluate(() => document.querySelectorAll('.screen-scroll').forEach((el) => el.scrollTo(0, 0)))
   // No hover highlight left over from the last click.
@@ -33,7 +41,7 @@ export async function capture(page: Page, name: string, theme: ThemeName, full?:
     })
   }
   await page.screenshot({
-    path: join(SCREENS_DIR, `${name}-${theme}.png`),
+    path: join(dir, `${name}-${theme}.png`),
     fullPage: Boolean(full),
     animations: 'disabled',
   })
