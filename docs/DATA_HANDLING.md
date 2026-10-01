@@ -40,7 +40,7 @@ There is **no** telemetry, crash reporting, usage analytics, automatic update ch
 Two things that might look like they go online don't: Atlas reads this computer's processor, memory and graphics **locally** (for time estimates and Settings → About), and **Start Ollama** only opens the Ollama app already installed on the computer.
 
 ## 3. What the AI is and isn't shown
-The AI model runs locally in Ollama (on `127.0.0.1`, which can't be reached from other computers). Even so, Atlas hides identity from it, so that scores depend on what the résumé shows, not who wrote it:
+The AI model runs locally in Ollama (on `127.0.0.1`, which can't be reached from other computers). Atlas refuses to use an Ollama on any other computer, whatever the settings say. Even so, Atlas hides identity from it, so that scores depend on what the résumé shows, not who wrote it:
 
 - **Never shown to the AI:** the student's name, email, phone number, RA number, class section, and photos.
   - The top of the résumé (name and contact details) is removed.

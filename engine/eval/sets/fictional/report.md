@@ -11,8 +11,8 @@ Model `qwen3:8b` · cutoffs shortlist 60 / band 50 · each résumé scored 2× �
 | Min / max score | 10 / 88 | |
 | Scored 95+ but not "exceptional" | 0 | 0 |
 | Stability (mean abs. difference between repeats) | 0.0 | 0–3 points |
-| Seconds per résumé (median) | 61.3 | |
-| … prefill / generation (median) | 2.5 / 58.1 | |
+| Seconds per résumé (median) | 63.8 | |
+| … prefill / generation (median) | 3.4 / 55.8 | |
 | Identity leaks in prompts | 0 | **0** |
 
 | File | Level | Expected | Got | Scores | Group |

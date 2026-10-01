@@ -264,6 +264,42 @@ def stream_lines(content: str, done_reason: str = "stop", pieces: int = 3) -> li
     return lines
 
 
+class LocalOnlyTests(unittest.TestCase):
+    """Hard rule 15: résumé text only ever goes to an Ollama on this computer."""
+
+    def test_only_this_computer(self) -> None:
+        from engine.llm.client import OllamaClient, local_only
+
+        for url in ("http://127.0.0.1:11434", "http://localhost:11434", "http://[::1]:11434", "http://127.0.0.2:9"):
+            self.assertEqual(local_only(url), url)
+        for url in ("http://192.168.1.5:11434", "https://ollama.example.com", "http://10.0.0.1:11434",
+                    "http://0.0.0.0:11434", "http://127.0.0.1.example.com:11434", "not a url"):
+            with self.assertRaises(ValueError, msg=url):
+                local_only(url)
+            with self.assertRaises(ValueError, msg=url):
+                OllamaClient(url)                    # however it's configured, the client refuses it
+
+    def test_the_engine_and_the_cli_refuse_a_remote_ollama_at_start(self) -> None:
+        import contextlib
+        import io
+        import tempfile
+
+        from engine import cli, server
+
+        with tempfile.TemporaryDirectory() as tmp:
+            err = io.StringIO()
+            with contextlib.redirect_stderr(err):
+                code = server.main(["--data-dir", tmp, "--port", "0", "--token", "t" * 32,
+                                    "--ollama-url", "http://192.168.1.5:11434"])
+            self.assertEqual(code, 1)
+            self.assertIn("only uses an Ollama running on this computer", err.getvalue())
+            out = io.StringIO()
+            code = cli.main(["resume", "--data-dir", tmp, "--run", "1", "--ollama-url", "http://192.168.1.5:11434"],
+                            stdout=out)
+            self.assertEqual(code, 1)
+            self.assertIn("only uses an Ollama running on this computer", out.getvalue())
+
+
 class ClientTests(unittest.TestCase):
     def client(self, *responses: object) -> tuple[OllamaClient, FakeHttp]:
         http = FakeHttp(*responses)

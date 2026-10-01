@@ -21,11 +21,13 @@ Adapted from QWENTUS ``llm/ollama.py``. What changed and why:
 
 from __future__ import annotations
 
+import ipaddress
 import json
 import logging
 import time
 from dataclasses import dataclass
 from typing import Any, Callable, Iterator, Protocol
+from urllib.parse import urlsplit
 
 import requests
 
@@ -34,6 +36,24 @@ from engine.errors import Pause, Pull, PullError, Reason, SystemUnavailable, Tra
 log = logging.getLogger("atlas.llm")
 
 DEFAULT_URL = "http://127.0.0.1:11434"
+
+
+def local_only(url: str) -> str:
+    """``url`` if it points at this computer; ``ValueError`` otherwise.
+
+    Résumé text goes to the model, and résumé text never leaves the machine
+    (CLAUDE.md, hard rule 15), so Ollama must be local: ``localhost``, a
+    127.x.x.x address or ``::1``. A remote Ollama is refused, however it was
+    configured (``--ollama-url``, ``ATLAS_OLLAMA_URL``).
+    """
+    host = (urlsplit(url).hostname or "").lower()
+    try:
+        loopback = host == "localhost" or ipaddress.ip_address(host).is_loopback
+    except ValueError:
+        loopback = False
+    if not loopback:
+        raise ValueError(f"Atlas only uses an Ollama running on this computer, not {host or url!r}.")
+    return url
 FALLBACK_CONTEXT = 8192
 
 
@@ -83,7 +103,7 @@ class OllamaClient:
         keep_alive: str = "30m",
         clock: Callable[[], float] = time.monotonic,
     ) -> None:
-        self.base_url = base_url.rstrip("/")
+        self.base_url = local_only(base_url).rstrip("/")
         self._session = session if session is not None else requests.Session()
         self._connect = connect_timeout
         self._read = read_timeout

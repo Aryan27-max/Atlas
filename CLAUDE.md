@@ -79,7 +79,7 @@ atlas/
     ├── renderer/screens/← Welcome, setup flow, Progress, Results, Settings [done]
     ├── src/shared/      ← api-schema.json → api-types.ts (generated), bridge.ts [done]
     └── e2e/, tests/     ← Playwright (Electron: flows, keyboard, perf, full screen) and Vitest [done]
-                           Phase 2 done on Windows. Phase 3: 3.0 graph, 3.1 before real use, 3.2 rubric + eval, 3.3 first run + hardware, 3.4 native-feel quick wins, 3.5 packaging, 3.6 CI, 3.7 docs for the firm [done]; 3.8 verification [next]
+                           Phase 2 done on Windows. Phase 3 done (3.0–3.8; docs/summaries/PHASE3_SUMMARY.md) except installing/uninstalling the Windows installer on this laptop, blocked by Smart App Control [owner's decision]
 ```
 
 Update the `[done]` / `[next]` markers when a step lands.
@@ -123,7 +123,7 @@ npm run dist                          # from app/ → app/dist/ (installer + unp
 npx playwright test e2e/packaged.spec.ts   # the packaged app reaches Welcome with its engine
 ```
 
-On Windows with VS Code open on this repository, electron-builder can fail with `EPERM`/`EBUSY` on `app/dist/…/default_app.asar`: VS Code (an Electron app) keeps `.asar` files it has looked at open. Build elsewhere: `npx electron-builder --config electron-builder.yml -c.directories.output=<folder outside the repo>`, then `ATLAS_PACKAGED_DIR=<that folder>` for the packaged test.
+On Windows with VS Code open on this repository, electron-builder can fail with `EPERM`/`EBUSY` on `app/dist/…/default_app.asar`: VS Code (an Electron app) keeps `.asar` files it has looked at open. Build elsewhere: `npx electron-builder --config electron-builder.yml -c.directories.output=<folder outside the repo>`, then `ATLAS_PACKAGED_DIR=<that folder>` for the packaged test. If Windows **Smart App Control** is on, the NSIS step fails with `spawn UNKNOWN`: Windows won't run electron-builder's unsigned uninstaller stub. The unpacked app (`win-unpacked/`) still builds and runs; build the installer in CI or with a signing certificate (docs/SIGNING.md). Never turn Smart App Control off yourself: it's the owner's system setting.
 
 Python **3.11+**. Stdlib `unittest` only — no pytest. Tests must not need Ollama or the internet: mock `requests`, the Ollama client, and `time.sleep`.
 

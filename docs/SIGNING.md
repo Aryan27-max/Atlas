@@ -11,6 +11,8 @@ Atlas builds **unsigned** today. It installs and runs, but Windows and macOS war
 
 Unsigned macOS builds are ad-hoc signed by CI (`-c.mac.identity=-`), which gives the "could not verify" message instead of "Atlas is damaged".
 
+**Smart App Control is not hypothetical.** It is on, on the very laptop Atlas was developed on. It decides from Microsoft's cloud reputation service, so it isn't predictable: it let two unsigned installer builds through on 2 October 2026, then refused the next ones ("did not meet the Enterprise signing level requirements" in the Code Integrity log). From then on electron-builder couldn't finish the Windows installer there (`spawn UNKNOWN`), while the unsigned app and engine themselves still ran. Expect the same on recruiters' new Windows 11 laptops: with Smart App Control on, an unsigned installer may simply not run.
+
 ## What to buy
 Prices are rough, in US dollars, and change; check the vendor's current price before buying.
 

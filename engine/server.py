@@ -69,7 +69,7 @@ from engine.health import HealthProbe
 from engine.ingest.csv_loader import PreflightReport, issue_groups, load_table
 from engine.ingest.downloader import Downloader
 from engine.ingest.links import link_kind
-from engine.llm.client import DEFAULT_URL, OllamaClient
+from engine.llm.client import DEFAULT_URL, OllamaClient, local_only
 from engine.llm.precheck import CANT_USE, READY, precheck
 from engine.hardware import Hardware
 from engine.hardware import profile as hardware_profile
@@ -1300,6 +1300,11 @@ def main(argv: list[str] | None = None, *, options: EngineOptions | None = None)
     token = args.token or os.environ.get("ATLAS_TOKEN", "")
     if not args.data_dir or len(token) < 16:
         print("Atlas engine: --data-dir and a token of 16+ characters are required.", file=sys.stderr)
+        return 1
+    try:
+        local_only(args.ollama_url)
+    except ValueError as exc:
+        print(f"Atlas engine: {exc}", file=sys.stderr)
         return 1
 
     import uvicorn  # the only place the HTTP server is needed

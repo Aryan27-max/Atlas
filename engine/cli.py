@@ -35,7 +35,7 @@ from engine.extract.pdf import PdfExtractor
 from engine.health import HealthProbe
 from engine.ingest.csv_loader import load_csv, render_report
 from engine.ingest.downloader import Downloader
-from engine.llm.client import DEFAULT_URL, OllamaClient
+from engine.llm.client import DEFAULT_URL, OllamaClient, local_only
 from engine.llm.precheck import precheck
 from engine.llm.scorer import Scorer
 from engine.logs import configure_logging, remove_logging
@@ -124,6 +124,11 @@ def main(
         # still can't show a character.
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     args = build_parser().parse_args(argv)
+    try:
+        local_only(getattr(args, "ollama_url", DEFAULT_URL))
+    except ValueError as exc:
+        out.write(f"{exc}\n")
+        return 1
     cli = _Cli(out, stdin or sys.stdin, url_rewrite, health, poll_interval, download_interval, idle_interval)
     try:
         return getattr(cli, f"cmd_{args.command}")(args)

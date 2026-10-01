@@ -44,7 +44,7 @@ As built in Phase 1, the engine's outbound traffic is exactly:
 - HTTP GETs of résumé links (and Drive's confirm-page follow-up);
 - when a download fails, a TCP connection with no data sent to `drive.google.com:443` or `www.google.com:443`, to tell "no internet" from "bad link" (§8);
 - *(Phase 3, 3.1e)* in the same situations, an HTTP GET with no data and no query to `http://connectivitycheck.gstatic.com/generate_204` (fallback `http://www.gstatic.com/generate_204`), which answers 204 when the internet is really there; anything else means a Wi-Fi sign-in page (captive portal) is in the way (§8);
-- local HTTP to Ollama on `127.0.0.1`.
+- local HTTP to Ollama on `127.0.0.1`. *(3.8)* The engine refuses any other Ollama address (`OllamaClient` accepts only `localhost`, 127.x.x.x and `::1`; the server and CLI stop at start with "Atlas only uses an Ollama running on this computer"), so no setting or environment variable can send résumé text to a remote model.
 
 Public profile pages are not fetched yet (open decision 2).
 
