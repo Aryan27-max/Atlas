@@ -21,3 +21,9 @@ app/out/
 app/dist/
 app/test-results/
 app/playwright-report/
+
+# graphify: only the report is committed (graph.json/graph.html are large and
+# rewritten on every refresh; manifest/cache are machine-specific).
+graphify-out/cache/
+graphify-out/*
+!graphify-out/GRAPH_REPORT.md

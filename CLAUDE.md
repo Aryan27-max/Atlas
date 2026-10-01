@@ -63,6 +63,7 @@ atlas/
 │   ├── server.py        ← local API for the app (FastAPI, 127.0.0.1)     [done]
 │   ├── api_models.py    ← API request/response shapes → OpenAPI → TS types [done]
 │   ├── filters.py       ← CGPA/department filter rule (worker + preview) [done]
+│   ├── tools/           ← read-only privacy tools: graph_audit, graph_query (counts/paths, never data) [done]
 │   └── tests/           ← unittest; stubs/ = local fake Drive + Ollama; fixtures.py = generated PDFs
 └── app/                 ← Electron + React (Phase 2)
     ├── main/            ← engine process, IPC validation, SSE, window, keep-awake [done]
@@ -71,10 +72,20 @@ atlas/
     ├── renderer/screens/← Welcome, setup flow, Progress, Results, Settings [done]
     ├── src/shared/      ← api-schema.json → api-types.ts (generated), bridge.ts [done]
     └── e2e/, tests/     ← Playwright (Electron: flows, keyboard, perf, full screen) and Vitest [done]
-                           Phase 2 done on Windows. Next: 1.11a (blocks real data), macOS check, Phase 3 [next]
+                           Phase 2 done on Windows. Phase 3: 3.0 graph [done]; 3.1 before real use (1.11a) [next]
 ```
 
 Update the `[done]` / `[next]` markers when a step lands.
+
+---
+
+## Navigating the codebase (graphify)
+
+- **Start every task with `graphify-out/GRAPH_REPORT.md`** (committed, ~30 KB). Use its communities and hubs to pick the few files that matter; don't read whole directories.
+- **Specific questions:** `python -m engine.tools.graph_query callers|callees|find|file <name>`, or `graphify query "…" --budget 1000`. **Never read `graph.json` whole** (~4 MB; local only, not committed).
+- **The graph is a map, not the source of truth.** Read the real file before editing it. If the graph and the code disagree, the code wins: note that the graph is stale. `ARCHITECTURE.md` stays the design reference; the graph shows the code as it is.
+- **Refresh after adding, moving or deleting modules:** `graphify update .` (code only, no LLM, seconds). Don't run a full `/graphify` rebuild for small edits (the first build cost ~745k tokens).
+- **Privacy:** `.graphifyignore` keeps `local/` (and `.venv/`, `node_modules/`, build output, `legacy/`) out. After any build or update, run `python -m engine.tools.graph_audit`; it must print `[OK ]` three times (counts only, never values).
 
 ---
 

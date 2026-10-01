@@ -1,0 +1,18 @@
+# What graphify must never index (gitignore syntax; read by graphify's
+# detect.py together with .gitignore, and can only exclude more).
+# Real student data lives in local/ and must never reach the graph.
+local/
+
+# Environments, dependencies and build output
+.venv/
+node_modules/
+app/out/
+app/dist/
+dist/
+build/
+
+# Reference-only old code
+legacy/
+
+# The graph itself
+graphify-out/

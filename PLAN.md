@@ -48,16 +48,23 @@ The whole screening pipeline, runnable and testable from Python alone.
 
 ## Phase 3 — Hardening & shipping
 
+Scope rule (owner): build first, perfect later — installable, safe with real data, honest about speed.
+
 | Step | What |
 |---|---|
-| 3.1 | Ollama detection, install guidance, model pull with progress |
-| 3.2 | Hardware check + spec-based time estimate (replaced by measured rate after 4–5 résumés) |
-| 3.3 | Eval set: 20–30 labelled résumés; score quality measured before each release |
-| 3.4 | Packaging: PyInstaller engine + electron-builder; macOS signing + notarization; Windows signing |
-| 3.5 | Fault-injection suite in CI |
+| 3.0 | graphify: privacy audit, `.graphifyignore`, CLAUDE.md navigation section, graph tools |
+| 3.1 | Before real use: redaction that doesn't trust the CSV (1.11a), claim-mismatch fix, cheap speed wins + timing per résumé, pre-check 300 s, captive portals, CLI wording |
+| 3.2 | Anchored rubric with `overall_score` computed by code; eval harness `engine/eval/` + fictional set of 8; `docs/EVAL.md` |
+| 3.3 | First run: Ollama states (not installed / not running / no model / ready), `engine/hardware.py`, hardware prior in the estimate, "more than 4 hours" warning |
+| 3.4 | Native-feel quick wins (title-case headers + sort arrows, right-click menu, multi-select, plain destructive buttons, "Name not given", column widths, popover arrows) |
+| 3.5 | Packaging: PyInstaller `atlas-engine` (Python 3.12, no OCR), electron-builder (NSIS per-user; DMG arm64/x64), signing by env vars only, packaged-app test |
+| 3.6 | CI on Windows and macOS (`.github/workflows/ci.yml`), installers and macOS screenshots as artifacts |
+| 3.7 | Docs for the firm: `INSTALL.md`, `TROUBLESHOOTING.md` (generated + drift test), `DATA_HANDLING.md` |
+| 3.8 | Verification: suites, eval, leak check, install → fictional screening → uninstall on Windows; `PHASE3_SUMMARY.md` |
 
 **Exit criteria**
 - Installs and runs on a clean Mac (Apple Silicon) and a clean Windows 11 machine with no dev tools.
+- `leak_check.py` reports 0 on the smoke-test-1 data; 1.11a is done.
 
 ## Deferred (must finish before real use)
 
@@ -135,3 +142,4 @@ A fresh session reads this first. One line per step: date · step · tests · wh
 - 2026-09-28 · 2.7 results · engine 350 · Vitest 166 · Playwright 32 · Results reads only `GET /runs/{id}/results`: a summary query (`limit: 1`: counts, notes, histogram, delta, total) and a list query per bucket (`limit: 5000`), both with preview `?shortlist&band&min` (debounced 150 ms, `keepPreviousData`). Nothing saved until Save cutoffs (`PATCH /runs/{id}/cutoffs`). Override via the detail sheet; export via `files.saveExport`; Needs attention retries via `retry-failed` then goes to Progress. Engine: name sort puts nameless rows last. `Popover` has a `width` prop. e2e `results.spec.ts` runs serially on one screening.
 - 2026-09-28 · 2.8 settings · engine 351 · Vitest 171 · Playwright 40 · Settings is one column of cards; every change is an optimistic `PUT /settings` of just that field (no Save). Main re-reads keep-awake/notify right after a successful `PUT /settings` or `DELETE /data` (`settingsWrite` → `RunWatcher.preferencesChanged`). `POST /runs` now also applies `default_model`. Delete a run = Alert → `DELETE /runs/{id}` (VACUUM) + `nav.forget`; Delete all = typed DELETE → `DELETE /data` → `resetQueries` → Welcome. `Placeholder` removed (setup on a started run goes to its screen). e2e: `recordShellOpens`/`shellOpened` stand in for Show in folder.
 - 2026-09-28 · 2.9 e2e + performance · engine 351 · Vitest 174 · Playwright 52 · **Phase 2 done (Windows).** `e2e/flows.spec.ts` = DoD flows 1–5 (each in a fresh app; cleanup pre-answers "Close Atlas?" or a running screening hangs `close()`). `e2e/keyboard.spec.ts` (Tab-only setup, `:focus-visible` at every stop), `e2e/perf.spec.ts` (2,000 rows seeded by `engine/tests/e2e_seed.py` through `Database` methods; median live-cutoff response 85–93 ms, 0 long tasks), `e2e/fullscreen.spec.ts` (1280×800, full screen, 1920×1200), `e2e/errors.spec.ts`. Rule 16 is a Vitest contract (`tests/contracts.test.ts`). Fixed: `Stepper` wrote a stale value back on blur (shortlist 62 on screen, 61 saved); setup steps now `setQueryData` the PATCH reply before `next()`; About showed Electron's version (`__ATLAS_VERSION__` from package.json); `scrollbar-gutter: stable both-edges`. Preview debounce 80 ms. Next session: read PHASE2_SUMMARY §8–9; 1.11a still blocks real data; macOS untested; packaging is Phase 3.
+- 2026-10-01 · 3.0 graph · engine 354 · Vitest 174 · Playwright 52 · Privacy audit of `graphify-out/`: 0 `local/` paths, 0 RA numbers, 0 data file names; the 1 e-mail is the vis-network library's in `graph.html`, the digit runs are mtimes/hashes. `.graphifyignore` (gitignore syntax, read by graphify's `detect.py`) excludes local/, .venv/, node_modules/, app/out/, app/dist/, dist/, build/, legacy/, graphify-out/ — verified with `detect()` with and without `.gitignore`. `graphify update .` (no LLM) pruned 453 legacy nodes → 2,738 nodes. Only `GRAPH_REPORT.md` is committed. Tools: `python -m engine.tools.graph_audit` (must print [OK ] ×3), `python -m engine.tools.graph_query callers|callees|find|file X`.
