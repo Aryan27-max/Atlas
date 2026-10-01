@@ -1,0 +1,9 @@
+file,expected_bucket,expected_rank_group,level,role,skills
+01_exceptional_backend.pdf,shortlisted,1,exceptional,backend,"Python, Go, PostgreSQL, Kubernetes, AWS"
+02_strong_backend.pdf,shortlisted,2,strong,backend,"Python, Go, Django, PostgreSQL, Docker"
+03_strong_ml.pdf,cutoff,3,strong,data/ML,"Python, PyTorch, SQL, pandas"
+04_average_backend.pdf,cutoff,3,average,backend,"Python, Flask, MySQL"
+05_average_frontend.pdf,rejected,4,average,frontend,"JavaScript, React, CSS"
+06_weak_backend.pdf,rejected,4,weak,backend,"Python, Java, SQL, Docker, AWS"
+07_weak_generic.pdf,rejected,5,weak,generic,"MS Office, Communication"
+08_very_weak.pdf,rejected,5,very weak,generic,Computer basics

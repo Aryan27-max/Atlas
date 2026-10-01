@@ -1,0 +1,230 @@
+{
+  "set_name": "fictional",
+  "model": "qwen3:8b",
+  "criteria_chars": 194,
+  "shortlist": 60,
+  "band": 50,
+  "repeats": 2,
+  "resumes": [
+    {
+      "file": "01_exceptional_backend.pdf",
+      "expected_bucket": "shortlisted",
+      "expected_rank_group": 1,
+      "level": "exceptional",
+      "scores": [
+        88,
+        88
+      ],
+      "seconds": [
+        108.0107449000061,
+        58.673003599993535
+      ],
+      "prefill_seconds": [
+        49.976346,
+        0.2078
+      ],
+      "generate_seconds": [
+        57.709206,
+        58.412881
+      ],
+      "leaks": 0,
+      "bucket": "shortlisted",
+      "error": "",
+      "score": 88
+    },
+    {
+      "file": "02_strong_backend.pdf",
+      "expected_bucket": "shortlisted",
+      "expected_rank_group": 2,
+      "level": "strong",
+      "scores": [
+        86,
+        86
+      ],
+      "seconds": [
+        83.07705990000977,
+        67.73994729999686
+      ],
+      "prefill_seconds": [
+        13.945351,
+        0.186278
+      ],
+      "generate_seconds": [
+        69.086305,
+        67.506842999
+      ],
+      "leaks": 0,
+      "bucket": "shortlisted",
+      "error": "",
+      "score": 86
+    },
+    {
+      "file": "03_strong_ml.pdf",
+      "expected_bucket": "cutoff",
+      "expected_rank_group": 3,
+      "level": "strong",
+      "scores": [
+        68,
+        68
+      ],
+      "seconds": [
+        96.35033099999418,
+        66.65328559999762
+      ],
+      "prefill_seconds": [
+        15.026239,
+        0.188115
+      ],
+      "generate_seconds": [
+        81.254556,
+        66.401176999
+      ],
+      "leaks": 0,
+      "bucket": "shortlisted",
+      "error": "",
+      "score": 68
+    },
+    {
+      "file": "04_average_backend.pdf",
+      "expected_bucket": "cutoff",
+      "expected_rank_group": 3,
+      "level": "average",
+      "scores": [
+        52,
+        52
+      ],
+      "seconds": [
+        72.2020751999953,
+        60.33053970000765
+      ],
+      "prefill_seconds": [
+        10.556212,
+        0.185937
+      ],
+      "generate_seconds": [
+        61.573521,
+        60.09328
+      ],
+      "leaks": 0,
+      "bucket": "cutoff",
+      "error": "",
+      "score": 52
+    },
+    {
+      "file": "05_average_frontend.pdf",
+      "expected_bucket": "rejected",
+      "expected_rank_group": 4,
+      "level": "average",
+      "scores": [
+        31,
+        31
+      ],
+      "seconds": [
+        75.76291040000797,
+        50.7976115999918
+      ],
+      "prefill_seconds": [
+        9.035164,
+        0.180431
+      ],
+      "generate_seconds": [
+        66.665224,
+        50.554907
+      ],
+      "leaks": 0,
+      "bucket": "rejected",
+      "error": "",
+      "score": 31
+    },
+    {
+      "file": "06_weak_backend.pdf",
+      "expected_bucket": "rejected",
+      "expected_rank_group": 4,
+      "level": "weak",
+      "scores": [
+        26,
+        26
+      ],
+      "seconds": [
+        50.81732099999499,
+        47.97183899999072
+      ],
+      "prefill_seconds": [
+        8.071558,
+        0.179578
+      ],
+      "generate_seconds": [
+        42.6681,
+        47.73504
+      ],
+      "leaks": 0,
+      "bucket": "rejected",
+      "error": "",
+      "score": 26
+    },
+    {
+      "file": "07_weak_generic.pdf",
+      "expected_bucket": "rejected",
+      "expected_rank_group": 5,
+      "level": "weak",
+      "scores": [
+        10,
+        10
+      ],
+      "seconds": [
+        62.1845253000065,
+        53.83178839999891
+      ],
+      "prefill_seconds": [
+        7.32805,
+        0.169923
+      ],
+      "generate_seconds": [
+        54.790214,
+        53.630483
+      ],
+      "leaks": 0,
+      "bucket": "rejected",
+      "error": "",
+      "score": 10
+    },
+    {
+      "file": "08_very_weak.pdf",
+      "expected_bucket": "rejected",
+      "expected_rank_group": 5,
+      "level": "very weak",
+      "scores": [
+        10,
+        10
+      ],
+      "seconds": [
+        45.08769149999716,
+        36.38625670000329
+      ],
+      "prefill_seconds": [
+        4.889307,
+        0.170463
+      ],
+      "generate_seconds": [
+        40.148206,
+        36.175174
+      ],
+      "leaks": 0,
+      "bucket": "rejected",
+      "error": "",
+      "score": 10
+    }
+  ],
+  "bucket_agreement": 0.875,
+  "spearman": 0.9878783399072131,
+  "spread_stdev": 29.79067597420374,
+  "score_min": 10,
+  "score_max": 88,
+  "stability_mad": 0,
+  "seconds_median": 61.25753250000707,
+  "prefill_median": 2.5485534999999997,
+  "generate_median": 58.0610435,
+  "leaks": 0,
+  "groups_in_order": true,
+  "above_95_not_exceptional": []
+}

@@ -2,32 +2,39 @@
 
 Run after every graph build or update:
 
-    python -m engine.tools.graph_audit [graphify-out]
+    python -m engine.tools.graph_audit [graphify-out] [--repo .]
 
-**Must be zero** (exit code 1 otherwise): paths under ``local/``, RA numbers,
-and the names of the real-data files.
+**Must be zero** (exit code 1 otherwise):
+
+* **files under ``local/`` that were indexed**: from the graph's own list of
+  source files (``graph.json`` ``source_file``) and ``manifest.json``. This
+  is the privacy boundary: real data lives only in ``local/``.
+* **RA numbers, ``local/`` paths and real-data file names that can't be traced
+  to an indexed file**. The repo's own code and docs *mention* things like
+  ``local/eval`` or ``student_details.csv``, and fictional test RA numbers;
+  those mentions are fine. Anything that appears in the graph but in none of
+  the indexed (non-``local/``) files came from somewhere else and fails.
 
 **Reported for review:** e-mail addresses and runs of 10+ digits. graphify's
 own files contain some that aren't student data (the vis-network library's
-author address in ``graph.html``, file timestamps and hashes in
-``manifest.json`` and ``cache/``). For each, the audit counts how many
-distinct values also appear in git-tracked files (fictional by the repo's
-rules), so a human can judge without seeing the values.
+address in ``graph.html``, timestamps and hashes in ``manifest.json`` and
+``cache/``), counted with how many are not traceable to an indexed file.
 """
 
 from __future__ import annotations
 
 import argparse
+import json
 import re
-import subprocess
 import sys
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
-MUST_BE_ZERO: dict[str, re.Pattern[str]] = {
-    "paths under local/": re.compile(r"(?<![\w.-])local[\\/]+[\w.-]"),
+TRACED_CHECKS: dict[str, re.Pattern[str]] = {
     "RA numbers": re.compile(r"RA\d{6,}"),
-    "real-data file names": re.compile(r"student_details|smoke-report-full|results_all|preflight\.txt"),
+    "paths under local/": re.compile(r"(?<![\w.-])local[\\/]+[\w.\\/-]+"),
+    "real-data file names": re.compile(r"[\w.-]*(?:student_details|smoke-report-full|results_all|preflight\.txt)[\w.-]*"),
 }
 FOR_REVIEW: dict[str, re.Pattern[str]] = {
     "e-mail addresses": re.compile(r"[\w.+-]+@[\w-]+\.[\w.-]+"),
@@ -41,7 +48,7 @@ class Count:
     name: str
     matches: int
     files: int
-    untracked_values: int | None = None
+    untraced: int        # matched values found in none of the indexed source files
 
 
 def _texts(folder: Path) -> list[tuple[Path, str]]:
@@ -52,37 +59,51 @@ def _texts(folder: Path) -> list[tuple[Path, str]]:
     ]
 
 
-def _tracked_corpus(repo: Path) -> str:
-    try:
-        listing = subprocess.run(["git", "ls-files", "-z"], cwd=repo, capture_output=True, check=True).stdout
-    except (OSError, subprocess.CalledProcessError):
-        return ""
-    parts = []
-    for name in listing.decode("utf-8", errors="ignore").split("\0"):
-        path = repo / name
-        if name and not name.startswith("graphify-out") and path.suffix.lower() not in BINARY and path.is_file():
-            parts.append(path.read_text(encoding="utf-8", errors="ignore"))
-    return "\n".join(parts)
+def _norm(path: str) -> str:
+    return path.replace("\\", "/").lstrip("./")
 
 
-def audit(folder: Path, repo: Path) -> tuple[list[Count], list[Count]]:
+def indexed_files(folder: Path, repo: Path) -> set[str]:
+    """Repo-relative paths graphify read, from graph.json and manifest.json."""
+    found: set[str] = set()
+    root = str(repo.resolve()).replace("\\", "/").rstrip("/") + "/"
+    graph = folder / "graph.json"
+    if graph.is_file():
+        data: dict[str, Any] = json.loads(graph.read_text(encoding="utf-8"))
+        found.update(_norm(str(n.get("source_file") or "")) for n in data.get("nodes", []) if n.get("source_file"))
+    manifest = folder / "manifest.json"
+    if manifest.is_file():
+        data = json.loads(manifest.read_text(encoding="utf-8"))
+        if isinstance(data, dict):
+            found.update(_norm(str(k)) for k in data)
+    return {f[len(root):] if f.startswith(root) else f for f in found if f}
+
+
+def under_local(path: str) -> bool:
+    return path.startswith("local/") or "/local/" in f"/{path}"
+
+
+def audit(folder: Path, repo: Path) -> tuple[int, list[Count], list[Count]]:
+    files = indexed_files(folder, repo)
+    local = sum(1 for f in files if under_local(f))
+    corpus = "\n".join(
+        (repo / f).read_text(encoding="utf-8", errors="ignore")
+        for f in sorted(files)
+        if not under_local(f) and (repo / f).is_file() and (repo / f).suffix.lower() not in BINARY
+    )
     texts = _texts(folder)
-    corpus = _tracked_corpus(repo)
 
-    def count(name: str, rx: re.Pattern[str], classify: bool) -> Count:
-        matches, files, untracked = 0, 0, set()
+    def count(name: str, rx: re.Pattern[str]) -> Count:
+        matches, in_files, untraced = 0, 0, set()
         for _path, text in texts:
             found = [m.group(0) for m in rx.finditer(text)]
             if found:
-                files += 1
+                in_files += 1
                 matches += len(found)
-                if classify:
-                    untracked.update(v for v in found if v not in corpus)
-        return Count(name, matches, files, len(untracked) if classify else None)
+                untraced.update(v for v in found if v not in corpus)
+        return Count(name, matches, in_files, len(untraced))
 
-    zero = [count(n, rx, False) for n, rx in MUST_BE_ZERO.items()]
-    review = [count(n, rx, True) for n, rx in FOR_REVIEW.items()]
-    return zero, review
+    return local, [count(n, rx) for n, rx in TRACED_CHECKS.items()], [count(n, rx) for n, rx in FOR_REVIEW.items()]
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -90,17 +111,20 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("folder", nargs="?", default="graphify-out", type=Path)
     parser.add_argument("--repo", default=".", type=Path)
     args = parser.parse_args(argv)
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8")
     if not args.folder.is_dir():
         print(f"No folder {args.folder}.")
         return 2
-    zero, review = audit(args.folder, args.repo)
+    local, traced, review = audit(args.folder, args.repo)
     print(f"Files scanned: {sum(1 for _ in args.folder.rglob('*') if _.is_file())}")
-    for c in zero:
-        print(f"[{'OK ' if c.matches == 0 else 'BAD'}] {c.name}: {c.matches}")
+    print(f"[{'OK ' if local == 0 else 'BAD'}] indexed files under local/: {local}")
+    for c in traced:
+        print(f"[{'OK ' if c.untraced == 0 else 'BAD'}] {c.name} not traceable to an indexed file: {c.untraced} "
+              f"({c.matches} match(es) in all)")
     for c in review:
-        print(f"[REVIEW] {c.name}: {c.matches} in {c.files} file(s); "
-              f"distinct values not in git-tracked files: {c.untracked_values}")
-    return 1 if any(c.matches for c in zero) else 0
+        print(f"[REVIEW] {c.name}: {c.matches} in {c.files} file(s); not traceable to an indexed file: {c.untraced}")
+    return 1 if local or any(c.untraced for c in traced) else 0
 
 
 if __name__ == "__main__":

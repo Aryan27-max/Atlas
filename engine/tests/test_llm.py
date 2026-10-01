@@ -144,8 +144,31 @@ class SchemaTests(unittest.TestCase):
     def test_scores_must_be_whole_numbers_0_to_100(self) -> None:
         for value in (101, -1, 85.5, True, "high", None):
             with self.subTest(value=value), self.assertRaises(EvaluationParseError):
-                parse_evaluation(json.dumps(answer(overall_score=value)))
-        self.assertEqual(parse_evaluation(json.dumps(answer(overall_score=85.0))).overall_score, 85)
+                parse_evaluation(json.dumps(answer(sub_scores={**{k: 70 for k in SUBS}, "technical": value})))
+        self.assertEqual(parse_evaluation(json.dumps(answer(sub_scores={k: 85.0 for k in SUBS}))).overall_score, 85)
+
+    def test_the_overall_score_is_computed_by_code_not_taken_from_the_model(self) -> None:
+        from engine.llm.rubric import WEIGHTS, overall_from
+
+        self.assertAlmostEqual(sum(WEIGHTS.values()), 1.0)
+        self.assertEqual(max(WEIGHTS, key=WEIGHTS.__getitem__), "criteria_fit")
+        subs = {"criteria_fit": 90, "technical": 80, "projects": 70, "experience": 60, "achievements": 50,
+                "communication": 40}
+        expected = round(sum(WEIGHTS[k] * v for k, v in subs.items()))
+        self.assertEqual(overall_from(subs), expected)                       # 73
+        ev = parse_evaluation(json.dumps(answer(overall_score=99, sub_scores=subs)))
+        self.assertEqual(ev.overall_score, expected)                        # the model's 99 is ignored
+        # A stray overall_score (or an out-of-range one) from a model that ignores the schema is dropped.
+        self.assertEqual(parse_evaluation(json.dumps(answer(70, overall_score=140))).overall_score, 70)
+
+    def test_the_rubric_is_anchored_and_says_90_is_rare(self) -> None:
+        from engine.llm.prompt import SYSTEM_PROMPT
+
+        for anchor in ("90+", "· 70", "· 50", "· 30", "· 10", "about 1 résumé in 10", "Do not give an overall score"):
+            self.assertIn(anchor, SYSTEM_PROMPT)
+        for sub in SUBS:
+            self.assertIn(f"- {sub} (", SYSTEM_PROMPT)
+        self.assertNotIn("overall_score", SYSTEM_PROMPT)
 
     def test_missing_or_empty_required_fields(self) -> None:
         data = answer()
@@ -173,13 +196,14 @@ class SchemaTests(unittest.TestCase):
         text = json.dumps(schema)
         self.assertNotIn("$ref", text)
         self.assertNotIn("$defs", text)
-        self.assertEqual(set(schema["required"]), {"overall_score", "sub_scores", "summary", "reasons",
-                                                   "evidence", "claim_mismatches"})
+        self.assertEqual(set(schema["required"]), {"sub_scores", "summary", "reasons", "evidence",
+                                                   "claim_mismatches"})       # no overall_score (3.2a)
         self.assertFalse(schema["additionalProperties"])
         self.assertFalse(schema["properties"]["sub_scores"]["additionalProperties"])
         self.assertEqual(set(schema["properties"]["sub_scores"]["properties"]), set(SUBS))
         self.assertFalse(schema["properties"]["evidence"]["items"]["additionalProperties"])
-        self.assertEqual(schema["properties"]["overall_score"]["maximum"], 100)
+        self.assertNotIn("overall_score", schema["properties"])
+        self.assertEqual(schema["properties"]["sub_scores"]["properties"]["technical"]["maximum"], 100)
         self.assertEqual(schema["properties"]["sub_scores"]["properties"]["technical"]["minimum"], 0)
         self.assertNotIn('"le"', text)
 
@@ -711,7 +735,7 @@ class ScorerTests(unittest.TestCase):
         self.assertEqual(len(client.calls), 3)
 
     def test_contract_violations_count_as_unreadable(self) -> None:
-        client = FakeClient(answer(recommendation="Shortlisted"), answer(overall_score=140), answer(58))
+        client = FakeClient(answer(recommendation="Shortlisted"), answer(sub_scores={k: 140 for k in SUBS}), answer(58))
         result, _ = self.score(client)
         self.assertEqual((result.evaluation.overall_score, result.attempts), (58, 3))
 

@@ -1,7 +1,10 @@
 """The model's output contract (ARCHITECTURE §13), validated with Pydantic.
 
 ``extra="forbid"`` everywhere: a key the model invents is a validation
-failure, not something silently stored. Scores are whole numbers 0–100;
+failure, not something silently stored. The one exception is
+``overall_score``: the model is no longer asked for it (Phase 3, 3.2a; the
+code computes it from the sub-scores, :mod:`engine.llm.rubric`), so a stray
+one from a model that ignores the schema is dropped, not trusted. Scores are whole numbers 0–100;
 ``true``/``false`` are not numbers here, even though Python thinks so.
 
 ``evaluation_json_schema()`` is the same contract as a plain JSON schema
@@ -25,6 +28,8 @@ import re
 from typing import Annotated, Any
 
 from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, ValidationError
+
+from engine.llm.rubric import overall_from
 
 
 def _not_bool(value: Any) -> Any:
@@ -68,13 +73,20 @@ class Evidence(_Strict):
     quote: Quote
 
 
-class Evaluation(_Strict):
-    overall_score: Score
+class ModelAnswer(_Strict):
+    """What the model writes. No overall score: the code computes it."""
+
     sub_scores: SubScores
     summary: str = Field(max_length=320)
     reasons: list[ReasonText] = Field(min_length=1, max_length=MAX_REASONS)
     evidence: list[Evidence] = Field(max_length=MAX_EVIDENCE)
     claim_mismatches: list[Mismatch] = Field(max_length=MAX_MISMATCHES)
+
+
+class Evaluation(ModelAnswer):
+    """A validated answer plus the overall score computed from its sub-scores."""
+
+    overall_score: Score
 
 
 class EvaluationParseError(Exception):
@@ -88,12 +100,14 @@ def parse_evaluation(content: str) -> Evaluation:
     a sentence before or after. Anything else is an :class:`EvaluationParseError`.
     """
     data = _clip(_load_json_object(content))
+    data.pop("overall_score", None)            # computed by code, never taken from the model
     try:
-        return Evaluation.model_validate(data)
+        answer = ModelAnswer.model_validate(data)
     except ValidationError as exc:
         # Report *where* it failed, never the values.
         where = ", ".join(".".join(str(p) for p in err["loc"]) or "root" for err in exc.errors()[:5])
         raise EvaluationParseError(f"invalid fields: {where}") from None
+    return Evaluation.model_validate({**answer.model_dump(), "overall_score": overall_from(answer.sub_scores.model_dump())})
 
 
 _LIST_CAPS = {"evidence": MAX_EVIDENCE, "reasons": MAX_REASONS, "claim_mismatches": MAX_MISMATCHES}
@@ -128,7 +142,7 @@ def _load_json_object(content: str) -> dict[str, Any]:
 
 def evaluation_json_schema() -> dict[str, Any]:
     """The contract as a self-contained JSON schema (``$ref``s inlined, titles dropped)."""
-    schema = Evaluation.model_json_schema()
+    schema = ModelAnswer.model_json_schema()
     definitions = schema.pop("$defs", {})
 
     def inline(node: Any) -> Any:

@@ -653,11 +653,19 @@ How that is enforced, as built:
 
 **Section budget:** the total résumé budget is set from the model's `num_ctx`, minus the fixed parts and the output reserve. Sections are filled in priority order: Projects, Experience, Skills, Achievements/Hackathons, Certifications, Education, Positions, Summary, then Other. Each section gets a floor share, and whatever is left over goes to the rest in priority order. If a single section is still too long (a 4-page projects list), each item is trimmed to its first lines rather than the whole section being cut off.
 
+### Rubric and the overall score *(Phase 3, 3.2a; `engine/llm/rubric.py`)*
+
+Smoke test 1 saw one real résumé score 95 ten times, and the strong fictional sample 95 too: an open-ended scale lets a model park every good résumé at the top. So:
+
+- **Anchored sub-scores.** For each of the six sub-scores, the system prompt describes what **90+, 70, 50, 30 and 10** look like, in concrete terms tied to the recruiter's criteria. For example, criteria_fit 90+ means "meets every must-have in the criteria with evidence AND shows 2 or more of the strong-plus items", and 50 means "meets the must-haves only partly". It also says that 90+ is rare, about 1 résumé in 10, and that most solid students land between 55 and 80.
+- **`overall_score` is computed by code**, never asked of the model: the weighted mean of the sub-scores, rounded. The weights live in `rubric.WEIGHTS` and add up to 1: criteria_fit **0.30**, technical 0.20, projects 0.20, experience 0.15, achievements 0.10, communication 0.05. `criteria_fit` weighs most because fit to *this* recruiter's needs is what the ranking is for. A stray `overall_score` from a model that ignores the schema is dropped, never trusted.
+- Measured on the bundled fictional set by the eval harness (§22, `docs/EVAL.md`).
+
 ### Output contract (Pydantic, `extra="forbid"`)
 
 ```jsonc
 {
-  "overall_score": 0-100,
+  // "overall_score": not in the model's answer (Phase 3): computed by code from sub_scores
   "sub_scores": { "technical": 0-100, "projects": 0-100, "experience": 0-100,
                   "achievements": 0-100, "communication": 0-100, "criteria_fit": 0-100 },
   "summary": "≤ 2 sentences",                                   // ≤ 320 characters
@@ -966,7 +974,7 @@ atlas/
 | end to end | unittest + local Drive and Ollama stubs | 25-student CSV through `cli run --yes`: every failure reason word for word, buckets, page-7 evidence, flags, export escaping and Unicode, **Ollama stopped mid-run → paused, 0 failed, resumes**, no PII or résumé text in `engine.log` (**Built**: `test_e2e.py`) |
 | CLI | unittest + stubs | pre-flight, confirm, pre-check cache, results preview, export, retry, exit codes 0/1/2, Ctrl+C (**Built: 10 tests**) |
 | live model | `ATLAS_LIVE=1` | 3 bundled fictional résumés against a real local Ollama; prints scores and timings (**Built**: `test_live.py`, skipped by default) |
-| eval set | script | 20–30 labelled résumés: bucket agreement, rank correlation, stability across 2 runs (Phase 3) |
+| eval set | `python -m engine.eval run --set DIR --model NAME` | **Built (Phase 3, 3.2b; `engine/eval/`)**: PDFs + `labels.csv` + `criteria.txt` → bucket agreement, Spearman rank correlation, score spread, stability (each résumé twice), seconds per résumé with the prefill/generation split, and the identity-leak count, written to `report.md`/`report.json` in the set's folder (file names and numbers only). Ships a fictional set of 8 (5 levels × 3 roles) at `engine/eval/sets/fictional/`; the real set goes in `local/eval/` (`docs/EVAL.md`) |
 | UI | Playwright for Electron | the happy path, pause/resume banner, light/dark (Phase 2) |
 
 ---

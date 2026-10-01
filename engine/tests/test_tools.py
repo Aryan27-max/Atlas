@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import contextlib
 import io
+import json
 import tempfile
 import unittest
 from pathlib import Path
@@ -12,9 +13,13 @@ from engine.tools import graph_audit
 
 
 class GraphAuditTests(unittest.TestCase):
-    def run_audit(self, files: dict[str, str]) -> tuple[int, str]:
+    def run_audit(self, files: dict[str, str], repo_files: dict[str, str] | None = None) -> tuple[int, str]:
         with tempfile.TemporaryDirectory() as tmp:
-            folder = Path(tmp) / "graphify-out"
+            repo = Path(tmp)
+            for name, text in (repo_files or {}).items():
+                (repo / name).parent.mkdir(parents=True, exist_ok=True)
+                (repo / name).write_text(text, encoding="utf-8")
+            folder = repo / "graphify-out"
             for name, text in files.items():
                 path = folder / name
                 path.parent.mkdir(parents=True, exist_ok=True)
@@ -24,23 +29,39 @@ class GraphAuditTests(unittest.TestCase):
                 code = graph_audit.main([str(folder), "--repo", tmp])
             return code, out.getvalue()
 
+    @staticmethod
+    def graph(*nodes: dict[str, str]) -> str:
+        return json.dumps({"nodes": list(nodes), "links": []})
+
     def test_a_clean_graph_passes(self) -> None:
-        code, out = self.run_audit({"GRAPH_REPORT.md": "# Graph\n- engine/worker.py calls db.claim_next_download\n"})
-        self.assertEqual(code, 0)
-        self.assertIn("[OK ] RA numbers: 0", out)
+        code, out = self.run_audit({
+            "graph.json": self.graph({"id": "w", "label": "Worker", "source_file": "engine/worker.py"}),
+            "GRAPH_REPORT.md": "# Graph\n- engine/worker.py calls db.claim_next_download\n",
+        }, {"engine/worker.py": "class Worker: ..."})
+        self.assertEqual(code, 0, out)
+        self.assertIn("[OK ] indexed files under local/: 0", out)
+        self.assertIn("[OK ] RA numbers not traceable to an indexed file: 0", out)
+
+    def test_mentions_in_the_repos_own_files_are_fine(self) -> None:
+        # Docs and tools talk about local/eval, data file names and fictional RA numbers.
+        doc = "Put real résumés in local/eval/. Never commit student_details.csv. Fixture RA2311000000."
+        code, out = self.run_audit({
+            "graph.json": self.graph({"id": "d", "label": doc, "source_file": "docs/EVAL.md"}),
+        }, {"docs/EVAL.md": doc})
+        self.assertEqual(code, 0, out)
+        self.assertIn("[OK ] paths under local/ not traceable to an indexed file: 0", out)
 
     def test_student_data_fails_without_printing_it(self) -> None:
         secret_ra, secret_mail = "RA2111003010007", "priya.real@college.example"
         code, out = self.run_audit({
-            "graph.json": f'{{"source_file": "local/student_details.csv", "label": "{secret_ra}"}}',
+            "graph.json": self.graph({"id": "x", "label": secret_ra, "source_file": "local/student_details.csv"}),
             "cache/x.json": f'"{secret_mail}" 9876543210',
         })
         self.assertEqual(code, 1)
-        self.assertIn("[BAD] paths under local/: 1", out)
-        self.assertIn("[BAD] RA numbers: 1", out)
-        self.assertIn("[BAD] real-data file names: 1", out)
+        self.assertIn("[BAD] indexed files under local/: 1", out)
+        self.assertIn("[BAD] RA numbers not traceable to an indexed file: 1", out)
+        self.assertIn("[BAD] real-data file names not traceable to an indexed file: 1", out)
         self.assertIn("[REVIEW] e-mail addresses: 1", out)
-        self.assertIn("runs of 10+ digits: 2", out)  # the phone, and the RA number's digits
         for value in (secret_ra, secret_mail, "9876543210", "student_details"):
             self.assertNotIn(value, out)
 

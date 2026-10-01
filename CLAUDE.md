@@ -53,7 +53,8 @@ atlas/
 │   ├── errors.py        ← CandidateError / SystemUnavailable / TransientError + all recruiter wording [done]
 │   ├── ingest/          ← csv_loader.py (.csv + .xlsx), links.py, downloader.py [done]
 │   ├── extract/         ← PDF text, OCR fallback, section extraction    [done]
-│   ├── llm/             ← Ollama client, identity lexicon + redaction, prompt, verify, scorer, pre-check [done]
+│   ├── llm/             ← Ollama client, identity lexicon + redaction, anchored rubric, prompt, verify, scorer, pre-check [done]
+│   ├── eval/            ← scoring-quality harness + fictional set (`python -m engine.eval run`, docs/EVAL.md) [done]
 │   ├── worker.py        ← resumable job loop                            [done]
 │   ├── health.py        ← internet / Ollama probes                      [done]
 │   ├── logs.py          ← engine.log (rotating, PII scrubbed)           [done]
@@ -72,7 +73,7 @@ atlas/
     ├── renderer/screens/← Welcome, setup flow, Progress, Results, Settings [done]
     ├── src/shared/      ← api-schema.json → api-types.ts (generated), bridge.ts [done]
     └── e2e/, tests/     ← Playwright (Electron: flows, keyboard, perf, full screen) and Vitest [done]
-                           Phase 2 done on Windows. Phase 3: 3.0 graph, 3.1 before real use [done]; 3.2 rubric + eval [next]
+                           Phase 2 done on Windows. Phase 3: 3.0 graph, 3.1 before real use, 3.2 rubric + eval [done]; 3.3 first run + hardware [next]
 ```
 
 Update the `[done]` / `[next]` markers when a step lands.
@@ -85,7 +86,7 @@ Update the `[done]` / `[next]` markers when a step lands.
 - **Specific questions:** `python -m engine.tools.graph_query callers|callees|find|file <name>`, or `graphify query "…" --budget 1000`. **Never read `graph.json` whole** (~4 MB; local only, not committed).
 - **The graph is a map, not the source of truth.** Read the real file before editing it. If the graph and the code disagree, the code wins: note that the graph is stale. `ARCHITECTURE.md` stays the design reference; the graph shows the code as it is.
 - **Refresh after adding, moving or deleting modules:** `graphify update .` (code only, no LLM, seconds). Don't run a full `/graphify` rebuild for small edits (the first build cost ~745k tokens).
-- **Privacy:** `.graphifyignore` keeps `local/` (and `.venv/`, `node_modules/`, build output, `legacy/`) out. After any build or update, run `python -m engine.tools.graph_audit`; it must print `[OK ]` three times (counts only, never values).
+- **Privacy:** `.graphifyignore` keeps `local/` (and `.venv/`, `node_modules/`, build output, `legacy/`) out. After any build or update, run `python -m engine.tools.graph_audit`; every check must print `[OK ]` (no file under `local/` indexed; anything that looks like student data traces to the repo's own fictional files). Counts only, never values.
 
 ---
 
