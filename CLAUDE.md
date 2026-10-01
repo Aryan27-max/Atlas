@@ -44,6 +44,8 @@ atlas/
 ├── PLAN.md              ← phases, steps, exit criteria, design rules
 ├── prompts/             ← execution prompts per phase (phase1.md, …)
 ├── docs/
+│   ├── INSTALL.md · DATA_HANDLING.md · SIGNING.md · EVAL.md   ← for the firm and the owner
+│   ├── TROUBLESHOOTING.md        ← GENERATED from engine/errors.py (python -m engine.tools.troubleshooting)
 │   ├── legacy/UNDERSTANDING.md   ← how the old QWENTUS CLI worked + its bugs
 │   └── summaries/       ← per-step summaries, PHASE*_SUMMARY.md, CHANGELOG.md
 ├── legacy/qwentus/      ← old source, REFERENCE ONLY, never import
@@ -66,7 +68,7 @@ atlas/
 │   ├── server.py        ← local API for the app (FastAPI, 127.0.0.1)     [done]
 │   ├── api_models.py    ← API request/response shapes → OpenAPI → TS types [done]
 │   ├── filters.py       ← CGPA/department filter rule (worker + preview) [done]
-│   ├── tools/           ← read-only tools: graph_audit, graph_query, leak_check (counts only), speed_bench [done]
+│   ├── tools/           ← graph_audit, graph_query, leak_check (counts only), speed_bench, troubleshooting (writes docs/TROUBLESHOOTING.md) [done]
 │   └── tests/           ← unittest; stubs/ = local fake Drive + Ollama; fixtures.py = generated PDFs
 ├── packaging/           ← PyInstaller engine.spec, build_engine.py + smoke_engine.py, icons/ (placeholder), mac entitlements [done]
 ├── .github/workflows/ci.yml ← test (Windows + macOS) and build (installers) jobs; .python-version = 3.12 [done]
@@ -77,7 +79,7 @@ atlas/
     ├── renderer/screens/← Welcome, setup flow, Progress, Results, Settings [done]
     ├── src/shared/      ← api-schema.json → api-types.ts (generated), bridge.ts [done]
     └── e2e/, tests/     ← Playwright (Electron: flows, keyboard, perf, full screen) and Vitest [done]
-                           Phase 2 done on Windows. Phase 3: 3.0 graph, 3.1 before real use, 3.2 rubric + eval, 3.3 first run + hardware, 3.4 native-feel quick wins, 3.5 packaging, 3.6 CI [done]; 3.7 docs for the firm [next]
+                           Phase 2 done on Windows. Phase 3: 3.0 graph, 3.1 before real use, 3.2 rubric + eval, 3.3 first run + hardware, 3.4 native-feel quick wins, 3.5 packaging, 3.6 CI, 3.7 docs for the firm [done]; 3.8 verification [next]
 ```
 
 Update the `[done]` / `[next]` markers when a step lands.
@@ -132,6 +134,7 @@ Python **3.11+**. Stdlib `unittest` only — no pytest. Tests must not need Olla
 - **Tests with every change.** New behaviour → new test. Bug fix → a test that fails before the fix. Don't mark a step done with failing tests.
 - **Failure paths are the feature.** For any new I/O code, write tests for: timeout, connection reset, HTTP 403/404/429/5xx, truncated body, wrong content type, disk full, and process killed mid-operation.
 - **Kill tests stay green.** `engine/tests/test_kill.py` kills a DB writer 20× and `engine/tests/test_worker_kill.py` kills the real worker 20×; both check integrity and consistency, and both run on Windows too (`Popen.kill()`). Any change to `db.py` or `worker.py` must keep them passing; extend them when you add states.
+- **Recruiter messages live in `engine/errors.py`.** After adding or rewording one, add its help in `engine/tools/troubleshooting.py` and run `python -m engine.tools.troubleshooting`; `test_tools` fails until `docs/TROUBLESHOOTING.md` matches.
 - **Schema changes = migrations.** Bump `SCHEMA_VERSION` in `db.py`, add an `if version < N:` step in `_migrate`. Never edit an existing released schema in place.
 - **Small, reviewable steps.** One PLAN.md step per change. Say which step you're on.
 - **Summarise every step** in `docs/summaries/` (template in `prompts/phase1.md` → Summaries) and add a line to `docs/summaries/CHANGELOG.md`. The owner learns from these, so explain the *why*.

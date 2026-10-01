@@ -145,5 +145,59 @@ class LeakCheckTests(unittest.TestCase):
                 self.assertNotIn(value, out.getvalue())
 
 
+class TroubleshootingTests(unittest.TestCase):
+    """docs/TROUBLESHOOTING.md is generated from engine/errors.py and can't drift (step 3.7)."""
+
+    def test_every_message_has_help_and_nothing_else_does(self) -> None:
+        from engine.tools.troubleshooting import HELP, all_keys
+
+        keys = all_keys()
+        self.assertEqual(sorted(k for k in keys if k not in HELP), [], "a message in errors.py has no help")
+        self.assertEqual(sorted(k for k in HELP if k not in keys), [], "help for a message that no longer exists")
+        self.assertGreaterEqual(len([k for k in keys if k.startswith("Reason.")]), 18)
+        self.assertGreaterEqual(len([k for k in keys if k.startswith("Pause.")]), 8)
+        for key, item in HELP.items():
+            self.assertTrue(item.means.strip() and item.todo.strip(), key)
+            self.assertEqual(bool(item.kind), key.startswith("Reason."), key)    # only students have a kind
+
+    def test_the_document_is_current(self) -> None:
+        from engine.tools.troubleshooting import DOC, render
+
+        text = render()
+        self.assertEqual(DOC.read_text(encoding="utf-8"), text,
+                         "docs/TROUBLESHOOTING.md is stale: run python -m engine.tools.troubleshooting")
+        # Every message appears word for word, as a heading.
+        from engine.tools.troubleshooting import SECTIONS, messages
+
+        for cls, _, _ in SECTIONS:
+            for _, message in messages(cls):
+                self.assertIn(f"### {message}\n", text)
+
+    def test_documented_kinds_match_the_code(self) -> None:
+        """A reason documented as "needs the student to fix it" is raised as permanent, and the reverse."""
+        import re
+
+        from engine.tools.troubleshooting import HELP
+
+        engine_dir = Path(__file__).resolve().parents[1]
+        seen: dict[str, set[str]] = {}
+        for path in engine_dir.rglob("*.py"):
+            if {"tests", "tools", "eval"} & set(path.relative_to(engine_dir).parts):
+                continue
+            for line in path.read_text(encoding="utf-8").splitlines():
+                names = re.findall(r"Reason\.([A-Z_]+)", line)
+                kinds = set(re.findall(r'"(permanent|retryable)"', line))
+                if not kinds and re.search(r"\b(TransientError|ChatDeadline)\(", line):
+                    kinds = {"retryable"}           # an ambiguous failure fails the student as retryable
+                if names and len(kinds) == 1:
+                    for name in names:
+                        seen.setdefault(name, set()).update(kinds)
+        self.assertGreaterEqual(len(seen), 18, "most reasons are raised with a visible kind")
+        for name, kinds in seen.items():
+            self.assertEqual(len(kinds), 1, f"Reason.{name} is raised as both kinds")
+            expected = {"permanent": "fix", "retryable": "retry"}[next(iter(kinds))]
+            self.assertEqual(HELP[f"Reason.{name}"].kind, expected, f"Reason.{name}")
+
+
 if __name__ == "__main__":
     unittest.main()
