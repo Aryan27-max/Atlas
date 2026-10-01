@@ -1,0 +1,215 @@
+# Atlas CI (Phase 3, step 3.6).
+#
+# test   Windows and macOS: the engine suite (both kill tests included),
+#        typecheck, lint, formatting, Vitest, and the Electron end-to-end
+#        tests against the local stub Drive and stub Ollama. No real Ollama,
+#        no internet beyond installing packages. The macOS run uploads its
+#        screenshots, so the Mac UI can be reviewed without a Mac.
+# build  after test passes: the engine binary (PyInstaller, Python 3.12),
+#        then `npm run dist` for Windows x64, macOS arm64 and macOS x64, and
+#        the packaged-app test. Installers are uploaded as artifacts.
+#        Unsigned unless the signing secrets exist (docs/SIGNING.md).
+#
+# Nothing is published or released from here.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+# UTF-8 everywhere, as in development (app/main/engine.ts sets PYTHONUTF8 for
+# the engine). The tests never use a real Ollama: they point at stubs.
+env:
+  PYTHONUTF8: '1'
+  PYTHONIOENCODING: utf-8
+
+jobs:
+  test:
+    name: test (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version-file: .python-version
+          cache: pip
+          cache-dependency-path: engine/requirements*.txt
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+
+      # The app starts the engine from <repo>/.venv in development, and the
+      # end-to-end tests do the same, so CI builds exactly that.
+      - name: Python environment (.venv)
+        shell: bash
+        run: |
+          python --version
+          python -m venv .venv
+          if [ "$RUNNER_OS" = "Windows" ]; then VENV_PY=.venv/Scripts/python; else VENV_PY=.venv/bin/python; fi
+          "$VENV_PY" -m pip install --disable-pip-version-check -r engine/requirements-dev.txt
+          echo "VENV_PY=$VENV_PY" >> "$GITHUB_ENV"
+
+      - name: Engine tests (including test_kill and test_worker_kill)
+        shell: bash
+        run: '"$VENV_PY" -m unittest discover -s engine/tests -t . -v'
+
+      - name: Install the app
+        working-directory: app
+        run: npm ci
+
+      - name: Typecheck
+        working-directory: app
+        run: npm run typecheck
+
+      - name: Lint
+        working-directory: app
+        run: npm run lint
+
+      - name: Formatting
+        working-directory: app
+        run: npm run format
+
+      - name: Unit tests (Vitest)
+        working-directory: app
+        run: npm test
+
+      - name: End-to-end tests (Electron, stub Drive and stub Ollama)
+        working-directory: app
+        run: npm run e2e
+
+      - name: Upload test results (on failure)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ matrix.os }}
+          path: |
+            app/test-results/
+            app/playwright-report/
+            docs/summaries/phase2/screens/
+            docs/summaries/phase3/screens/
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Upload the macOS screenshots
+        if: always() && runner.os == 'macOS'
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-screenshots
+          path: |
+            docs/summaries/phase2/screens/
+            docs/summaries/phase3/screens/
+          if-no-files-found: warn
+          retention-days: 30
+
+  build:
+    name: build (${{ matrix.name }})
+    needs: test
+    # Installers on pushes to main and manual runs, not on every pull request:
+    # three builds (two on macOS, whose minutes cost more) per PR add up.
+    if: github.event_name != 'pull_request'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: windows-x64
+            os: windows-latest
+            target: --win --x64
+          - name: macos-arm64
+            os: macos-latest
+            target: --mac --arm64
+          # The engine inside is native code, so the Intel build needs an
+          # Intel runner. If GitHub renames this label, update it here.
+          - name: macos-x64
+            os: macos-15-intel
+            target: --mac --x64
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    env:
+      # Empty when the secret doesn't exist: electron-builder then builds
+      # unsigned and skips notarisation.
+      CSC_LINK: ${{ secrets.CSC_LINK }}
+      CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+      WIN_CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
+      WIN_CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
+      APPLE_ID: ${{ secrets.APPLE_ID }}
+      APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version-file: .python-version
+          cache: pip
+          cache-dependency-path: |
+            engine/requirements.txt
+            packaging/requirements-build.txt
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+
+      - name: Engine binary (PyInstaller) and its smoke test
+        shell: bash
+        run: |
+          python -m pip install --disable-pip-version-check -r packaging/requirements-build.txt
+          python packaging/build_engine.py
+
+      - name: Install the app
+        working-directory: app
+        run: npm ci
+
+      - name: Installer (npm run dist)
+        working-directory: app
+        shell: bash
+        run: |
+          extra=""
+          if [ "$RUNNER_OS" = "macOS" ] && [ -z "$CSC_LINK" ]; then
+            # No Developer ID: sign ad-hoc so macOS says "unverified" rather than "damaged".
+            extra="-c.mac.identity=- -c.mac.hardenedRuntime=false"
+          fi
+          npm run dist -- ${{ matrix.target }} $extra
+
+      - name: Packaged app reaches Welcome with its engine
+        working-directory: app
+        run: npx playwright test e2e/packaged.spec.ts
+
+      - name: Upload the installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: atlas-${{ matrix.name }}
+          path: |
+            app/dist/*.exe
+            app/dist/*.dmg
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload test results (on failure)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-results-${{ matrix.name }}
+          path: app/test-results/
+          if-no-files-found: ignore
+          retention-days: 14

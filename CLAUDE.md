@@ -69,6 +69,7 @@ atlas/
 │   ├── tools/           ← read-only tools: graph_audit, graph_query, leak_check (counts only), speed_bench [done]
 │   └── tests/           ← unittest; stubs/ = local fake Drive + Ollama; fixtures.py = generated PDFs
 ├── packaging/           ← PyInstaller engine.spec, build_engine.py + smoke_engine.py, icons/ (placeholder), mac entitlements [done]
+├── .github/workflows/ci.yml ← test (Windows + macOS) and build (installers) jobs; .python-version = 3.12 [done]
 └── app/                 ← Electron + React (Phase 2)
     ├── main/            ← engine process, IPC validation, SSE, window, keep-awake, native menus [done]
     ├── preload/         ← window.atlas bridge (no token, sandboxed)     [done]
@@ -76,7 +77,7 @@ atlas/
     ├── renderer/screens/← Welcome, setup flow, Progress, Results, Settings [done]
     ├── src/shared/      ← api-schema.json → api-types.ts (generated), bridge.ts [done]
     └── e2e/, tests/     ← Playwright (Electron: flows, keyboard, perf, full screen) and Vitest [done]
-                           Phase 2 done on Windows. Phase 3: 3.0 graph, 3.1 before real use, 3.2 rubric + eval, 3.3 first run + hardware, 3.4 native-feel quick wins, 3.5 packaging [done]; 3.6 CI [next]
+                           Phase 2 done on Windows. Phase 3: 3.0 graph, 3.1 before real use, 3.2 rubric + eval, 3.3 first run + hardware, 3.4 native-feel quick wins, 3.5 packaging, 3.6 CI [done]; 3.7 docs for the firm [next]
 ```
 
 Update the `[done]` / `[next]` markers when a step lands.
