@@ -7,7 +7,16 @@
  */
 
 import schema from '@shared/api-schema.json'
-import type { ExportView, FolderTarget, HttpMethod, NotificationRequest, Theme, UploadSource } from '@shared/bridge'
+import type {
+  ExportView,
+  FolderTarget,
+  HttpMethod,
+  MoveTarget,
+  NotificationRequest,
+  RowMenuRequest,
+  Theme,
+  UploadSource,
+} from '@shared/bridge'
 
 export class InvalidArgument extends Error {
   override name = 'InvalidArgument'
@@ -191,6 +200,32 @@ export function validateNotification(value: unknown): NotificationRequest {
   if (typeof title !== 'string' || typeof body !== 'string' || !title.trim())
     throw new InvalidArgument('Bad notification.')
   return { title: title.slice(0, 120), body: body.slice(0, 400) }
+}
+
+const MOVE_TARGETS: readonly MoveTarget[] = ['shortlisted', 'cutoff', 'rejected']
+export const MAX_MENU_ROWS = 5000 // the most rows Results shows at once
+
+/** A right-click menu request: RA numbers to copy, and buckets to offer. */
+export function validateRowMenu(value: unknown): RowMenuRequest {
+  if (typeof value !== 'object' || value === null) throw new InvalidArgument('Bad menu.')
+  const { raNumbers, moveTargets, details } = value as Record<string, unknown>
+  if (
+    !Array.isArray(raNumbers) ||
+    raNumbers.length < 1 ||
+    raNumbers.length > MAX_MENU_ROWS ||
+    !raNumbers.every((ra) => typeof ra === 'string' && /^[^\u0000-\u001f\u007f]{1,64}$/.test(ra))
+  ) {
+    throw new InvalidArgument('Bad menu.')
+  }
+  if (
+    !Array.isArray(moveTargets) ||
+    new Set(moveTargets).size !== moveTargets.length ||
+    !moveTargets.every((target) => (MOVE_TARGETS as readonly unknown[]).includes(target))
+  ) {
+    throw new InvalidArgument('Bad menu.')
+  }
+  if (typeof details !== 'boolean') throw new InvalidArgument('Bad menu.')
+  return { raNumbers: [...(raNumbers as string[])], moveTargets: [...(moveTargets as MoveTarget[])], details }
 }
 
 /** Requests after which main's copy of the settings (keep awake, notify) is stale. */

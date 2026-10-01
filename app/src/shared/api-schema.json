@@ -1699,6 +1699,14 @@
             "title": "Offset",
             "type": "integer"
           },
+          "order": {
+            "enum": [
+              "asc",
+              "desc"
+            ],
+            "title": "Order",
+            "type": "string"
+          },
           "rows": {
             "items": {
               "$ref": "#/components/schemas/ResultRowOut"
@@ -1716,6 +1724,17 @@
           "shortfall": {
             "title": "Shortfall",
             "type": "integer"
+          },
+          "sort": {
+            "enum": [
+              "rank",
+              "name",
+              "department",
+              "cgpa",
+              "score"
+            ],
+            "title": "Sort",
+            "type": "string"
           },
           "status": {
             "enum": [
@@ -1751,6 +1770,8 @@
           "shortfall",
           "failure_groups",
           "bucket",
+          "sort",
+          "order",
           "total",
           "offset",
           "limit",
@@ -5810,11 +5831,33 @@
               "default": "rank",
               "enum": [
                 "rank",
-                "score",
-                "name"
+                "name",
+                "department",
+                "cgpa",
+                "score"
               ],
               "title": "Sort",
               "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "order",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "asc",
+                    "desc"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Order"
             }
           },
           {

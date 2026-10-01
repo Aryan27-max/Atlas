@@ -320,7 +320,8 @@ function Data({ dataDir, storage }: { dataDir: string; storage: number | null })
               where you saved them.
             </p>
           </div>
-          <Button variant="destructive" disabled={running} onClick={() => setWipeOpen(true)}>
+          {/* Plain until the confirmation, where the red button is (as on macOS). */}
+          <Button disabled={running} onClick={() => setWipeOpen(true)}>
             Delete all data…
           </Button>
         </div>

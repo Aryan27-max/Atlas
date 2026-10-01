@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { CheckCircle2 } from 'lucide-react'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   Alert,
@@ -9,6 +9,7 @@ import {
   Button,
   List,
   ListRow,
+  Popover,
   ProgressBar,
   ProgressRing,
   ScorePill,
@@ -21,6 +22,7 @@ import {
   TextField,
   ToastProvider,
   Toggle,
+  arrowOffset,
   useToast,
 } from '.'
 
@@ -346,5 +348,30 @@ describe('overlays', () => {
     expect(cancelAlert).toHaveBeenCalledTimes(1)
     expect(closeSheet).not.toHaveBeenCalled()
     expect(screen.getByRole('alertdialog', { name: 'Sure?' })).toBeTruthy()
+  })
+})
+
+describe('Popover', () => {
+  it('has an arrow that points at the middle of the button, clear of the rounded corners', () => {
+    // A 130-px button whose right edge is the popover's right edge (align end): 65 px in, minus half the arrow.
+    expect(arrowOffset({ left: 870, width: 130 }, 1000, 'end', 480)).toBe(55)
+    expect(arrowOffset({ left: 100, width: 40 }, 100, 'start', 300)).toBe(10)
+    expect(arrowOffset({ left: 996, width: 4 }, 1000, 'end', 480)).toBe(6) // never into the corner
+    expect(arrowOffset({ left: 380, width: 40 }, 1000, 'end', 300)).toBe(274) // nor past the far one
+
+    function Harness() {
+      const anchor = useRef<HTMLButtonElement>(null)
+      return (
+        <>
+          <Button ref={anchor}>Adjust cutoffs</Button>
+          <Popover open onClose={() => {}} anchor={anchor} label="Adjust cutoffs">
+            <p>Cutoffs</p>
+          </Popover>
+        </>
+      )
+    }
+    render(<Harness />)
+    const pop = screen.getByRole('dialog', { name: 'Adjust cutoffs' })
+    expect(pop.querySelector('.atl-popover-arrow')).not.toBeNull()
   })
 })

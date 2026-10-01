@@ -24,6 +24,7 @@ FIRST = ["Aarav", "Diya", "Kabir", "Meera", "Rohan", "Ananya", "Vikram", "Isha",
 LAST = ["Sharma", "Iyer", "Menon", "Rao", "Gupta", "Nair", "Singh", "Das", "Pillai", "Reddy",
         "Khan", "Joshi", "Bose", "Varma", "Qureshi", "Sen", "Mehta", "Kapoor", "Ghosh", "Patel"]
 DEPARTMENTS = ["CSE", "IT", "ECE", "EEE", "Mech", "Civil"]
+NAMELESS = "RA2400000002"      # one student who left the name blank: "Name not given" near the top
 SUB_SCORES = ("technical", "projects", "experience", "achievements", "communication", "criteria_fit")
 
 
@@ -37,7 +38,8 @@ def seed(data_dir: Path, count: int = 2000, *, seed_value: int = 7) -> int:
                          shortlist_cutoff=70, maybe_cutoff=55, min_shortlist=0)
         rows = [{
             "ra_number": f"RA24{i:08d}",
-            "name": f"{FIRST[i % len(FIRST)]} {LAST[(i // len(FIRST)) % len(LAST)]}",
+            "name": "" if f"RA24{i:08d}" == NAMELESS
+                    else f"{FIRST[i % len(FIRST)]} {LAST[(i // len(FIRST)) % len(LAST)]}",
             "email": f"student{i}@example.com",
             "phone": "9000000000",
             "cgpa": round(rng.uniform(6.0, 9.9), 2),
@@ -50,7 +52,7 @@ def seed(data_dir: Path, count: int = 2000, *, seed_value: int = 7) -> int:
         for candidate in db.list_candidates(run_id):
             cid = candidate["id"]
             db.start_download(cid)
-            if rng.random() < 0.02:
+            if rng.random() < 0.02 and candidate["ra_number"] != NAMELESS:
                 db.mark_failed(cid, kind="permanent", reason=Reason.PRIVATE)
                 continue
             db.finish_download(cid, data_dir / "downloads" / f"{cid}.pdf")
@@ -58,6 +60,8 @@ def seed(data_dir: Path, count: int = 2000, *, seed_value: int = 7) -> int:
                                  pdf_sha256=f"{cid:064x}")
             db.start_scoring(cid)
             score = max(0, min(100, int(rng.gauss(62, 15))))
+            if candidate["ra_number"] == NAMELESS:
+                score = 94
             db.save_evaluation(
                 cid, overall_score=score,
                 sub_scores={key: max(0, min(100, score + rng.randint(-8, 8))) for key in SUB_SCORES},

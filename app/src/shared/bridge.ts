@@ -67,6 +67,21 @@ export interface NotificationRequest {
 
 export type NavigateTarget = 'settings' | 'welcome'
 
+export type MoveTarget = 'shortlisted' | 'cutoff' | 'rejected'
+
+/** A right-click on Results rows (native menu, built in main). */
+export interface RowMenuRequest {
+  /** The rows the menu acts on: the one clicked, or every selected row. */
+  raNumbers: string[]
+  /** Buckets they can move to; empty when they aren't scored (no "Move to"). */
+  moveTargets: MoveTarget[]
+  /** Offer "Show details" (one row only). */
+  details: boolean
+}
+
+/** What was chosen; `null` when the menu was dismissed. "Copy" is done by main. */
+export type RowMenuChoice = { action: 'details' } | { action: 'move'; to: MoveTarget } | { action: 'copied' } | null
+
 export interface AtlasBridge {
   api: {
     request<T = unknown>(method: HttpMethod, path: string, body?: unknown): Promise<ApiResult<T>>
@@ -95,6 +110,10 @@ export interface AtlasBridge {
   notifications: {
     show(notification: NotificationRequest): Promise<void>
   }
+  menus: {
+    /** Shows the native menu at the pointer and resolves with the choice. */
+    resultRows(request: RowMenuRequest): Promise<RowMenuChoice>
+  }
 }
 
 /** IPC channel names (main ↔ preload). */
@@ -115,4 +134,5 @@ export const Channels = {
   restartEngine: 'atlas:restart-engine',
   openOllamaDownload: 'atlas:open-ollama-download',
   notify: 'atlas:notify',
+  rowMenu: 'atlas:row-menu',
 } as const

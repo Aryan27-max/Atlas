@@ -346,6 +346,39 @@ class FlowTests(ServerTestCase):
                                              ["alpha", "RA999002", "9.5", "b@example.com", "CSE", "9876500000", "", link]])
         rows = self.client.get(f"/runs/{run_id}/results", params={"sort": "name"}).json()["rows"]
         self.assertEqual([r["ra_number"] for r in rows], ["RA999002", "RA000001", "RA999001"])
+        # Reversed (the header clicked again): still last, and the response says how it sorted.
+        body = self.client.get(f"/runs/{run_id}/results", params={"sort": "name", "order": "desc"}).json()
+        self.assertEqual([r["ra_number"] for r in body["rows"]], ["RA000001", "RA999002", "RA999001"])
+        self.assertEqual((body["sort"], body["order"]), ("name", "desc"))
+        first = self.client.get(f"/runs/{run_id}/results", params={"sort": "score"}).json()
+        self.assertEqual((first["sort"], first["order"]), ("score", "desc"))       # best first unless asked
+        self.assertEqual(self.client.get(f"/runs/{run_id}/results", params={"sort": "bucket"}).status_code, 422)
+
+    def test_sort_rows_by_every_column(self) -> None:
+        from engine import api_models as m
+        from engine.server import sort_rows
+
+        def row(cid: int, ra: str, *, name: str = "", department: str = "", cgpa: float | None = None,
+                score: int | None = None, rank: int | None = None) -> m.ResultRowOut:
+            return m.ResultRowOut(candidate_id=cid, rank=rank, ra_number=ra, name=name, department=department,
+                                  cgpa=cgpa, score=score, bucket="shortlisted" if score else "failed",
+                                  auto_bucket=None, how_placed=None, tie=False, flags=0, failure_kind=None,
+                                  failure_reason=None, filter_reason=None, link_kind="drive_file")
+
+        rows = [row(1, "RA3", name="Meera", department="ECE", cgpa=8.0, score=70, rank=2),
+                row(2, "RA1"),                                                          # nothing known
+                row(3, "RA2", name="arjun", department="cse", cgpa=8.0, score=90, rank=1)]
+
+        def ras(column: str, order: str) -> list[str]:
+            return [r.ra_number for r in sort_rows(rows, column, order)]
+
+        self.assertEqual(ras("rank", "asc"), ["RA2", "RA3", "RA1"])
+        self.assertEqual(ras("rank", "desc"), ["RA3", "RA2", "RA1"])         # unranked stays last
+        self.assertEqual(ras("score", "desc"), ["RA2", "RA3", "RA1"])
+        self.assertEqual(ras("cgpa", "desc"), ["RA2", "RA3", "RA1"])         # a tie keeps RA order
+        self.assertEqual(ras("cgpa", "asc"), ["RA2", "RA3", "RA1"])
+        self.assertEqual(ras("name", "asc"), ["RA2", "RA3", "RA1"])          # case-insensitive
+        self.assertEqual(ras("department", "desc"), ["RA3", "RA2", "RA1"])
 
     def test_retry_failed_and_clear_filters(self) -> None:
         private = self.drive.serve("PRIVATE", SignIn())

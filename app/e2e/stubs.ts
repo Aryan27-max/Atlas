@@ -129,3 +129,52 @@ export async function recordShellOpens(app: ElectronApplication): Promise<void> 
 export function shellOpened(app: ElectronApplication): Promise<string[]> {
   return app.evaluate(() => [...((globalThis as { __opened?: string[] }).__opened ?? [])])
 }
+
+/**
+ * Answer the next native menus. Each pick is a path of labels, e.g.
+ * ['Move to', 'Cutoff…']; an empty path dismisses the menu. Playwright can't
+ * click a native menu, so this replaces Menu.buildFromTemplate in main with
+ * one that "clicks" the picked item and records every menu shown.
+ */
+export async function nextMenuPicks(app: ElectronApplication, picks: string[][]): Promise<void> {
+  await app.evaluate(({ Menu }, queue) => {
+    type Item = Electron.MenuItemConstructorOptions
+    const state = globalThis as {
+      __realBuild?: typeof Menu.buildFromTemplate
+      __menuPicks?: string[][]
+      __menusShown?: string[][]
+    }
+    state.__realBuild ??= Menu.buildFromTemplate.bind(Menu)
+    state.__menuPicks = [...queue]
+    state.__menusShown ??= []
+    const describe = (items: Item[]): string[] =>
+      items.map((item) =>
+        item.type === 'separator'
+          ? '—'
+          : item.submenu
+            ? `${item.label} ▸ ${(item.submenu as Item[]).map((sub) => sub.label).join(', ')}`
+            : String(item.label),
+      )
+    Menu.buildFromTemplate = (template) => {
+      const menu = (state.__realBuild as typeof Menu.buildFromTemplate)(template)
+      menu.popup = (options) => {
+        const items = template as Item[]
+        state.__menusShown?.push(describe(items))
+        let level: Item[] = items
+        let chosen: Item | undefined
+        for (const label of state.__menuPicks?.shift() ?? []) {
+          chosen = level.find((item) => item.label === label)
+          level = (chosen?.submenu as Item[] | undefined) ?? []
+        }
+        ;(chosen?.click as (() => void) | undefined)?.()
+        options?.callback?.()
+      }
+      return menu
+    }
+  }, picks)
+}
+
+/** The labels of every native menu shown since the first nextMenuPicks. */
+export function menusShown(app: ElectronApplication): Promise<string[][]> {
+  return app.evaluate(() => [...((globalThis as { __menusShown?: string[][] }).__menusShown ?? [])])
+}

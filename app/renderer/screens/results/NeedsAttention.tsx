@@ -92,7 +92,7 @@ export function NeedsAttention({
                     className="atl-button atl-button--plain atl-button--small"
                     onClick={() => onOpen(row)}
                   >
-                    {row.name || 'No name'}
+                    {row.name || <span className="atl-secondary">Name not given</span>}
                   </button>
                   <Badge>{linkLabel(row.link_kind)}</Badge>
                 </li>

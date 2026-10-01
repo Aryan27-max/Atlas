@@ -8,11 +8,22 @@
 import { randomBytes } from 'node:crypto'
 import { readFile, stat } from 'node:fs/promises'
 import { basename, join } from 'node:path'
-import { type BrowserWindow, type IpcMainInvokeEvent, Notification, app, dialog, ipcMain, shell } from 'electron'
+import {
+  type BrowserWindow,
+  type IpcMainInvokeEvent,
+  Menu,
+  Notification,
+  app,
+  clipboard,
+  dialog,
+  ipcMain,
+  shell,
+} from 'electron'
 import type { ExportOut } from '@shared/api-types'
-import type { ApiResult, AppInfo, AtlasEvent } from '@shared/bridge'
+import type { ApiResult, AppInfo, AtlasEvent, RowMenuChoice } from '@shared/bridge'
 import { Channels } from '@shared/bridge'
 import type { EngineProcess } from './engine'
+import { rowMenuTemplate } from './menus'
 import { followEvents } from './sse'
 import {
   InvalidArgument,
@@ -23,6 +34,7 @@ import {
   validateFolderTarget,
   validateNotification,
   validateRunId,
+  validateRowMenu,
   validateRunIdOrNull,
   validateTheme,
   validateUploadSource,
@@ -202,6 +214,24 @@ export function registerIpc(ctx: IpcContext): void {
   handle(Channels.openOllamaDownload, async () => {
     await shell.openExternal(OLLAMA_DOWNLOAD_URL)
     return true
+  })
+
+  // The native right-click menu for Results rows. "Copy RA number" is done
+  // here (the renderer has no clipboard access); the rest goes back to it.
+  handle(Channels.rowMenu, (_event, request) => {
+    const checked = validateRowMenu(request)
+    const window = ctx.getWindow() ?? undefined
+    return new Promise<RowMenuChoice>((resolve) => {
+      let settled = false
+      const finish = (choice: RowMenuChoice): void => {
+        if (settled) return
+        settled = true
+        resolve(choice)
+      }
+      const template = rowMenuTemplate(checked, process.platform, finish, (text) => clipboard.writeText(text))
+      // On macOS the menu can report "closed" just before the click: give the click a moment to land.
+      Menu.buildFromTemplate(template).popup({ window, callback: () => setTimeout(() => finish(null), 150) })
+    })
   })
 
   handle(Channels.notify, (_event, request) => {

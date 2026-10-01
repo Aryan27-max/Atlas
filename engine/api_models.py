@@ -334,6 +334,10 @@ class BucketDeltaOut(BaseModel):
     rejected: int
 
 
+SortColumn = Literal["rank", "name", "department", "cgpa", "score"]
+SortOrder = Literal["asc", "desc"]
+
+
 class ResultRowOut(BaseModel):
     candidate_id: int
     rank: int | None
@@ -367,6 +371,8 @@ class ResultsOut(BaseModel):
     shortfall: int
     failure_groups: list[FailureGroupOut]
     bucket: str
+    sort: SortColumn                   # what the rows are sorted by (3.4: the header shows it)
+    order: SortOrder
     total: int                         # rows in this bucket after search
     offset: int
     limit: int

@@ -14,7 +14,7 @@ import { writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { type Page, expect, test } from '@playwright/test'
 import { type Launched, close, launch, waitForEngine } from './helpers'
-import { SCREENS_DIR } from './screens'
+import { PHASE3_SCREENS_DIR, SCREENS_DIR } from './screens'
 import { PYTHON, REPO, tempDir } from './stubs'
 
 test.describe.configure({ mode: 'serial' })
@@ -135,7 +135,7 @@ test('a large display (1920×1200): every screen fits', async () => {
       const image = await BrowserWindow.getAllWindows()[0]?.webContents.capturePage()
       return image ? image.toPNG().toString('base64') : ''
     })
-    writeFileSync(join(SCREENS_DIR, `results-large-display-${theme}.png`), Buffer.from(png, 'base64'))
+    writeFileSync(join(PHASE3_SCREENS_DIR, `results-large-display-${theme}.png`), Buffer.from(png, 'base64'))
   }
   await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0]?.webContents.setZoomFactor(1))
 })

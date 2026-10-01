@@ -1,7 +1,9 @@
 /**
- * Results (ARCHITECTURE §18). Buckets, ranks, ties, fills and notes all come
- * from GET /runs/{id}/results. The renderer never computes them (rule 16).
- * Adjusting cutoffs previews live (nothing saved) until "Save cutoffs".
+ * Results (ARCHITECTURE §18). Buckets, ranks, ties, fills, notes and the sort
+ * order all come from GET /runs/{id}/results. The renderer never computes
+ * them (rule 16). Adjusting cutoffs previews live (nothing saved) until
+ * "Save cutoffs". Rows can be selected like a native table and moved
+ * together, from the selection bar or the native right-click menu.
  */
 
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -20,18 +22,19 @@ import {
 } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { CutoffsOut, ResultRowOut } from '@shared/api-types'
+import type { MoveTarget } from '@shared/bridge'
 import { api, messageOf } from '../../api/client'
-import { Banner, Button, Card, EmptyState, Select, Sidebar, Spinner, TextField, Toolbar } from '../../design'
+import { Banner, Button, Card, EmptyState, Sidebar, Spinner, TextField, Toolbar } from '../../design'
 import { useNav } from '../../state/nav'
 import { CandidateSheet } from './CandidateSheet'
 import { CutoffPopover } from './CutoffPopover'
 import { ExportSheet } from './ExportSheet'
+import { MOVE_TARGETS, MoveSheet, isMoveTarget } from './MoveSheet'
 import { NeedsAttention } from './NeedsAttention'
-import { ResultList } from './ResultList'
+import { ResultList, type SortColumn, type SortOrder } from './ResultList'
 import './results.css'
 
 type BucketId = 'shortlisted' | 'cutoff' | 'rejected' | 'failed' | 'filtered'
-type Sort = 'rank' | 'score' | 'name'
 
 const TITLES: Record<BucketId, string> = {
   shortlisted: 'Shortlisted',
@@ -71,7 +74,10 @@ export function Results({ runId }: { runId: number }) {
   const client = useQueryClient()
   const [bucket, setBucket] = useState<BucketId>('shortlisted')
   const [search, setSearch] = useState('')
-  const [sort, setSort] = useState<Sort>('rank')
+  // The column asked for; `order: null` = that column's own first direction (the engine's choice).
+  const [sort, setSort] = useState<{ column: SortColumn; order: SortOrder | null }>({ column: 'rank', order: null })
+  const [selected, setSelected] = useState<number[]>([])
+  const [moving, setMoving] = useState<{ rows: ResultRowOut[]; to: MoveTarget } | null>(null)
   const [preview, setPreview] = useState<CutoffsOut | null>(null)
   const [cutoffsOpen, setCutoffsOpen] = useState(false)
   const [exportOpen, setExportOpen] = useState(false)
@@ -98,7 +104,7 @@ export function Results({ runId }: { runId: number }) {
     queryFn: () =>
       api('GET /runs/{run_id}/results', {
         params: { run_id: runId },
-        query: { ...cutoffQuery, bucket, q, sort, limit: 5000 },
+        query: { ...cutoffQuery, bucket, q, sort: sort.column, order: sort.order ?? undefined, limit: 5000 },
       }),
     placeholderData: keepPreviousData,
   })
@@ -122,6 +128,11 @@ export function Results({ runId }: { runId: number }) {
   const saved = summary.data?.saved_cutoffs
   const rows = list.data?.rows ?? []
   const status = run.data?.status ?? 'completed'
+  // Only rows on screen count as selected (a search or a move can hide some).
+  const visibleSelected = useMemo(() => {
+    const shown = new Set(rows.map((row) => row.candidate_id))
+    return selected.filter((id) => shown.has(id))
+  }, [rows, selected])
 
   const sections = useMemo(
     () => [
@@ -157,10 +168,42 @@ export function Results({ runId }: { runId: number }) {
 
   const empty = EMPTY[bucket]
   const openRow = (row: ResultRowOut): void => setOpen(row.candidate_id)
+  const sorted = list.data ? { column: list.data.sort, order: list.data.order } : undefined
+  const sortBy = (column: SortColumn): void =>
+    setSort(
+      sorted?.column === column
+        ? { column, order: sorted.order === 'asc' ? 'desc' : 'asc' } // clicked again: reverse
+        : { column, order: null },
+    )
+  const rowsFor = (ids: number[]): ResultRowOut[] => {
+    const wanted = new Set(ids)
+    return rows.filter((row) => wanted.has(row.candidate_id))
+  }
+  const otherBuckets = (from: string): MoveTarget[] => MOVE_TARGETS.filter((target) => target !== from)
+  const showMenu = async (row: ResultRowOut, ids: number[]): Promise<void> => {
+    const chosen = rowsFor(ids)
+    const choice = await window.atlas.menus.resultRows({
+      raNumbers: chosen.map((r) => r.ra_number),
+      moveTargets: isMoveTarget(row.bucket) ? otherBuckets(row.bucket) : [],
+      details: true,
+    })
+    if (choice?.action === 'details') setOpen(row.candidate_id)
+    if (choice?.action === 'move') setMoving({ rows: chosen, to: choice.to })
+  }
+  const selectedRows = visibleSelected.length > 1 ? rowsFor(visibleSelected) : []
+  const movableFrom = selectedRows[0] && isMoveTarget(selectedRows[0].bucket) ? selectedRows[0].bucket : null
 
   return (
     <div className="results">
-      <Sidebar label="Buckets" sections={sections} selected={bucket} onSelect={setBucket} />
+      <Sidebar
+        label="Buckets"
+        sections={sections}
+        selected={bucket}
+        onSelect={(next) => {
+          setBucket(next)
+          setSelected([])
+        }}
+      />
       <div className="results-main">
         <Toolbar
           title={run.data.name}
@@ -179,19 +222,6 @@ export function Results({ runId }: { runId: number }) {
                   value={search}
                   onChange={setSearch}
                   placeholder="Search name or RA"
-                />
-              </div>
-              <div className="results-sort">
-                <Select
-                  label="Sort"
-                  hideLabel
-                  value={sort}
-                  onChange={setSort}
-                  options={[
-                    { value: 'rank', label: 'Sort by rank' },
-                    { value: 'score', label: 'Sort by score' },
-                    { value: 'name', label: 'Sort by name' },
-                  ]}
                 />
               </div>
               <Button ref={anchor} size="small" icon={SlidersHorizontal} onClick={() => setCutoffsOpen(true)}>
@@ -221,9 +251,28 @@ export function Results({ runId }: { runId: number }) {
         )}
         <div className="results-head">
           <h2>{TITLES[bucket]}</h2>
-          <span className="atl-footnote atl-secondary" aria-live="polite">
-            {q ? `${list.data?.total ?? 0} matching “${q}”` : ''}
-          </span>
+          {selectedRows.length > 1 ? (
+            <div className="results-selection" role="group" aria-label="Selected candidates">
+              <span className="atl-callout" aria-live="polite">
+                {selectedRows.length} selected
+              </span>
+              {movableFrom && (
+                <Button
+                  size="small"
+                  onClick={() => setMoving({ rows: selectedRows, to: otherBuckets(movableFrom)[0] as MoveTarget })}
+                >
+                  Move to…
+                </Button>
+              )}
+              <Button size="small" variant="plain" onClick={() => setSelected([])}>
+                Deselect
+              </Button>
+            </div>
+          ) : (
+            <span className="atl-footnote atl-secondary" aria-live="polite">
+              {q ? `${list.data?.total ?? 0} matching “${q}”` : ''}
+            </span>
+          )}
         </div>
 
         {bucket === 'failed' ? (
@@ -257,10 +306,16 @@ export function Results({ runId }: { runId: number }) {
           </div>
         ) : (
           <ResultList
+            key={bucket}
             rows={rows}
             label={`${TITLES[bucket]} candidates`}
             onOpen={openRow}
             variant={bucket === 'filtered' ? 'filtered' : 'scored'}
+            sorted={sorted}
+            onSort={sortBy}
+            selected={visibleSelected}
+            onSelect={setSelected}
+            onMenu={(row, ids) => void showMenu(row, ids)}
           />
         )}
       </div>
@@ -293,6 +348,16 @@ export function Results({ runId }: { runId: number }) {
         onClose={() => setExportOpen(false)}
       />
       <CandidateSheet runId={runId} candidateId={open} onClose={() => setOpen(null)} />
+      <MoveSheet
+        runId={runId}
+        rows={moving?.rows ?? []}
+        initial={moving?.to ?? 'shortlisted'}
+        onClose={() => setMoving(null)}
+        onMoved={() => {
+          setMoving(null)
+          setSelected([])
+        }}
+      />
     </div>
   )
 }

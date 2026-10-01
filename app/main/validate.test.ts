@@ -9,6 +9,7 @@ import {
   validateFolderTarget,
   validateNotification,
   validateRunId,
+  validateRowMenu,
   validateRunIdOrNull,
   validateTheme,
   validateUploadSource,
@@ -140,6 +141,35 @@ describe('small validators', () => {
     expect(validateNotification({ title: 'Done', body: 'x'.repeat(1000) }).body).toHaveLength(400)
     expect(() => validateNotification({ title: '', body: '' })).toThrow(InvalidArgument)
     expect(() => validateNotification(null)).toThrow(InvalidArgument)
+  })
+})
+
+describe('validateRowMenu', () => {
+  it('takes RA numbers to copy and buckets to offer', () => {
+    const request = { raNumbers: ['RA2311000003', 'RA 12/34'], moveTargets: ['cutoff', 'rejected'], details: true }
+    expect(validateRowMenu(request)).toEqual(request)
+    expect(validateRowMenu({ raNumbers: ['RA1'], moveTargets: [], details: false }).moveTargets).toEqual([])
+  })
+
+  it('refuses anything else', () => {
+    const good = { raNumbers: ['RA1'], moveTargets: ['cutoff'], details: true }
+    for (const bad of [
+      null,
+      'RA1',
+      { ...good, raNumbers: [] },
+      { ...good, raNumbers: 'RA1' },
+      { ...good, raNumbers: [1] },
+      { ...good, raNumbers: [''] },
+      { ...good, raNumbers: ['x'.repeat(65)] },
+      { ...good, raNumbers: ['RA1\nRA2'] },
+      { ...good, raNumbers: Array.from({ length: 5001 }, (_, i) => `RA${i}`) },
+      { ...good, moveTargets: ['failed'] },
+      { ...good, moveTargets: ['cutoff', 'cutoff'] },
+      { ...good, moveTargets: 'cutoff' },
+      { ...good, details: 'yes' },
+    ]) {
+      expect(() => validateRowMenu(bad), JSON.stringify(bad)?.slice(0, 60)).toThrow(InvalidArgument)
+    }
   })
 })
 

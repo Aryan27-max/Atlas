@@ -7,7 +7,7 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { expect, test } from '@playwright/test'
 import { APP_DIR, type Launched, close } from './helpers'
-import { SCREENS_DIR, capture } from './screens'
+import { PHASE3_SCREENS_DIR, capture } from './screens'
 import { type Stubs, launchWithStubs, recordShellOpens, shellOpened, startStubs } from './stubs'
 
 test.describe.configure({ mode: 'serial' })
@@ -139,7 +139,7 @@ test('screenshots with a screening listed', async () => {
     await capture(page, 'settings', theme)
     await page.getByRole('heading', { name: 'Data' }).scrollIntoViewIfNeeded()
     await page.waitForTimeout(200)
-    await page.screenshot({ path: join(SCREENS_DIR, `settings-data-${theme}.png`), animations: 'disabled' })
+    await page.screenshot({ path: join(PHASE3_SCREENS_DIR, `settings-data-${theme}.png`), animations: 'disabled' })
   }
   await appearance.getByRole('radio', { name: 'System' }).click()
 })
@@ -185,7 +185,7 @@ test('delete all data: typed confirmation, then a fresh start', async () => {
   for (const theme of ['light', 'dark'] as const) {
     await page.evaluate((t) => (document.documentElement.dataset.theme = t), theme)
     await page.waitForTimeout(200)
-    await page.screenshot({ path: join(SCREENS_DIR, `delete-all-${theme}.png`), animations: 'disabled' })
+    await page.screenshot({ path: join(PHASE3_SCREENS_DIR, `delete-all-${theme}.png`), animations: 'disabled' })
   }
   await page.evaluate(() => (document.documentElement.dataset.theme = 'dark'))
   await sheet.getByLabel('Type DELETE to confirm').fill('delet')

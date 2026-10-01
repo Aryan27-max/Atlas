@@ -62,6 +62,9 @@ const atlas: AtlasBridge = {
   notifications: {
     show: (notification) => ipcRenderer.invoke(Channels.notify, notification),
   },
+  menus: {
+    resultRows: (request) => ipcRenderer.invoke(Channels.rowMenu, request),
+  },
 }
 
 contextBridge.exposeInMainWorld('atlas', atlas)

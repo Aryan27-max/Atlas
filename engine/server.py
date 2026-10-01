@@ -606,7 +606,8 @@ class Engine:
                                overrides=self.db.latest_overrides(run_id))
 
     def results(self, run_id: int, *, shortlist: int | None, band: int | None, minimum: int | None,
-                bucket: str, q: str, sort: str, offset: int, limit: int) -> m.ResultsOut:
+                bucket: str, q: str, sort: str, offset: int, limit: int,
+                order: str | None = None) -> m.ResultsOut:
         run = self.db.get_run(run_id)
         saved = (run["shortlist_cutoff"], run["maybe_cutoff"], run["min_shortlist"])
         cut = (saved[0] if shortlist is None else shortlist, saved[1] if band is None else band,
@@ -644,13 +645,8 @@ class Engine:
         needle = q.casefold().strip()
         if needle:
             out = [row for row in out if needle in row.name.casefold() or needle in row.ra_number.casefold()]
-        if sort == "name":
-            # Rows without a name go last, not first.
-            out.sort(key=lambda row: (not row.name.strip(), row.name.casefold(), row.ra_number))
-        elif sort == "score":
-            out.sort(key=lambda row: (row.score is None, -(row.score or 0), row.ra_number))
-        else:
-            out.sort(key=lambda row: (row.rank is None, row.rank or 0, row.ra_number, row.candidate_id))
+        order = order or FIRST_ORDER[sort]
+        out = sort_rows(out, sort, order)
 
         failed = [r for r in rows if r["state"] == "failed"]
         return m.ResultsOut(
@@ -667,7 +663,7 @@ class Engine:
             tie_extra=live.tie_extra, shortfall=live.shortfall,
             failure_groups=_failure_groups([{"failure_reason": r["failure_reason"], "failure_kind": r["failure_kind"]}
                                             for r in failed]),
-            bucket=bucket, total=len(out), offset=offset, limit=limit, rows=out[offset:offset + limit],
+            bucket=bucket, sort=sort, order=order, total=len(out), offset=offset, limit=limit, rows=out[offset:offset + limit],
         )
 
     def candidate(self, run_id: int, candidate_id: int) -> m.CandidateOut:
@@ -772,6 +768,29 @@ def preflight_out(report: PreflightReport) -> m.PreflightOut:
 
 def _issue(issue: Any) -> m.IssueOut:
     return m.IssueOut(row=issue.row, ra_number=issue.ra_number, code=issue.code, message=issue.message)
+
+
+# The direction a column sorts in when its header is first clicked: best first
+# for rank, score and CGPA; A to Z for names and departments.
+FIRST_ORDER: dict[str, str] = {"rank": "asc", "score": "desc", "cgpa": "desc", "name": "asc", "department": "asc"}
+
+_SORT_VALUE: dict[str, Callable[[m.ResultRowOut], Any]] = {
+    "rank": lambda row: row.rank,
+    "score": lambda row: row.score,
+    "cgpa": lambda row: row.cgpa,
+    "name": lambda row: row.name.strip().casefold() or None,
+    "department": lambda row: row.department.strip().casefold() or None,
+}
+
+
+def sort_rows(rows: list[m.ResultRowOut], column: str, order: str) -> list[m.ResultRowOut]:
+    """Rows sorted by one column. Rows without a value (no name, no CGPA, not
+    ranked) go last in either direction; ties keep RA-number order."""
+    value = _SORT_VALUE[column]
+    known = sorted((row for row in rows if value(row) is not None), key=lambda row: (row.ra_number, row.candidate_id))
+    unknown = sorted((row for row in rows if value(row) is None), key=lambda row: (row.ra_number, row.candidate_id))
+    known.sort(key=value, reverse=order == "desc")      # stable: equal values stay in RA order
+    return known + unknown
 
 
 def _failure_groups(rows: Iterable[dict[str, Any]]) -> list[m.FailureGroupOut]:
@@ -1125,12 +1144,13 @@ def create_app(engine: Engine | None = None, *, token: str = "", port: int = 0) 
         min: int | None = Query(default=None, ge=0, le=100000),  # noqa: A002 — the API's parameter name
         bucket: Literal["all", "shortlisted", "cutoff", "rejected", "failed", "filtered", "not_scored"] = "all",
         q: str = Query(default="", max_length=200),
-        sort: Literal["rank", "score", "name"] = "rank",
+        sort: m.SortColumn = "rank",
+        order: m.SortOrder | None = None,                 # None: the column's own first direction
         offset: int = Query(default=0, ge=0),
         limit: int = Query(default=200, ge=1, le=5000),
     ) -> m.ResultsOut:
         return eng().results(run_id, shortlist=shortlist, band=band, minimum=min, bucket=bucket, q=q, sort=sort,
-                             offset=offset, limit=limit)
+                             order=order, offset=offset, limit=limit)
 
     @app.get("/runs/{run_id}/candidates/{candidate_id}", response_model=m.CandidateOut)
     def run_candidate(run_id: int, candidate_id: int) -> m.CandidateOut:

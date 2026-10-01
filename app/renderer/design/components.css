@@ -622,6 +622,19 @@ html[data-platform='win32'] .atl-toolbar--window-edge-right {
   box-shadow: var(--shadow-2);
   outline: 0.5px solid var(--separator);
 }
+/* The arrow sits on the top edge; its base overlaps the edge by 1 px to hide the outline there. */
+.atl-popover-arrow {
+  position: absolute;
+  top: -9px;
+  overflow: visible;
+  pointer-events: none;
+}
+.atl-popover-arrow path {
+  fill: var(--material-thick);
+  stroke: var(--separator);
+  stroke-width: 0.5;
+  stroke-linejoin: round;
+}
 .atl-alert {
   width: 300px;
   padding: var(--space-6) var(--space-5) var(--space-5);

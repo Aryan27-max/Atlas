@@ -77,7 +77,7 @@ test('the token never reaches the renderer', async () => {
       ].join('\n'),
     }
   })
-  expect(seen.keys).toEqual(['api', 'app', 'events', 'files', 'notifications'])
+  expect(seen.keys).toEqual(['api', 'app', 'events', 'files', 'menus', 'notifications'])
   expect(seen.text).not.toContain(token)
   expect(seen.text.toLowerCase()).not.toContain('bearer')
 })

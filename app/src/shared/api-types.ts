@@ -325,10 +325,12 @@ export interface ResultsOut {
   limit: number
   notes: string[]
   offset: number
+  order: "asc" | "desc"
   rows: ResultRowOut[]
   run_id: number
   saved_cutoffs: CutoffsOut
   shortfall: number
+  sort: "rank" | "name" | "department" | "cgpa" | "score"
   status: "draft" | "running" | "paused" | "completed" | "cancelled"
   tie_extra: number
   total: number
@@ -589,7 +591,7 @@ export interface ApiRoutes {
   }
   "GET /runs/{run_id}/results": {
     params: { run_id: number }
-    query: { band?: number | null; bucket?: "all" | "shortlisted" | "cutoff" | "rejected" | "failed" | "filtered" | "not_scored"; limit?: number; min?: number | null; offset?: number; q?: string; shortlist?: number | null; sort?: "rank" | "score" | "name" }
+    query: { band?: number | null; bucket?: "all" | "shortlisted" | "cutoff" | "rejected" | "failed" | "filtered" | "not_scored"; limit?: number; min?: number | null; offset?: number; order?: "asc" | "desc" | null; q?: string; shortlist?: number | null; sort?: "rank" | "name" | "department" | "cgpa" | "score" }
     body: never
     response: ResultsOut
   }

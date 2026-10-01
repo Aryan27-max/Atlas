@@ -142,6 +142,23 @@ export function Sheet({ open, onClose, title, description, children, footer, siz
 
 // ------------------------------------------------------------------- Popover
 
+const ARROW_WIDTH = 20
+const ARROW_HEIGHT = 9
+const ARROW_INSET = 16 // keep the arrow clear of the rounded corners
+
+/** Where the arrow sits, measured from the popover's aligned edge (right for `end`, left for `start`). */
+export function arrowOffset(
+  anchor: { left: number; width: number },
+  edge: number,
+  align: 'start' | 'end',
+  popoverWidth: number,
+): number {
+  const centre = anchor.left + anchor.width / 2
+  const fromEdge = align === 'end' ? edge - centre : centre - edge
+  const max = Math.max(ARROW_INSET, popoverWidth - ARROW_INSET)
+  return Math.min(max, Math.max(ARROW_INSET, fromEdge)) - ARROW_WIDTH / 2
+}
+
 export interface PopoverProps {
   open: boolean
   onClose: () => void
@@ -156,16 +173,22 @@ export interface PopoverProps {
 export function Popover({ open, onClose, anchor, label, children, align = 'end', width }: PopoverProps) {
   const ref = useRef<HTMLDivElement>(null)
   const [position, setPosition] = useState<{ top: number; left?: number; right?: number }>({ top: 0 })
+  const [arrow, setArrow] = useState(ARROW_INSET)
   useModal(open, ref, onClose)
   useLayoutEffect(() => {
     if (!open || !anchor.current) return
     const rect = anchor.current.getBoundingClientRect()
-    setPosition(
-      align === 'end'
-        ? { top: rect.bottom + 8, right: Math.max(8, window.innerWidth - rect.right) }
-        : { top: rect.bottom + 8, left: Math.max(8, rect.left) },
-    )
-  }, [open, anchor, align])
+    const top = rect.bottom + ARROW_HEIGHT + 4
+    if (align === 'end') {
+      const right = Math.max(8, window.innerWidth - rect.right)
+      setPosition({ top, right })
+      setArrow(arrowOffset(rect, window.innerWidth - right, 'end', ref.current?.offsetWidth ?? width ?? 240))
+    } else {
+      const left = Math.max(8, rect.left)
+      setPosition({ top, left })
+      setArrow(arrowOffset(rect, left, 'start', ref.current?.offsetWidth ?? width ?? 240))
+    }
+  }, [open, anchor, align, width])
   useEffect(() => {
     if (!open) return
     const onDown = (event: MouseEvent): void => {
@@ -191,6 +214,18 @@ export function Popover({ open, onClose, anchor, label, children, align = 'end',
           exit={{ opacity: 0, y: -4, scale: 0.98 }}
           transition={gentle}
         >
+          {/* Points at the button that opened it, like a native popover. */}
+          <svg
+            className="atl-popover-arrow"
+            data-testid="popover-arrow"
+            aria-hidden
+            width={ARROW_WIDTH}
+            height={ARROW_HEIGHT + 1}
+            viewBox={`0 0 ${ARROW_WIDTH} ${ARROW_HEIGHT + 1}`}
+            style={align === 'end' ? { right: arrow } : { left: arrow }}
+          >
+            <path d={`M0 ${ARROW_HEIGHT + 1} L${ARROW_WIDTH / 2} 0.5 L${ARROW_WIDTH} ${ARROW_HEIGHT + 1}`} />
+          </svg>
           {children}
         </motion.div>
       )}
