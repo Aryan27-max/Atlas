@@ -15,7 +15,9 @@ Whose problem is it? (§8)
 * ``CandidateError``   → ``mark_failed(kind, reason)``; the run goes on.
 * ``SystemUnavailable`` → put the work back, pause the run with the reason.
 * ``TransientError``    → ask the health probe. Machine down → as above.
-  Machine fine → this candidate fails as retryable.
+  Machine fine → ask again ``recheck_delay`` seconds later (an outage that
+  is just starting can look healthy for a moment); fine both times → this
+  candidate fails as retryable.
 * anything else (a bug) → logged with a traceback, the candidate fails as
   retryable, the run goes on — unless the *same* bug hits 5 candidates in a
   row, then the run pauses instead of failing everyone.
@@ -103,6 +105,7 @@ class Worker:
         poll_interval: float = 5.0,
         idle_interval: float = 0.2,
         repeated_error_limit: int = 5,
+        recheck_delay: float = 5.0,     # the probe's own rhythm (as poll_interval)
     ) -> None:
         self.db = db
         self.data_dir = Path(data_dir)
@@ -116,6 +119,7 @@ class Worker:
         self.poll_interval = poll_interval
         self.idle_interval = idle_interval
         self.repeated_error_limit = repeated_error_limit
+        self.recheck_delay = recheck_delay
 
         self._run_id: int | None = None
         self._scorer: ScorerLike | None = None
@@ -612,16 +616,33 @@ class Worker:
         self._success(stage)   # a *handled* failure breaks a run of unexpected errors
 
     def _transient(self, stage: str, cid: int, exc: TransientError, give_back: Callable[[int], None]) -> None:
-        if exc.probe == "internet":
-            problem = self._internet_problem()
+        what = exc.detail or exc.reason
+        problem = self._system_problem(exc.probe)
+        if problem is not None:
+            log.info("candidate %d: %s; the probe says: %s", cid, what, problem)
         else:
-            problem = None if self.health.ollama_ok() else Pause.OLLAMA_DOWN
-        if problem is None:
-            log.info("candidate %d: %s (probe ok, so it's this candidate)", cid, exc.detail or exc.reason)
-            self._fail(stage, cid, "retryable", exc.reason)
-        else:
-            give_back(cid)
-            self._pause_system(problem)
+            # One healthy answer is one instant. An outage that is just starting
+            # can still look healthy (the network half down, a server closing:
+            # TCP connects, nothing answers), so look again before blaming the
+            # student (rule 5). The student is not downloaded again here.
+            if self._stop.wait(self.recheck_delay):
+                give_back(cid)          # stopping: decide nothing
+                return
+            problem = self._system_problem(exc.probe)
+            if problem is None:
+                log.info("candidate %d: %s (probe ok twice, so it's this candidate)", cid, what)
+                self._fail(stage, cid, "retryable", exc.reason)
+                return
+            log.info("candidate %d: %s; the probe looked fine, then %.1f s later: %s (not the student's fault)",
+                     cid, what, self.recheck_delay, problem)
+        give_back(cid)
+        self._pause_system(problem)
+
+    def _system_problem(self, probe: str) -> str | None:
+        """The pause reason for the part of the system ``probe`` names, or ``None``."""
+        if probe == "internet":
+            return self._internet_problem()
+        return None if self.health.ollama_ok() else Pause.OLLAMA_DOWN
 
     def _internet_problem(self) -> str | None:
         """The internet pause reason, or ``None``; captive portals if the probe can tell."""

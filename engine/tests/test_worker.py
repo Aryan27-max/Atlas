@@ -142,12 +142,15 @@ class FakeHealth:
         self.captive = False
         self.ollama = True
         self.checks: list[str] = []
+        self.answers: list[str | None] = []   # scripted internet answers, used first
 
     def internet_ok(self) -> bool:
         return self.internet_problem() is None
 
     def internet_problem(self) -> str | None:
         self.checks.append("internet")
+        if self.answers:
+            return self.answers.pop(0)
         if not self.internet:
             return Pause.NO_INTERNET
         return Pause.CAPTIVE_PORTAL if self.captive else None
@@ -199,7 +202,7 @@ class WorkerTestCase(unittest.TestCase):
         self._tmp.cleanup()
 
     def worker(self, **kwargs: Any) -> Worker:
-        options = {"clock": self.clock, "idle_interval": 0.005, "poll_interval": 5.0, **kwargs}
+        options = {"clock": self.clock, "idle_interval": 0.005, "poll_interval": 5.0, "recheck_delay": 0.01, **kwargs}
         worker = Worker(self.db, self.dir, self.downloader, self.extractor, lambda run: self.scorer,
                         self.health, **options)
         self.workers.append(worker)
@@ -436,6 +439,47 @@ class SystemProblemTests(WorkerTestCase):
         failed = self.db.get_candidate(ids[1])
         self.assertEqual((failed["failure_kind"], failed["failure_reason"]), ("retryable", Reason.UNREACHABLE))
         self.assertIn("internet", self.health.checks)
+
+    def test_an_outage_that_is_just_starting_pauses_instead_of_failing_the_student(self) -> None:
+        # The demo flake (docs/summaries/demo-outage-race.md): the Drive stub was
+        # closing, one download got a connection error, and the probe 2 ms later
+        # still looked healthy (TCP connected, nothing answered). The student was
+        # failed as retryable; the next download paused the run. Rule 5: a
+        # system problem never fails a student.
+        run_id, ids = self.make_run(12)
+
+        def outage_starts() -> None:
+            self.downloader.online = False
+            self.health.internet = False
+            self.health.answers.append(None)          # the first look still says "fine"
+            raise TransientError("internet", Reason.TIMEOUT, "connection error")
+
+        self.downloader.actions[LINK.format(5)] = outage_starts
+        worker = self.worker()
+        with self.assertLogs("atlas.worker", "INFO") as logs:
+            worker.start(run_id)
+            self.wait_until(lambda: self.status(run_id) == ("paused", Pause.NO_INTERNET), what="network pause")
+            self.assertTrue(worker.wait_idle(5))
+        self.assertTrue(any("the probe looked fine, then" in line for line in logs.output), logs.output)
+        self.assertNotIn("failed", self.counts(run_id))
+        self.assertEqual(self.db.get_candidate(ids[4])["state"], "queued")
+        self.assertEqual(self.health.checks[:2], ["internet", "internet"])
+
+        del self.downloader.actions[LINK.format(5)]
+        self.downloader.online = True
+        self.health.internet = True
+        self.clock.advance(5.0)
+        self.wait_until(lambda: self.status(run_id)[0] == "completed", what="auto-resume and completion")
+        self.assertEqual(self.counts(run_id), {"scored": 12})
+
+    def test_a_student_is_blamed_only_when_the_probe_is_healthy_twice(self) -> None:
+        run_id, ids = self.make_run(3)
+        self.downloader.actions[LINK.format(2)] = TransientError("internet", Reason.TIMEOUT, "connection error")
+        self.worker().start(run_id)
+        self.wait_until(lambda: self.status(run_id)[0] == "completed")
+        self.assertEqual(self.counts(run_id), {"scored": 2, "failed": 1})
+        self.assertEqual(self.db.get_candidate(ids[1])["failure_kind"], "retryable")
+        self.assertEqual(self.health.checks.count("internet"), 2)
 
     def test_paused_by_user_never_resumes_on_its_own(self) -> None:
         run_id, _ = self.make_run(30)
