@@ -50,6 +50,13 @@
   max-width: 460px;
   margin-top: var(--space-2);
 }
+/* The app's logo above the greeting (renderer/assets/brand/logo.svg). */
+.welcome-logo {
+  display: block;
+  width: 56px;
+  height: 56px;
+  margin-bottom: var(--space-3);
+}
 .resume-card .atl-card-body {
   display: flex;
   flex-direction: column;

@@ -49,6 +49,8 @@ export interface IpcContext {
   logsDir: string
   info: AppInfo
   setTheme: (theme: 'system' | 'light' | 'dark') => void
+  /** Atlas's icon for notifications on Windows (main/brand.ts), if there is one. */
+  notificationIcon?: string | null
   /** After a successful PUT /settings or DELETE /data. */
   onSettingsChanged?: () => void
 }
@@ -244,7 +246,8 @@ export function registerIpc(ctx: IpcContext): void {
 
   handle(Channels.notify, (_event, request) => {
     const note = validateNotification(request)
-    if (Notification.isSupported()) new Notification({ title: note.title, body: note.body }).show()
+    const icon = ctx.notificationIcon ? { icon: ctx.notificationIcon } : {}
+    if (Notification.isSupported()) new Notification({ title: note.title, body: note.body, ...icon }).show()
     return true
   })
 }

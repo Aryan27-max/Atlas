@@ -22,6 +22,7 @@ import {
 } from 'electron'
 import type { AppInfo, NavigateTarget, Theme } from '@shared/bridge'
 import { Channels } from '@shared/bridge'
+import { iconPath } from './brand'
 import { EngineProcess, engineCommand } from './engine'
 import { registerIpc } from './ipc'
 import { RunWatcher, type RunStatus } from './runs'
@@ -33,6 +34,13 @@ const isMac = process.platform === 'darwin'
 const isWin = process.platform === 'win32'
 const devServer = !app.isPackaged ? (process.env.ELECTRON_RENDERER_URL ?? null) : null
 const e2e = !app.isPackaged && process.env.ATLAS_E2E === '1'
+
+// Atlas's icon at run time (main/brand.ts). The exe and the .app bundle carry it
+// themselves when packaged; the window and notifications on Windows, and the Dock
+// in development on a Mac, are given it here.
+const iconPlace = { packaged: app.isPackaged, resourcesPath: process.resourcesPath, from: __dirname }
+const windowIcon = isWin ? iconPath('icon.ico', iconPlace) : null
+const notificationIcon = isWin ? iconPath('icon-256.png', iconPlace) : null
 
 if (!app.isPackaged && process.env.ATLAS_USER_DATA) app.setPath('userData', process.env.ATLAS_USER_DATA)
 if (isWin) app.setAppUserModelId('com.atlas.screening')
@@ -59,7 +67,8 @@ const watcher = new RunWatcher({
     stop: (id) => powerSaveBlocker.stop(id),
   },
   notify: (title, body) => {
-    if (Notification.isSupported()) new Notification({ title, body }).show()
+    if (Notification.isSupported())
+      new Notification({ title, body, ...(notificationIcon ? { icon: notificationIcon } : {}) }).show()
   },
   windowFocused: () => window?.isFocused() ?? false,
 })
@@ -114,6 +123,7 @@ function createWindow(): void {
     minHeight: MIN_HEIGHT,
     show: false,
     title: 'Atlas',
+    ...(windowIcon ? { icon: windowIcon } : {}),
     backgroundColor: material ? '#00000000' : nativeTheme.shouldUseDarkColors ? '#1c1c1e' : '#f5f5f7',
     ...(isMac
       ? {
@@ -272,6 +282,11 @@ if (!app.requestSingleInstanceLock()) {
 
   void app.whenReady().then(() => {
     hardenSession(session.defaultSession, devServer)
+    // Packaged, the Dock shows the bundle's icon; in development it would be Electron's.
+    if (isMac && !app.isPackaged) {
+      const dockIcon = iconPath('icon-mac.png', iconPlace)
+      if (dockIcon) app.dock?.setIcon(dockIcon)
+    }
     const info: AppInfo = {
       platform: process.platform === 'darwin' || process.platform === 'win32' ? process.platform : 'linux',
       version: __ATLAS_VERSION__,
@@ -286,6 +301,7 @@ if (!app.requestSingleInstanceLock()) {
       logsDir: join(userData, 'logs'),
       info,
       setTheme,
+      notificationIcon,
       onSettingsChanged: () => void watcher.preferencesChanged(),
     })
     buildMenu()

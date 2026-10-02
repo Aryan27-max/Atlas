@@ -28,6 +28,13 @@
 .settings-note {
   margin: var(--space-3) 0 0;
 }
+/* The app's logo at the top of About (renderer/assets/brand/logo.svg). */
+.about-logo {
+  display: block;
+  width: 64px;
+  height: 64px;
+  margin-bottom: var(--space-4);
+}
 .settings-model {
   max-width: 360px;
 }

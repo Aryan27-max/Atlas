@@ -217,6 +217,8 @@ cd app && npm run dist -- -c.mac.identity=- -c.mac.hardenedRuntime=false     # u
 - `EPERM`/`EBUSY` on `app\dist\…\default_app.asar` → **VS Code has the repository open** and keeps `.asar` files it looked at open. Build outside the repository: `npx electron-builder --config electron-builder.yml --publish never -c.directories.output=$env:TEMP\atlas-dist`, then run the packaged test with `$env:ATLAS_PACKAGED_DIR = "$env:TEMP\atlas-dist"`.
 - `spawn UNKNOWN` at the NSIS step → **Windows Smart App Control** refused electron-builder's unsigned helper. Build in CI or with a signing certificate; don't turn Smart App Control off on someone's laptop to get past it.
 
+**The app icon** comes from `app/renderer/assets/brand/logo.svg`. After changing the logo, re-render the icons before building, from the repository root: `node packaging/icons/render-icons.mjs` (check without writing: `--check`). It draws with the Electron already in `app/node_modules`; see [packaging/icons/README.md](packaging/icons/README.md).
+
 **Unsigned builds:** Windows shows SmartScreen's "Windows protected your PC" (*More info → Run anyway*); with Smart App Control on, an unsigned installer may not run at all. macOS needs System Settings → Privacy & Security → *Open Anyway*. Signing comes only from environment variables (`CSC_LINK`, `CSC_KEY_PASSWORD`, `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD`, `APPLE_TEAM_ID`): see [docs/SIGNING.md](docs/SIGNING.md).
 
 ---

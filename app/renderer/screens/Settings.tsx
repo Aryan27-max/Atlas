@@ -29,6 +29,7 @@ import {
   Toolbar,
   useToast,
 } from '../design'
+import logoUrl from '../assets/brand/logo.svg'
 import { formatBytes, formatDate, plural } from '../format'
 import { useNav } from '../state/nav'
 import { STATUS } from './Welcome'
@@ -416,6 +417,7 @@ function About(props: {
         </Button>
       }
     >
+      <img className="about-logo" src={logoUrl} alt="Atlas" width={64} height={64} draggable={false} />
       <KeyValue
         items={[
           { key: 'Atlas', value: info.data?.version ?? '–' },

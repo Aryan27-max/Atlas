@@ -1,3 +1,5 @@
+<p align="center"><img src="app/renderer/assets/brand/logo.svg" width="128" height="128" alt="Atlas"></p>
+
 # Atlas: private, on-device résumé screening for campus hiring
 
 ## What it does

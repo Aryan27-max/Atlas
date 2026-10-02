@@ -54,6 +54,7 @@ atlas/
 │   ├── legacy/UNDERSTANDING.md   ← how the old QWENTUS CLI worked + its bugs
 │   └── summaries/       ← per-step summaries, PHASE*_SUMMARY.md, CHANGELOG.md
 ├── legacy/qwentus/      ← old source, REFERENCE ONLY, never import
+├── Public_assets/       ← the supplied brand SVGs, unmodified, never edit (Apple trademarks; the app uses sanitised copies)
 ├── engine/              ← Python: all logic
 │   ├── db.py            ← SQLite, state machine, crash recovery        [done]
 │   ├── buckets.py       ← view-time bucketing, min fill, ties          [done]
@@ -75,12 +76,13 @@ atlas/
 │   ├── filters.py       ← CGPA/department filter rule (worker + preview) [done]
 │   ├── tools/           ← graph_audit, graph_query, leak_check (counts only), speed_bench, troubleshooting (writes docs/TROUBLESHOOTING.md) [done]
 │   └── tests/           ← unittest; stubs/ = local fake Drive + Ollama; fixtures.py = generated PDFs
-├── packaging/           ← PyInstaller engine.spec, build_engine.py + smoke_engine.py, check_licenses.py, icons/ (placeholder), mac entitlements [done]
+├── packaging/           ← PyInstaller engine.spec, build_engine.py + smoke_engine.py, check_licenses.py, icons/ (rendered from the logo by render-icons.mjs), mac entitlements [done]
 ├── .github/workflows/ci.yml ← test (Windows + macOS) and build (installers) jobs; .python-version = 3.12 [done]
 └── app/                 ← Electron + React (Phase 2)
     ├── main/            ← engine process, IPC validation, SSE, window, keep-awake, native menus [done]
     ├── preload/         ← window.atlas bridge (no token, sandboxed)     [done]
     ├── renderer/design/ ← tokens.css + components + #/design gallery   [done]
+    ├── renderer/assets/brand/ ← logo.svg + hello.svg (sanitised, <img src> only) [done]
     ├── renderer/screens/← Welcome, setup flow, Progress, Results, Settings [done]
     ├── src/shared/      ← api-schema.json → api-types.ts (generated), bridge.ts [done]
     └── e2e/, tests/     ← Playwright (Electron: flows, keyboard, perf, full screen) and Vitest [done]

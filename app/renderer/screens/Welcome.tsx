@@ -27,6 +27,7 @@ import {
   Toolbar,
   useToast,
 } from '../design'
+import logoUrl from '../assets/brand/logo.svg'
 import { defaultRunName, formatDate, greeting, plural } from '../format'
 import { useNav, viewForRun } from '../state/nav'
 import { PullSheet } from './setup/ModelPicker'
@@ -84,6 +85,7 @@ export function Welcome() {
         <main className="screen-column">
           <div className="welcome-hero">
             <div>
+              <img className="welcome-logo" src={logoUrl} alt="Atlas" width={56} height={56} draggable={false} />
               <h1 className="atl-large-title">{greeting()}</h1>
               <p className="atl-body atl-secondary">
                 Atlas reads student résumés on this computer and sorts them into Shortlisted, Cutoff and Rejected.

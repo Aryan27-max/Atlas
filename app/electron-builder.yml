@@ -34,6 +34,16 @@ extraResources:
     to: engine
     filter:
       - '**/*'
+  # The window icon (Windows) and the notification icon at run time
+  # (app/main/brand.ts reads them from <resources>/icons/).
+  - from: ../packaging/icons
+    to: icons
+    filter:
+      - icon.ico
+      - icon-256.png
+
+# Icons are rendered from app/renderer/assets/brand/logo.svg by
+# packaging/icons/render-icons.mjs (see packaging/icons/README.md).
 
 asar: true
 
@@ -46,7 +56,8 @@ win:
     - target: nsis
       arch:
         - x64
-  icon: ../packaging/icons/icon.png
+  # 16-256 px drawn from the vector: crisp in the taskbar, Explorer and Start menu.
+  icon: ../packaging/icons/icon.ico
   artifactName: Atlas-Setup-${version}-x64.${ext}
 
 # One-click, per-user: installs into the recruiter's own profile
@@ -60,13 +71,17 @@ nsis:
   createStartMenuShortcut: true
   shortcutName: Atlas
   uninstallDisplayName: Atlas
+  installerIcon: ../packaging/icons/icon.ico
+  uninstallerIcon: ../packaging/icons/icon.ico
 
 # CI builds each architecture on a matching runner (the engine inside is
 # native code), so no arch is listed here: the default is this computer's.
 mac:
   target:
     - target: dmg
-  icon: ../packaging/icons/icon.png
+  # Apple's icon grid: the artwork at 824 px on a 1024 canvas, with a soft shadow.
+  # electron-builder makes the .icns; the DMG's volume icon is the app icon too.
+  icon: ../packaging/icons/icon-mac.png
   category: public.app-category.business
   hardenedRuntime: true
   gatekeeperAssess: false
