@@ -8,8 +8,9 @@
 #   Windows  CSC_LINK + CSC_KEY_PASSWORD           a code-signing certificate (.pfx)
 #   macOS    CSC_LINK + CSC_KEY_PASSWORD           a "Developer ID Application" certificate (.p12)
 #            APPLE_ID + APPLE_APP_SPECIFIC_PASSWORD + APPLE_TEAM_ID   notarisation (skipped when absent)
-# Unsigned macOS builds are ad-hoc signed instead:
-#   npx electron-builder --mac -c.mac.identity=- -c.mac.hardenedRuntime=false
+# Unsigned macOS builds are ad-hoc signed instead, with CSC_LINK *unset*: an empty
+# CSC_LINK is read as a file path (the app folder: "not a file"):
+#   CSC_IDENTITY_AUTO_DISCOVERY=false npx electron-builder --mac -c.mac.identity=- -c.mac.hardenedRuntime=false -c.mac.notarize=false
 
 appId: com.atlas.screening
 productName: Atlas

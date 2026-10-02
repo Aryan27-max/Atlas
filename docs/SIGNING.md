@@ -41,7 +41,10 @@ The build reads only environment variables. In GitHub: repository → **Settings
 | `APPLE_APP_SPECIFIC_PASSWORD` | the app-specific password | macOS notarisation |
 | `APPLE_TEAM_ID` | the 10-character Team ID | macOS notarisation |
 
-`.github/workflows/ci.yml` passes these to the build job only. With none set, the build is unsigned (Windows) or ad-hoc signed (macOS) and still produces installers; with them set, electron-builder signs, and on macOS notarises (it skips notarisation when `APPLE_ID` and friends are absent).
+`.github/workflows/ci.yml` passes these only to the build job's installer step: not to `npm ci`'s install scripts or the other steps. With none set, the build is unsigned (Windows) or ad-hoc signed (macOS) and still produces installers; with them set, electron-builder signs, and on macOS notarises when `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD` and `APPLE_TEAM_ID` are all set.
+- **Absent secrets.** A secret that doesn't exist reaches the step as an empty string. The step unsets every empty one first, because electron-builder reads an empty `CSC_LINK` on macOS as a file path: the build then failed with "…/app not a file".
+- **Unsigned macOS builds.** Without `CSC_LINK`, the step also sets `CSC_IDENTITY_AUTO_DISCOVERY=false` and passes `-c.mac.notarize=false`, because Apple notarises only Developer ID signatures.
+- **Job summary.** Each build job writes one line, for example "**macos-arm64**: Signed: no (ad-hoc signature; no CSC_LINK secret)".
 
 To sign on your own computer instead, set the same variables in the terminal before building:
 

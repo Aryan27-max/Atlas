@@ -178,16 +178,6 @@ jobs:
             target: --mac --x64
     runs-on: ${{ matrix.os }}
     timeout-minutes: 60
-    env:
-      # Empty when the secret doesn't exist: electron-builder then builds
-      # unsigned and skips notarisation.
-      CSC_LINK: ${{ secrets.CSC_LINK }}
-      CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
-      WIN_CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
-      WIN_CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
-      APPLE_ID: ${{ secrets.APPLE_ID }}
-      APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
-      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
     steps:
       - uses: actions/checkout@v5
 
@@ -215,15 +205,51 @@ jobs:
         working-directory: app
         run: npm ci
 
+      # Signing secrets reach this step only (not npm ci's install scripts or
+      # the other steps). docs/SIGNING.md says how to add them.
       - name: Installer (npm run dist)
         working-directory: app
         shell: bash
+        env:
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          WIN_CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
+          WIN_CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
+          # A secret that doesn't exist arrives as an empty string, and electron-builder
+          # treats an empty CSC_LINK on macOS as a file path (the app folder: "not a
+          # file"). Pass only the variables that have a value.
+          for v in CSC_LINK CSC_KEY_PASSWORD APPLE_ID APPLE_APP_SPECIFIC_PASSWORD APPLE_TEAM_ID \
+                   WIN_CSC_LINK WIN_CSC_KEY_PASSWORD; do
+            if [ -z "${!v}" ]; then unset "$v"; fi
+          done
           extra=""
-          if [ "$RUNNER_OS" = "macOS" ] && [ -z "$CSC_LINK" ]; then
-            # No Developer ID: sign ad-hoc so macOS says "unverified" rather than "damaged".
-            extra="-c.mac.identity=- -c.mac.hardenedRuntime=false"
+          if [ "$RUNNER_OS" = "macOS" ]; then
+            if [ -n "${CSC_LINK:-}" ]; then
+              signed="yes (Developer ID)"
+              if [ -n "${APPLE_ID:-}" ] && [ -n "${APPLE_APP_SPECIFIC_PASSWORD:-}" ] && [ -n "${APPLE_TEAM_ID:-}" ]; then
+                signed="$signed, notarised"
+              else
+                signed="$signed, not notarised (no Apple ID secrets)"
+              fi
+            else
+              # No Developer ID: sign ad-hoc so macOS says "unverified" rather than
+              # "damaged", don't go looking for another identity, and don't notarise
+              # (Apple notarises Developer ID signatures only).
+              export CSC_IDENTITY_AUTO_DISCOVERY=false
+              extra="-c.mac.identity=- -c.mac.hardenedRuntime=false -c.mac.notarize=false"
+              signed="no (ad-hoc signature; no CSC_LINK secret)"
+            fi
+          elif [ -n "${WIN_CSC_LINK:-}${CSC_LINK:-}" ]; then
+            signed="yes"
+          else
+            signed="no (no WIN_CSC_LINK or CSC_LINK secret)"
           fi
+          echo "**${{ matrix.name }}**: Signed: $signed" >> "$GITHUB_STEP_SUMMARY"
+          echo "Signed: $signed"
           npm run dist -- ${{ matrix.target }} $extra
 
       - name: Packaged app reaches Welcome with its engine
