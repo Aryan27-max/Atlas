@@ -95,7 +95,9 @@ def estimate(
         per, basis = ewma(measured), "measured"
     elif history:
         per, basis = statistics.median(history), "history"
-    elif precheck_seconds and precheck_seconds > 0:
+    elif precheck_seconds is not None and precheck_seconds >= 0:
+        # A recorded pre-check counts however fast it was: a quick model (or a
+        # stub) can finish below the clock's or the cache's rounding, as 0.0.
         per, basis = float(precheck_seconds), "precheck"
     elif hardware in HARDWARE_PRIOR:
         per, basis = HARDWARE_PRIOR[hardware], "hardware"

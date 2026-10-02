@@ -21,6 +21,16 @@ class EstimateTests(unittest.TestCase):
         self.assertEqual(e.label, "Rough estimate")
         self.assertEqual(e.per_resume_seconds, 60.0)
 
+    def test_a_precheck_faster_than_the_clock_still_counts(self) -> None:
+        # A stub (or a very fast model) can finish within one tick of a coarse
+        # clock, or below the cache's rounding: recorded as 0.0, it's still a pre-check.
+        for seconds in (0.0, 0.0004):
+            e = estimate(10, precheck_seconds=seconds, hardware="cpu")
+            assert e is not None
+            self.assertEqual(e.basis, "precheck", seconds)
+        self.assertEqual(estimate(10, precheck_seconds=None, hardware="cpu").basis, "hardware")  # type: ignore[union-attr]
+        self.assertEqual(estimate(10, precheck_seconds=-1.0, hardware="cpu").basis, "hardware")  # type: ignore[union-attr]
+
     def test_hardware_prior_when_nothing_else_is_known(self) -> None:
         e = estimate(10, hardware="cpu")
         assert e is not None

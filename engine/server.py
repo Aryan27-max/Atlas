@@ -567,7 +567,7 @@ class Engine:
         check = (self.db.get_setting(PRECHECK_SETTING, {}) or {}).get(model) if model else None
         precheck_seconds = check.get("seconds") if check and check.get("ok") else None
         measured = self.db.scoring_durations(run_id)
-        kind = None if (measured or history or precheck_seconds) else self.hardware().kind
+        kind = None if (measured or history or precheck_seconds is not None) else self.hardware().kind
         result = estimate(remaining, measured=measured, history=history, precheck_seconds=precheck_seconds,
                           hardware=kind)
         warn = bool(result and result.long_run and self.preferences().warn_long_runs)

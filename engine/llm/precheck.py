@@ -62,7 +62,7 @@ def precheck(
     model: str,
     *,
     timeout: float = PRECHECK_TIMEOUT,
-    clock: Callable[[], float] = time.monotonic,
+    clock: Callable[[], float] = time.perf_counter,
     sleep: Callable[[float], None] = time.sleep,
 ) -> PrecheckResult:
     started = clock()

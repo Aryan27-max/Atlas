@@ -72,7 +72,7 @@ class Scorer:
         *,
         num_ctx_cap: int = NUM_CTX_CAP,
         start_num_predict: int = START_NUM_PREDICT,
-        clock: Callable[[], float] = time.monotonic,
+        clock: Callable[[], float] = time.perf_counter,
         sleep: Callable[[float], None] = time.sleep,
     ) -> None:
         self.client = client

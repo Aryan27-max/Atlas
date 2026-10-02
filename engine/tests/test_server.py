@@ -9,6 +9,7 @@ downloads from the local Drive stub and scores with the local Ollama stub.
 from __future__ import annotations
 
 import csv
+import functools
 import io
 import json
 import os
@@ -19,6 +20,7 @@ import time
 import unittest
 from pathlib import Path
 from typing import Any, Callable
+from unittest import mock
 
 import warnings
 
@@ -33,6 +35,7 @@ with warnings.catch_warnings():
 from engine.errors import Api, Pause, Reason
 from engine.health import HealthProbe
 from engine.llm.client import OllamaClient
+from engine.llm.precheck import precheck
 from engine.server import ApiError, Engine, EngineOptions, create_app, export_openapi, parse_multipart_file
 from engine.tests.fixtures import make_pdf, simple_resume_text
 from engine.tests.stubs.drive_stub import DriveStub, Pdf, SignIn, Status
@@ -321,6 +324,19 @@ class FlowTests(ServerTestCase):
         report = self.upload(run_id, buffer.getvalue(), "students.xlsx").json()
         self.assertEqual((report["ok"], report["summary"]["ready"]), (True, 2))
         self.assertEqual(self.client.post(f"/runs/{run_id}/table/confirm").json(), {"added": 2})
+
+    def test_a_precheck_faster_than_the_clock_still_sets_the_estimate(self) -> None:
+        # The pre-check takes exactly 0 s here, as a stub can on Windows' coarse clock:
+        # the estimate must still use it, not fall back to the hardware guess.
+        run_id = self.create_run("Fast pre-check")
+        self.upload(run_id, self.csv_bytes(self.students([90, 80, 70])))
+        frozen = functools.partial(precheck, clock=lambda: 100.0)
+        with mock.patch("engine.server.precheck", frozen):
+            check = self.client.post("/models/stub-model:latest/precheck").json()
+        self.assertEqual((check["ok"], check["seconds"]), (True, 0.0))
+        self.client.patch(f"/runs/{run_id}", json={"model_name": "stub-model:latest"})
+        estimate = self.client.get(f"/runs/{run_id}/estimate").json()
+        self.assertEqual((estimate["remaining"], estimate["estimate"]["basis"]), (3, "precheck"))
 
     def test_replacing_the_file_before_confirm(self) -> None:
         run_id = self.create_run()

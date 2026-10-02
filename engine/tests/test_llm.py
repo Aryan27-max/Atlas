@@ -7,6 +7,7 @@ import json
 import os
 import re
 import tempfile
+import time
 import unittest
 from dataclasses import fields
 from pathlib import Path
@@ -34,6 +35,7 @@ from engine.tests.fixtures import (
     simple_resume_text,
     ten_page_resume_pages,
 )
+from engine.tests.stubs.ollama_stub import OllamaStub
 
 SUBS = ("technical", "projects", "experience", "achievements", "communication", "criteria_fit")
 REAL_QUOTE = "Built a Flask app that tracks book loans for the department library"
@@ -918,6 +920,18 @@ class PrecheckTests(unittest.TestCase):
         self.assertTrue(result.ok and result.slow)
         self.assertEqual(result.message,
                          "This model works, but it's slow on this computer: about 24 résumés an hour.")
+
+    def test_durations_are_timed_with_a_precise_clock(self) -> None:
+        # Windows' time.monotonic ticks every 15.6 ms: a stub pre-check (about 9 ms)
+        # was timed as exactly 0.0 about a third of the time. Durations need a clock
+        # with sub-millisecond resolution on every OS.
+        names = {time.monotonic: "monotonic", time.perf_counter: "perf_counter", time.time: "time"}
+        for timed in (precheck, Scorer.__init__):
+            default = inspect.signature(timed).parameters["clock"].default
+            self.assertIn(default, names, timed)
+            self.assertLess(time.get_clock_info(names[default]).resolution, 1e-3, timed)
+        with OllamaStub() as stub:
+            self.assertGreater(precheck(OllamaClient(stub.base_url), "stub-model:latest").seconds, 0)
 
     def test_slower_than_the_cold_start_limit(self) -> None:
         clock = FakeClock()
