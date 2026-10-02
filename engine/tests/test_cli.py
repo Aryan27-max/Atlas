@@ -4,12 +4,17 @@ from __future__ import annotations
 
 import csv
 import io
+import sqlite3
 import tempfile
+import threading
+import time
 import unittest
+from contextlib import closing
 from pathlib import Path
 from unittest.mock import patch
 
-from engine.cli import main
+from engine import cli as cli_module
+from engine.cli import main, run_event_lines
 from engine.db import Database
 from engine.errors import Pause
 from engine.health import HealthProbe
@@ -220,6 +225,60 @@ class CliTests(CliTestCase):
             with self.assertRaises(SystemExit) as ctx:
                 self.cli("run", "--csv", "x.csv")                 # missing required options
         self.assertEqual(ctx.exception.code, 1)
+
+    def test_a_pause_shorter_than_the_cli_poll_is_still_reported(self) -> None:
+        # macOS CI (test_e2e): Ollama was back before the CLI's 0.2 s status check
+        # looked, so "Paused: …" was never printed. Here the check can never land
+        # inside the pause (the CLI's wait lasts while the run is paused): only the
+        # events table can tell the CLI about it.
+        csv_path = self.csv({i: 60 + i for i in range(1, 6)})
+        db_path = self.data / "atlas.db"
+        real_wait = cli_module._wait
+        real_chat = OllamaClient.chat_json
+        calls = {"n": 0}
+
+        def paused() -> bool:
+            with closing(sqlite3.connect(db_path)) as con:
+                row = con.execute("SELECT status FROM runs WHERE id = 1").fetchone()
+            return bool(row) and row[0] == "paused"
+
+        def wait_past_pauses(seconds: float) -> None:
+            real_wait(seconds)
+            deadline = time.monotonic() + 30
+            while db_path.exists() and paused() and time.monotonic() < deadline:
+                time.sleep(0.01)
+
+        def ollama_drops_out_briefly(client, *args, **kwargs):
+            calls["n"] += 1
+            if calls["n"] == 4:                       # pre-check + 2 candidates went through
+                self.ollama.go_offline()
+                # Longer than Windows takes to refuse a localhost connection (~2 s), twice:
+                # the chat, then the probe. A shorter outage is never noticed there.
+                threading.Timer(6.0, self.ollama.go_online).start()
+            return real_chat(client, *args, **kwargs)
+
+        with patch.object(OllamaClient, "chat_json", ollama_drops_out_briefly), \
+                patch("engine.cli._wait", wait_past_pauses):
+            code, out = self.cli(*self.run_args(csv_path, "--yes"))
+        self.assertEqual(code, 0, out)
+        self.assertIn(f"Paused: {Pause.OLLAMA_DOWN}. Atlas will continue by itself when it's back.", out)
+        self.assertIn("Resumed.", out)
+        self.assertLess(out.index("Paused:"), out.index("Resumed."))
+        with Database(db_path) as db:
+            self.assertEqual(db.state_counts(1)["scored"], 5)
+
+    def test_run_events_become_lines_once(self) -> None:
+        lines: list[str] = []
+        announced = None
+        for message in ("Screening started", f"Paused: {Pause.OLLAMA_DOWN}", f"Paused: {Pause.OLLAMA_DOWN}",
+                        "Screening resumed", f"Paused: {Pause.NO_INTERNET}", "Screening resumed",
+                        "Screening resumed", "Paused: The disk is full.", "Screening complete"):
+            new, announced = run_event_lines(message, announced)
+            lines += new
+        self.assertEqual(lines, [
+            f"Paused: {Pause.OLLAMA_DOWN}. Atlas will continue by itself when it's back.", "Resumed.",
+            f"Paused: {Pause.NO_INTERNET}. Atlas will continue by itself when it's back.", "Resumed.",
+        ])   # a pause that waits for the user is the status check's (it stops the CLI)
 
 
 if __name__ == "__main__":

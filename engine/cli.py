@@ -326,29 +326,27 @@ class _Cli:
             while True:
                 for event in db.events(run_id, after_id=last_event):
                     last_event = event["id"]
-                    if event["candidate_id"] is not None:
-                        if event["message"].startswith(("Scored", "Failed")):
-                            done += 1
-                        cid = event["candidate_id"]
-                        self.say(f"[{done}/{total}] #{cid} {ra_numbers.get(cid, '?')}: {event['message']}")
+                    if event["candidate_id"] is None:
+                        lines, announced = run_event_lines(event["message"], announced)
+                        for line in lines:
+                            self.say(line)
+                        continue
+                    if event["message"].startswith(("Scored", "Failed")):
+                        done += 1
+                    cid = event["candidate_id"]
+                    self.say(f"[{done}/{total}] #{cid} {ra_numbers.get(cid, '?')}: {event['message']}")
                 run = db.get_run(run_id)
                 status, reason = run["status"], run["pause_reason"]
                 if status == "completed":
                     worker.stop()
                     self._summary(run_id, data_dir)
                     return 0
-                if status == "paused" and reason != announced:
-                    announced = reason
-                    if reason in AUTO_RESUME_REASONS:
-                        self.say(f"Paused: {reason}. Atlas will continue by itself when it's back.")
-                    else:
-                        worker.stop()
-                        self.say(f"Paused: {reason}")
-                        self.say(f"Continue with: python -m engine.cli resume --run {run_id} --data-dir {data_dir}")
-                        return 2
-                if status == "running" and announced is not None:
-                    announced = None
-                    self.say("Resumed.")
+                # A pause that waits for the user stays paused, so the status says so.
+                if status == "paused" and reason is not None and reason not in AUTO_RESUME_REASONS:
+                    worker.stop()
+                    self.say(f"Paused: {reason}")
+                    self.say(f"Continue with: python -m engine.cli resume --run {run_id} --data-dir {data_dir}")
+                    return 2
                 if status == "cancelled":
                     worker.stop()
                     self.say("The run was cancelled.")
@@ -373,6 +371,24 @@ class _Cli:
         else:
             self.say("All failures need action from the student (for example, fixing sharing). Fix the links, then "
                      f"use: python -m engine.cli retry --run {run_id} --data-dir {data_dir} --include-permanent")
+
+
+def run_event_lines(message: str, announced: str | None) -> tuple[list[str], str | None]:
+    """What the CLI prints for one run-level event, and the pause now announced.
+
+    Pauses that end by themselves, and their resumes, are read from the events
+    table, not by sampling the run's status every 0.2 s: a pause shorter than
+    that (Ollama back at once) was never printed. Pauses that wait for the
+    user are handled by the status check, which stops the CLI.
+    """
+    reason = message.removeprefix("Paused: ") if message.startswith("Paused: ") else None
+    if reason is not None and reason in AUTO_RESUME_REASONS:
+        if reason == announced:
+            return [], announced
+        return [f"Paused: {reason}. Atlas will continue by itself when it's back."], reason
+    if message == "Screening resumed" and announced is not None:
+        return ["Resumed."], None
+    return [], announced
 
 
 def _wait(seconds: float) -> None:
