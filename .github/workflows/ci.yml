@@ -76,6 +76,12 @@ jobs:
         working-directory: app
         run: npm ci
 
+      # Fails if a new copyleft, restrictive or unknown licence appears in
+      # what ships (THIRD_PARTY_NOTICES.md lists the accepted ones).
+      - name: Third-party licences
+        shell: bash
+        run: '"$VENV_PY" packaging/check_licenses.py'
+
       - name: Typecheck
         working-directory: app
         run: npm run typecheck

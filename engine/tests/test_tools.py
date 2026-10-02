@@ -5,6 +5,7 @@ from __future__ import annotations
 import contextlib
 import io
 import json
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -197,6 +198,52 @@ class TroubleshootingTests(unittest.TestCase):
             self.assertEqual(len(kinds), 1, f"Reason.{name} is raised as both kinds")
             expected = {"permanent": "fix", "retryable": "retry"}[next(iter(kinds))]
             self.assertEqual(HELP[f"Reason.{name}"].kind, expected, f"Reason.{name}")
+
+
+def _licence_check():  # packaging/ isn't a package, and "packaging" is also a PyPI name: load it by path
+    import importlib.util
+
+    path = Path(__file__).resolve().parents[2] / "packaging" / "check_licenses.py"
+    spec = importlib.util.spec_from_file_location("atlas_check_licenses", path)
+    assert spec and spec.loader
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module           # dataclasses look their module up here
+    spec.loader.exec_module(module)
+    return module
+
+
+class LicenceCheckTests(unittest.TestCase):
+    """packaging/check_licenses.py: a new copyleft or unknown licence in what ships fails the build."""
+
+    def test_new_copyleft_or_unknown_licences_fail_and_allowlisted_ones_pass(self) -> None:
+        check = _licence_check()
+        notices = "`fine` `gpl-thing` `mystery` `pymupdf` `certifi`"
+        packages = [
+            check.Package("Python", "fine", "1.0", "MIT"),
+            check.Package("Python", "gpl-thing", "1.0", "GNU General Public License v3 (GPLv3)"),
+            check.Package("npm", "mystery", "1.0", "UNKNOWN"),
+            check.Package("Python", "pymupdf", "1.28.2", "Dual Licensed - GNU AFFERO GPL 3.0 or Artifex Commercial License"),
+            check.Package("Python", "certifi", "2026.7.22", "Mozilla Public License 2.0 (MPL 2.0)"),
+            check.Package("npm", "unlisted", "1.0", "MIT"),
+        ]
+        found = check.problems(packages, notices)
+        self.assertEqual(len(found), 3, found)
+        self.assertTrue(any("gpl-thing" in f and "copyleft" in f for f in found))
+        self.assertTrue(any("mystery" in f for f in found))
+        self.assertTrue(any("unlisted" in f and "THIRD_PARTY_NOTICES" in f for f in found))
+        for licence in ("LGPL-2.1", "AGPL-3.0", "SSPL-1.0", "EPL-2.0", "Commercial"):
+            self.assertTrue(check.FLAGGED.search(licence), licence)
+        for licence in ("MIT", "BSD-3-Clause", "Apache-2.0", "ISC", "PSF-2.0", "0BSD", "OFL-1.1"):
+            self.assertFalse(check.FLAGGED.search(licence), licence)
+
+    def test_the_shipped_python_packages_pass_today(self) -> None:
+        check = _licence_check()
+        python = check.python_packages()
+        names = {p.key for p in python}
+        self.assertTrue({"fastapi", "pydantic", "requests", "uvicorn", "openpyxl"} <= names, names)
+        notices = check.NOTICES.read_text(encoding="utf-8")
+        self.assertEqual(check.problems(python, notices), [])
+        self.assertIn("pymupdf", {p.key for p in python if p.key in check.ALLOWED})
 
 
 if __name__ == "__main__":
