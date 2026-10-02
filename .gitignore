@@ -10,6 +10,8 @@ __pycache__/
 # Local real data (never committed)
 local/
 *.xlsx
+# …except the fictional demo list (engine/tests/demo_stubs.py writes it)
+!docs/demo/demo-students.xlsx
 *.xls
 *.db
 *.db-wal
