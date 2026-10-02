@@ -22,12 +22,19 @@ export function menuLabel(text: string, platform: string): string {
     .join(' ')
 }
 
+/** When the clipboard refuses the text (another app holding it, a locked session). */
+export function copyFailedMessage(count: number): string {
+  return count === 1
+    ? "Couldn't copy the RA number. Try again in a moment."
+    : `Couldn't copy the ${count} RA numbers. Try again in a moment.`
+}
+
 /** The menu for one Results row, or for every selected row when several are selected. */
 export function rowMenuTemplate(
   request: RowMenuRequest,
   platform: string,
   choose: (choice: RowMenuChoice) => void,
-  copy: (text: string) => void,
+  copy: (text: string) => Promise<void>,
 ): MenuItemConstructorOptions[] {
   const label = (text: string): string => menuLabel(text, platform)
   const count = request.raNumbers.length
@@ -47,10 +54,12 @@ export function rowMenuTemplate(
   }
   items.push({
     label: label(count === 1 ? 'Copy RA number' : `Copy ${count} RA numbers`),
-    click: () => {
-      copy(request.raNumbers.join('\n'))
-      choose({ action: 'copied' })
-    },
+    // "Copied" only once the clipboard has the text (Electron 44: a promise).
+    click: () =>
+      void copy(request.raNumbers.join('\n')).then(
+        () => choose({ action: 'copied' }),
+        () => choose({ action: 'copy_failed', message: copyFailedMessage(count) }),
+      ),
   })
   return items
 }

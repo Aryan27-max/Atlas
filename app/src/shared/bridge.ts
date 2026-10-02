@@ -80,7 +80,12 @@ export interface RowMenuRequest {
 }
 
 /** What was chosen; `null` when the menu was dismissed. "Copy" is done by main. */
-export type RowMenuChoice = { action: 'details' } | { action: 'move'; to: MoveTarget } | { action: 'copied' } | null
+export type RowMenuChoice =
+  | { action: 'details' }
+  | { action: 'move'; to: MoveTarget }
+  | { action: 'copied' }
+  | { action: 'copy_failed'; message: string }
+  | null
 
 export interface AtlasBridge {
   api: {

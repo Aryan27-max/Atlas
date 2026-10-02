@@ -228,9 +228,17 @@ export function registerIpc(ctx: IpcContext): void {
         settled = true
         resolve(choice)
       }
-      const template = rowMenuTemplate(checked, process.platform, finish, (text) => clipboard.writeText(text))
+      let copying = false
+      const copy = (text: string): Promise<void> => {
+        copying = true // the copy's own result answers, however long the clipboard takes
+        return clipboard.writeText(text)
+      }
+      const template = rowMenuTemplate(checked, process.platform, finish, copy)
       // On macOS the menu can report "closed" just before the click: give the click a moment to land.
-      Menu.buildFromTemplate(template).popup({ window, callback: () => setTimeout(() => finish(null), 150) })
+      Menu.buildFromTemplate(template).popup({
+        window,
+        callback: () => setTimeout(() => !copying && finish(null), 150),
+      })
     })
   })
 

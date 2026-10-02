@@ -24,7 +24,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import type { CutoffsOut, ResultRowOut } from '@shared/api-types'
 import type { MoveTarget } from '@shared/bridge'
 import { api, messageOf } from '../../api/client'
-import { Banner, Button, Card, EmptyState, Sidebar, Spinner, TextField, Toolbar } from '../../design'
+import { Banner, Button, Card, EmptyState, Sidebar, Spinner, TextField, Toolbar, useToast } from '../../design'
 import { useNav } from '../../state/nav'
 import { CandidateSheet } from './CandidateSheet'
 import { CutoffPopover } from './CutoffPopover'
@@ -72,6 +72,7 @@ function useDebounced<T>(value: T, ms: number): T {
 export function Results({ runId }: { runId: number }) {
   const go = useNav((state) => state.go)
   const client = useQueryClient()
+  const toast = useToast()
   const [bucket, setBucket] = useState<BucketId>('shortlisted')
   const [search, setSearch] = useState('')
   // The column asked for; `order: null` = that column's own first direction (the engine's choice).
@@ -189,6 +190,7 @@ export function Results({ runId }: { runId: number }) {
     })
     if (choice?.action === 'details') setOpen(row.candidate_id)
     if (choice?.action === 'move') setMoving({ rows: chosen, to: choice.to })
+    if (choice?.action === 'copy_failed') toast({ message: choice.message })
   }
   const selectedRows = visibleSelected.length > 1 ? rowsFor(visibleSelected) : []
   const movableFrom = selectedRows[0] && isMoveTarget(selectedRows[0].bucket) ? selectedRows[0].bucket : null
