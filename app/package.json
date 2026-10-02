@@ -3,7 +3,9 @@
   "productName": "Atlas",
   "version": "0.2.0",
   "private": true,
-  "description": "Résumé screening with a local model",
+  "description": "RÃ©sumÃ© screening with a local model",
+  "author": "Aryan Gupta",
+  "license": "UNLICENSED",
   "main": "out/main/index.js",
   "scripts": {
     "dev": "electron-vite dev",

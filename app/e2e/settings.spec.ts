@@ -163,6 +163,7 @@ test('about: versions, and the logs folder opens', async () => {
   const about = page.getByRole('region', { name: 'About Atlas' })
   await expect(about).toContainText('Running · 0.0.0-stub')
   await expect(about).toContainText('0.2.0 · Running')
+  await expect(about).toContainText('© 2026 Aryan Gupta. All rights reserved.')
   // Atlas's own version (package.json), not Electron's.
   const version = (JSON.parse(readFileSync(join(APP_DIR, 'package.json'), 'utf8')) as { version: string }).version
   await expect(about.locator('dd').first()).toHaveText(version)

@@ -432,6 +432,7 @@ function About(props: {
       <p className="atl-footnote atl-secondary settings-note">
         Logs record what Atlas did, never résumé text or student details.
       </p>
+      <p className="atl-footnote atl-secondary settings-note">© 2026 Aryan Gupta. All rights reserved.</p>
     </Card>
   )
 }

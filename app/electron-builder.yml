@@ -13,7 +13,7 @@
 
 appId: com.atlas.screening
 productName: Atlas
-copyright: Copyright © 2026 the Atlas owners
+copyright: 'Copyright © 2026 Aryan Gupta'
 
 directories:
   output: dist
