@@ -32,13 +32,13 @@ ollama list            # shows qwen3:8b
 ```powershell
 py -3.12 -m venv .venv                 # or: python -m venv .venv, if python --version says 3.11+
 .\.venv\Scripts\Activate.ps1
-pip install -r engine/requirements-dev.txt     # the engine's requirements + the test client
+pip install -r engine/requirements-dev.txt -c engine/constraints.txt   # the engine's requirements + the test client, at the versions CI uses
 cd app; npm ci; cd ..
 ```
 ```zsh
 python3.12 -m venv .venv
 source .venv/bin/activate
-pip install -r engine/requirements-dev.txt
+pip install -r engine/requirements-dev.txt -c engine/constraints.txt
 (cd app && npm ci)
 ```
 **You should see** `Successfully installed …` from pip (about a minute), and from npm `> atlas@0.2.0 postinstall`, `Downloading Electron binary...` (first time only; Atlas's `postinstall` fetches it, because current npm no longer runs packages' own install scripts) and `added … packages` (under a minute).
@@ -199,14 +199,14 @@ graphify update .                                                             # 
 **What for:** the Windows installer (or a macOS DMG on a Mac). Release builds come from CI (`.github/workflows/ci.yml`).
 ```powershell
 py -3.12 -m venv build/venv-engine
-build/venv-engine/Scripts/python -m pip install -r packaging/requirements-build.txt
+build/venv-engine/Scripts/python -m pip install -r packaging/requirements-build.txt -c engine/constraints.txt
 build/venv-engine/Scripts/python packaging/build_engine.py     # engine binary + smoke test (~1 min)
 cd app; npm run dist                                            # ~2 min
 npx playwright test e2e/packaged.spec.ts                        # the packaged app reaches Welcome
 ```
 ```zsh
 python3.12 -m venv build/venv-engine
-build/venv-engine/bin/python -m pip install -r packaging/requirements-build.txt
+build/venv-engine/bin/python -m pip install -r packaging/requirements-build.txt -c engine/constraints.txt
 build/venv-engine/bin/python packaging/build_engine.py
 cd app && npm run dist -- -c.mac.identity=- -c.mac.hardenedRuntime=false     # unsigned: ad-hoc signed
 ```
@@ -244,7 +244,7 @@ CSV exports you saved elsewhere are never touched. Uninstalling Atlas keeps this
 ## 11. Troubleshooting top 10
 1. **"Ollama isn't running"** in Atlas → start Ollama (section 3); Welcome's *Start Ollama* does it for you.
 2. **No model / "The model … is no longer installed"** → `ollama pull qwen3:8b`.
-3. **`ModuleNotFoundError: No module named 'fastapi'`** → the venv isn't active, or packages aren't installed: `.\.venv\Scripts\Activate.ps1`, then `pip install -r engine/requirements-dev.txt`.
+3. **`ModuleNotFoundError: No module named 'fastapi'`** → the venv isn't active, or packages aren't installed: `.\.venv\Scripts\Activate.ps1`, then `pip install -r engine/requirements-dev.txt -c engine/constraints.txt`.
 4. **Atlas couldn't start its engine** → check `.venv` exists, then read `engine.log` (section 10).
 5. **Port in use:** `python -m engine.server … --port 8765` fails → choose another port, or `--port 0` (the engine picks one and prints it). Demo ports: close the other demo.
 6. **`npm ci` fails** → Node 20+ (`node --version`); with `EPERM` on Windows, close programs using `app\node_modules` (VS Code, a running Atlas) and run it again.

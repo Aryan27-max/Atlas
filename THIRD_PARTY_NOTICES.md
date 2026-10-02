@@ -32,7 +32,7 @@ The test-only uses of PyMuPDF (generating fictional PDFs in `engine/tests/` and 
 
 ## Bundled packages
 
-The versions below are the ones bundled into the locally built engine (Python 3.11 build environment, `packaging/requirements-build.txt`) and the app. CI's release build resolves the same requirements, so patch versions may differ.
+The versions below are the ones bundled into the locally built engine (Python 3.11 build environment, `packaging/requirements-build.txt`) and the app. CI's release build installs exactly the versions pinned in `engine/constraints.txt`, which match this table.
 
 ### Python packages (bundled into the engine by PyInstaller)
 

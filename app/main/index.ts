@@ -25,7 +25,7 @@ import { Channels } from '@shared/bridge'
 import { EngineProcess, engineCommand } from './engine'
 import { registerIpc } from './ipc'
 import { RunWatcher, type RunStatus } from './runs'
-import { hardenContents, hardenSession } from './security'
+import { hardenContents, hardenSession, isAppPage } from './security'
 import { followEvents } from './sse'
 import { MIN_HEIGHT, MIN_WIDTH, loadBounds, saveBounds } from './window-state'
 
@@ -82,14 +82,10 @@ function navigate(target: NavigateTarget): void {
   window?.webContents.send(Channels.navigate, target)
 }
 
-function rendererUrl(): string {
-  return devServer ?? `file://${join(__dirname, '../renderer/index.html').replace(/\\/g, '/')}`
-}
+const RENDERER_FILE = join(__dirname, '../renderer/index.html')
 
 function isAppUrl(url: string): boolean {
-  const base = rendererUrl().toLowerCase()
-  const target = url.split('#')[0]?.toLowerCase() ?? ''
-  return target === base || target === base.replace(/^file:\/\/\//, 'file:///')
+  return isAppPage(url, devServer, RENDERER_FILE)
 }
 
 const webPreferences = {
@@ -165,7 +161,7 @@ function createWindow(): void {
   })
 
   if (devServer) void window.loadURL(devServer)
-  else void window.loadFile(join(__dirname, '../renderer/index.html'))
+  else void window.loadFile(RENDERER_FILE)
 }
 
 async function confirmAndQuit(): Promise<void> {

@@ -95,15 +95,23 @@ test('the CSP blocks remote content, inline scripts and eval', async () => {
   const violations = await page.evaluate(
     () =>
       new Promise<string[]>((resolve) => {
+        // Resolve when both refusals have been reported, not after a guessed time (a busy
+        // runner can report them late); the deadline only stops a regression from hanging.
         const seen: string[] = []
-        document.addEventListener('securitypolicyviolation', (event) => seen.push(event.effectiveDirective))
+        const deadline = setTimeout(() => resolve(seen), 15_000)
+        document.addEventListener('securitypolicyviolation', (event) => {
+          seen.push(event.effectiveDirective)
+          if (seen.length >= 2) {
+            clearTimeout(deadline)
+            resolve(seen)
+          }
+        })
         const remote = document.createElement('script')
         remote.src = 'https://example.com/evil.js'
         document.head.appendChild(remote)
         const inline = document.createElement('script')
         inline.textContent = 'window.__ran = true'
         document.head.appendChild(inline)
-        setTimeout(() => resolve(seen), 1500)
       }),
   )
   expect(violations).toContain('script-src-elem')
@@ -176,10 +184,22 @@ test('the window has the design size and the security preferences', async () => 
 test('navigation away from the app is blocked', async () => {
   const { app, page } = launched
   const appUrl = await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0]?.webContents.getURL())
+  // Record what the app's will-navigate handler decided (it was added first, so it has
+  // run when this one does). Waiting for that, rather than a fixed time, means the
+  // attempt really happened: on a slow runner a fixed wait could pass without it.
+  await app.evaluate(({ BrowserWindow }) => {
+    const seen: Array<{ url: string; refused: boolean }> = []
+    ;(globalThis as { __navigations?: typeof seen }).__navigations = seen
+    BrowserWindow.getAllWindows()[0]?.webContents.on('will-navigate', (event) => {
+      seen.push({ url: event.url, refused: event.defaultPrevented })
+    })
+  })
   await page.evaluate(() => {
     window.location.href = 'https://example.com/'
   })
-  await page.waitForTimeout(1500)
+  await expect
+    .poll(() => app.evaluate(() => (globalThis as { __navigations?: unknown[] }).__navigations ?? []))
+    .toContainEqual({ url: 'https://example.com/', refused: true })
   const now = await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0]?.webContents.getURL())
   expect(now).toBe(appUrl)
   expect(now?.startsWith('file://')).toBe(true)

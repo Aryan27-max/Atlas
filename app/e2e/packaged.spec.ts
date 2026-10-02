@@ -14,6 +14,7 @@ import { existsSync, mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { _electron as electron, expect, test } from '@playwright/test'
+import { samePath } from '../main/paths'
 import { APP_DIR } from './helpers'
 
 function packagedExecutable(): string | null {
@@ -58,8 +59,13 @@ test('the packaged app starts its bundled engine and shows Welcome', async () =>
     const system = (await page.evaluate(() => window.atlas.api.request('GET', '/system'))) as {
       data: { data_dir: string }
     }
-    expect(system.data.data_dir).toBe(userData) // its own data folder, not the real one
-    await expect(page.getByText(userData)).toBeVisible()
+    // Its own data folder, not the real one. Compared as folders, not strings: Electron
+    // makes --user-data-dir absolute with realpath(), so on a Mac /var/folders/… (where
+    // os.tmpdir() points) comes back as /private/var/folders/… (main/paths.ts).
+    const dataDir = system.data.data_dir
+    expect(samePath(dataDir, userData), `${dataDir} is not ${userData}`).toBe(true)
+    // The Welcome card shows the folder exactly as the engine reports it.
+    await expect(page.getByText(dataDir, { exact: true })).toBeVisible()
   } finally {
     await app.close()
     rmSync(userData, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 })

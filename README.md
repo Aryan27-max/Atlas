@@ -320,7 +320,7 @@ graphify-out/   GRAPH_REPORT.md: a map of the code (only the report is committed
 ## Quick start
 ```powershell
 py -3.12 -m venv .venv; .\.venv\Scripts\Activate.ps1
-pip install -r engine/requirements-dev.txt
+pip install -r engine/requirements-dev.txt -c engine/constraints.txt
 cd app; npm ci
 ollama pull qwen3:8b
 npm run demo:fast      # every screen with fictional students; or: npm run dev

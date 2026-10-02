@@ -41,11 +41,14 @@ export async function startStubs(chatDelay = 0.15): Promise<Stubs> {
     ['-m', 'engine.tests.e2e_stubs', '--dir', folder, '--chat-delay', String(chatDelay)],
     { cwd: REPO, env: { ...process.env, PYTHONUTF8: '1' } },
   )
+  // Decode the stream, not each chunk: a non-ASCII letter in a path (a user name in
+  // the temp folder) can be split across two chunks.
+  child.stdout.setEncoding('utf8')
   const line = await new Promise<string>((resolve, reject) => {
     let buffer = ''
     const timer = setTimeout(() => reject(new Error('stubs did not start')), 60_000)
-    child.stdout.on('data', (chunk: Buffer) => {
-      buffer += chunk.toString('utf8')
+    child.stdout.on('data', (chunk: string) => {
+      buffer += chunk
       const newline = buffer.indexOf('\n')
       if (newline >= 0) {
         clearTimeout(timer)

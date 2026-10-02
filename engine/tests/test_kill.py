@@ -58,7 +58,7 @@ class KillTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             db_path = Path(tmp) / "atlas.db"
             script = Path(tmp) / "writer.py"
-            script.write_text(WRITER)
+            script.write_text(WRITER, encoding="utf-8")
 
             for round_ in range(20):
                 # Fresh batch of queued candidates each round.
