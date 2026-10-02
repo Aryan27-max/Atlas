@@ -9,6 +9,7 @@ import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import type { ElectronApplication } from '@playwright/test'
+import { menuLabel } from '../main/menus'
 import { APP_DIR, type Launched, launch } from './helpers'
 
 export const REPO = join(APP_DIR, '..')
@@ -131,22 +132,35 @@ export function shellOpened(app: ElectronApplication): Promise<string[]> {
 }
 
 /**
- * Answer the next native menus. Each pick is a path of labels, e.g.
- * ['Move to', 'Cutoff…']; an empty path dismisses the menu. Playwright can't
- * click a native menu, so this replaces Menu.buildFromTemplate in main with
- * one that "clicks" the picked item and records every menu shown.
+ * A menu label as Atlas shows it on this computer. Specs use the source's
+ * wording ("Copy RA number"); on macOS the menu says "Copy RA Number".
+ */
+export function menuText(text: string): string {
+  return menuLabel(text, process.platform)
+}
+
+/**
+ * Answer the next native menus. Each pick is a path of labels in the source's
+ * wording, e.g. ['Move to', 'Cutoff…']; an empty path dismisses the menu.
+ * Playwright can't click a native menu, so this replaces
+ * Menu.buildFromTemplate in main with one that "clicks" the picked item and
+ * records every menu shown. A pick that matches no item is recorded as a miss
+ * (see copiedText) instead of silently clicking nothing.
  */
 export async function nextMenuPicks(app: ElectronApplication, picks: string[][]): Promise<void> {
+  const queue = picks.map((path) => path.map(menuText))
   await app.evaluate(({ Menu }, queue) => {
     type Item = Electron.MenuItemConstructorOptions
     const state = globalThis as {
       __realBuild?: typeof Menu.buildFromTemplate
       __menuPicks?: string[][]
       __menusShown?: string[][]
+      __menuMisses?: string[]
     }
     state.__realBuild ??= Menu.buildFromTemplate.bind(Menu)
     state.__menuPicks = [...queue]
     state.__menusShown ??= []
+    state.__menuMisses = []
     const describe = (items: Item[]): string[] =>
       items.map((item) =>
         item.type === 'separator'
@@ -164,17 +178,38 @@ export async function nextMenuPicks(app: ElectronApplication, picks: string[][])
         let chosen: Item | undefined
         for (const label of state.__menuPicks?.shift() ?? []) {
           chosen = level.find((item) => item.label === label)
-          level = (chosen?.submenu as Item[] | undefined) ?? []
+          if (!chosen) {
+            const offered = level.filter((item) => item.type !== 'separator').map((item) => item.label)
+            state.__menuMisses?.push(`no menu item "${label}" among ${JSON.stringify(offered)}`)
+            break
+          }
+          level = (chosen.submenu as Item[] | undefined) ?? []
         }
         ;(chosen?.click as (() => void) | undefined)?.()
         options?.callback?.()
       }
       return menu
     }
-  }, picks)
+  }, queue)
+}
+
+/** The clipboard after a menu pick; throws (so expect.poll reports it) if a pick matched no item. */
+export async function copiedText(app: ElectronApplication): Promise<string> {
+  const { misses, text } = await app.evaluate(async ({ clipboard }) => ({
+    misses: [...((globalThis as { __menuMisses?: string[] }).__menuMisses ?? [])],
+    // Awaited: in Electron 44 the main-process clipboard may answer with a promise.
+    text: String(await clipboard.readText()),
+  }))
+  if (misses.length) throw new Error(misses.join('; '))
+  return text
 }
 
 /** The labels of every native menu shown since the first nextMenuPicks. */
-export function menusShown(app: ElectronApplication): Promise<string[][]> {
-  return app.evaluate(() => [...((globalThis as { __menusShown?: string[][] }).__menusShown ?? [])])
+export async function menusShown(app: ElectronApplication): Promise<string[][]> {
+  const { shown, misses } = await app.evaluate(() => {
+    const state = globalThis as { __menusShown?: string[][]; __menuMisses?: string[] }
+    return { shown: [...(state.__menusShown ?? [])], misses: [...(state.__menuMisses ?? [])] }
+  })
+  if (misses.length) throw new Error(misses.join('; '))
+  return shown
 }

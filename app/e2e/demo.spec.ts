@@ -9,7 +9,15 @@ import { join } from 'node:path'
 import { _electron as electron, expect, test } from '@playwright/test'
 import { waitForStatus } from './flow'
 import { APP_DIR, type Launched, close } from './helpers'
-import { menusShown, nextMenuPicks, nextOpenDialogReturns, nextSaveDialogReturns, tempDir } from './stubs'
+import {
+  copiedText,
+  menuText,
+  menusShown,
+  nextMenuPicks,
+  nextOpenDialogReturns,
+  nextSaveDialogReturns,
+  tempDir,
+} from './stubs'
 
 interface DemoStubs {
   drive: string
@@ -101,8 +109,8 @@ test('demo:fast — every screen, from Welcome to the design gallery', async () 
   // Right-click menu, multi-select
   await nextMenuPicks(app, [['Copy RA number']])
   await rows.first().click({ button: 'right' })
-  await expect.poll(() => app.evaluate(({ clipboard }) => clipboard.readText())).toMatch(/^RA2599\d{6}$/)
-  expect((await menusShown(app)).at(-1)).toContain('Copy RA number')
+  await expect.poll(() => copiedText(app)).toMatch(/^RA2599\d{6}$/)
+  expect((await menusShown(app)).at(-1)).toContain(menuText('Copy RA number'))
   await rows.nth(1).click({ modifiers: [mod] })
   await expect(page.getByRole('group', { name: 'Selected candidates' })).toContainText('2 selected')
   await page.getByRole('button', { name: 'Deselect' }).click()
@@ -116,7 +124,15 @@ test('demo:fast — every screen, from Welcome to the design gallery', async () 
   await sheet.getByRole('button', { name: 'Export…' }).click()
   await expect(page.getByText('Exported 20 candidates')).toBeVisible()
 
-  // Needs attention: the three broken links
+  // Needs attention: the three broken links, and nobody else (the outage above fails nobody).
+  const failed = (await page.evaluate(() =>
+    window.atlas.api.request('GET', '/runs/1/results?bucket=failed&limit=100'),
+  )) as { data: { rows: Array<{ ra_number: string; failure_kind: string | null; failure_reason: string | null }> } }
+  expect(failed.data.rows.map((row) => `${row.failure_kind}: ${row.failure_reason}`).sort()).toEqual([
+    'permanent: Link is private. Ask the student to set sharing to "Anyone with the link".',
+    'permanent: The file no longer exists at this link.',
+    'permanent: This is a Google Doc, not a PDF. Ask the student to upload a PDF.',
+  ])
   await bucket(/^Needs attention/).click()
   await expect(bucket(/^Needs attention/)).toContainText('3')
   await expect(page.getByText('This is a Google Doc, not a PDF. Ask the student to upload a PDF.')).toBeVisible()

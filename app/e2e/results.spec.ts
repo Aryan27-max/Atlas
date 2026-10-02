@@ -12,7 +12,9 @@ import { type Launched, close } from './helpers'
 import { PHASE3_SCREENS_DIR, capture, setTheme } from './screens'
 import {
   type Stubs,
+  copiedText,
   launchWithStubs,
+  menuText,
   menusShown,
   nextMenuPicks,
   nextSaveDialogReturns,
@@ -209,13 +211,10 @@ test('right-click a row: the native menu copies the RA number, or moves it with 
 
   await nextMenuPicks(app, [['Copy RA number']])
   await first.click({ button: 'right' })
-  await expect.poll(() => app.evaluate(({ clipboard }) => clipboard.readText())).toBe(ra)
-  expect((await menusShown(app)).at(-1)).toEqual([
-    'Show details',
-    '—',
-    'Move to ▸ Cutoff…, Rejected…',
-    'Copy RA number',
-  ])
+  await expect.poll(() => copiedText(app)).toBe(ra)
+  expect((await menusShown(app)).at(-1)).toEqual(
+    ['Show details', '—', 'Move to ▸ Cutoff…, Rejected…', 'Copy RA number'].map(menuText),
+  )
   await expect(first).toHaveAttribute('aria-selected', 'true') // right-click selects the row, like a native table
 
   const shortlisted = Number((await bucket(/^Shortlisted/).textContent())?.match(/\d+/)?.[0])
@@ -267,11 +266,10 @@ test('select several (Ctrl/Cmd-click, Shift-click), then move them together with
   // The menu on a selected row acts on the whole selection.
   await nextMenuPicks(app, [['Copy 3 RA numbers']])
   await rows.nth(2).click({ button: 'right' })
-  await expect.poll(() => app.evaluate(({ clipboard }) => clipboard.readText())).toBe(ras.join('\n'))
-  expect((await menusShown(app)).at(-1)).toEqual([
-    'Move 3 candidates to ▸ Shortlisted…, Rejected…',
-    'Copy 3 RA numbers',
-  ])
+  await expect.poll(() => copiedText(app)).toBe(ras.join('\n'))
+  expect((await menusShown(app)).at(-1)).toEqual(
+    ['Move 3 candidates to ▸ Shortlisted…, Rejected…', 'Copy 3 RA numbers'].map(menuText),
+  )
 
   const rejected = Number((await bucket(/^Rejected/).textContent())?.match(/\d+/)?.[0])
   await bar.getByRole('button', { name: 'Move to…' }).click()
