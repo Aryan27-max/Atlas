@@ -32,6 +32,7 @@ with warnings.catch_warnings():
     warnings.simplefilter("ignore")
     from fastapi.testclient import TestClient
 
+from engine import api_models as m
 from engine.errors import Api, Pause, Reason
 from engine.health import HealthProbe
 from engine.llm.client import OllamaClient
@@ -696,6 +697,54 @@ class SettingsAndDataTests(ServerTestCase):
 # --------------------------------------------------------------------------- #
 # Multipart, OpenAPI
 # --------------------------------------------------------------------------- #
+
+
+class ResultsPagingTests(unittest.TestCase):
+    """GET /results builds a ResultRowOut only for the page it returns."""
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        from engine.tests.e2e_seed import seed
+
+        cls._tmp = tempfile.TemporaryDirectory()
+        data = Path(cls._tmp.name)
+        cls.run_id = seed(data, 300)                    # fictional students, some failed
+        cls.engine = Engine(data, ollama_url="http://127.0.0.1:9")
+
+    @classmethod
+    def tearDownClass(cls) -> None:
+        cls.engine.shutdown()
+        cls._tmp.cleanup()
+
+    def results(self, **query: Any) -> m.ResultsOut:
+        options: dict[str, Any] = {"shortlist": None, "band": None, "minimum": None, "bucket": "shortlisted",
+                                   "q": "", "sort": "rank", "offset": 0, "limit": 5000, **query}
+        return self.engine.results(self.run_id, **options)
+
+    def test_a_page_is_the_same_slice_of_the_full_listing(self) -> None:
+        for bucket in ("all", "shortlisted", "cutoff", "rejected", "failed"):
+            for sort in ("rank", "score", "cgpa", "name", "department"):
+                for order in ("asc", "desc"):
+                    with self.subTest(bucket=bucket, sort=sort, order=order):
+                        full = self.results(bucket=bucket, sort=sort, order=order, shortlist=74)
+                        page = self.results(bucket=bucket, sort=sort, order=order, shortlist=74, offset=3, limit=7)
+                        self.assertEqual(page.rows, full.rows[3:10])
+                        self.assertEqual((page.total, page.counts, page.delta), (full.total, full.counts, full.delta))
+        searched = self.results(bucket="all", q="ra24000001")
+        self.assertTrue(searched.rows and all("ra24000001" in r.ra_number.casefold() for r in searched.rows))
+
+    def test_a_preview_of_the_counts_builds_one_row_not_all(self) -> None:
+        built: list[int] = []
+        real = m.ResultRowOut
+
+        def counting(**fields: Any) -> m.ResultRowOut:
+            built.append(fields["candidate_id"])
+            return real(**fields)
+
+        with mock.patch.object(m, "ResultRowOut", side_effect=counting):
+            preview = self.results(shortlist=71, limit=1)
+        self.assertGreater(preview.total, 1)
+        self.assertEqual(len(built), 1)
 
 
 class MultipartTests(unittest.TestCase):

@@ -17,6 +17,7 @@
     "gen:api": "node scripts/gen-api-types.mjs",
     "test": "vitest run",
     "e2e": "electron-vite build && playwright test",
+    "e2e:ci": "electron-vite build && playwright test --grep-invert @perf",
     "predist": "node scripts/check-engine.mjs",
     "dist": "electron-vite build && electron-builder --config electron-builder.yml --publish never",
     "lint": "eslint scripts",

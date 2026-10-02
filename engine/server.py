@@ -39,7 +39,7 @@ from dataclasses import dataclass
 from datetime import date
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
-from typing import Any, AsyncIterator, Callable, Iterable, Literal
+from typing import Any, AsyncIterator, Callable, Iterable, Literal, Protocol, TypeVar
 
 from fastapi import FastAPI, Query, Request
 from fastapi.exceptions import RequestValidationError
@@ -49,7 +49,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 from engine import api_models as m
-from engine.buckets import BucketResult, compute_buckets
+from engine.buckets import BucketResult, Placement, compute_buckets
 from engine.db import (
     Database,
     DatabaseError,
@@ -596,14 +596,15 @@ class Engine:
     # ---- results ---------------------------------------------------------- #
 
     def _buckets(self, run_id: int, shortlist: int, band: int, minimum: int,
-                 rows: list[dict[str, Any]] | None = None) -> BucketResult:
+                 rows: list[dict[str, Any]] | None = None,
+                 overrides: dict[int, Any] | None = None) -> BucketResult:
         if not 0 <= band <= shortlist <= 100:
             raise ApiError(422, "invalid_cutoffs", Api.CUTOFF_ORDER)
         rows = self.db.results_rows(run_id) if rows is None else rows
         scored = [{"candidate_id": r["candidate_id"], "ra_number": r["ra_number"], "overall_score": r["overall_score"]}
                   for r in rows if r["state"] == "scored" and r["overall_score"] is not None]
         return compute_buckets(scored, shortlist_cutoff=shortlist, maybe_cutoff=band, min_shortlist=minimum,
-                               overrides=self.db.latest_overrides(run_id))
+                               overrides=self.db.latest_overrides(run_id) if overrides is None else overrides)
 
     def results(self, run_id: int, *, shortlist: int | None, band: int | None, minimum: int | None,
                 bucket: str, q: str, sort: str, offset: int, limit: int,
@@ -613,15 +614,20 @@ class Engine:
         cut = (saved[0] if shortlist is None else shortlist, saved[1] if band is None else band,
                saved[2] if minimum is None else minimum)
         rows = self.db.results_rows(run_id)
-        live = self._buckets(run_id, *cut, rows=rows)
-        base = live if cut == saved else self._buckets(run_id, *saved, rows=rows)
+        overrides = self.db.latest_overrides(run_id)
+        live = self._buckets(run_id, *cut, rows=rows, overrides=overrides)
+        base = live if cut == saved else self._buckets(run_id, *saved, rows=rows, overrides=overrides)
         placed = {p.candidate_id: p for p in live.placements}
         shared_ranks = Counter(p.rank for p in live.placements)
         histogram = [0] * 10
         for p in live.placements:
             histogram[min(p.score // 10, 9)] += 1
 
-        out: list[m.ResultRowOut] = []
+        # Filter and sort light rows; only the page asked for becomes ResultRowOut.
+        # The live preview of the counts asks for one row, and a cutoff handle
+        # waits for it (e2e/perf.spec.ts: an answer within 200 ms for 2,000 students).
+        needle = q.casefold().strip()
+        listed: list[_Listed] = []
         states = Counter(r["state"] for r in rows)
         for r in rows:
             p = placed.get(r["candidate_id"])
@@ -631,22 +637,14 @@ class Engine:
                 row_bucket = r["state"]
             else:
                 row_bucket = "not_scored"
-            out.append(m.ResultRowOut(
-                candidate_id=r["candidate_id"], rank=p.rank if p else None, ra_number=r["ra_number"],
-                name=r["name"], department=r["department"], cgpa=r["cgpa"],
-                score=r["overall_score"] if p else None, bucket=row_bucket,
-                auto_bucket=p.auto_bucket if p else None, how_placed=p.reason if p else None,
-                tie=bool(p and shared_ranks[p.rank] > 1), flags=len(r["flags"]),
-                failure_kind=r["failure_kind"], failure_reason=r["failure_reason"],
-                filter_reason=r["filter_reason"], link_kind=link_kind(r["resume_link"]),
-            ))
-        if bucket != "all":
-            out = [row for row in out if row.bucket == bucket]
-        needle = q.casefold().strip()
-        if needle:
-            out = [row for row in out if needle in row.name.casefold() or needle in row.ra_number.casefold()]
+            if bucket != "all" and row_bucket != bucket:
+                continue
+            if needle and needle not in r["name"].casefold() and needle not in r["ra_number"].casefold():
+                continue
+            listed.append(_Listed(r, p, row_bucket))
         order = order or FIRST_ORDER[sort]
-        out = sort_rows(out, sort, order)
+        listed = sort_rows(listed, sort, order)
+        page = [item.out(shared_ranks) for item in listed[offset:offset + limit]]
 
         failed = [r for r in rows if r["state"] == "failed"]
         return m.ResultsOut(
@@ -663,7 +661,7 @@ class Engine:
             tie_extra=live.tie_extra, shortfall=live.shortfall,
             failure_groups=_failure_groups([{"failure_reason": r["failure_reason"], "failure_kind": r["failure_kind"]}
                                             for r in failed]),
-            bucket=bucket, sort=sort, order=order, total=len(out), offset=offset, limit=limit, rows=out[offset:offset + limit],
+            bucket=bucket, sort=sort, order=order, total=len(listed), offset=offset, limit=limit, rows=page,
         )
 
     def candidate(self, run_id: int, candidate_id: int) -> m.CandidateOut:
@@ -774,7 +772,7 @@ def _issue(issue: Any) -> m.IssueOut:
 # for rank, score and CGPA; A to Z for names and departments.
 FIRST_ORDER: dict[str, str] = {"rank": "asc", "score": "desc", "cgpa": "desc", "name": "asc", "department": "asc"}
 
-_SORT_VALUE: dict[str, Callable[[m.ResultRowOut], Any]] = {
+_SORT_VALUE: dict[str, Callable[[Any], Any]] = {
     "rank": lambda row: row.rank,
     "score": lambda row: row.score,
     "cgpa": lambda row: row.cgpa,
@@ -782,8 +780,68 @@ _SORT_VALUE: dict[str, Callable[[m.ResultRowOut], Any]] = {
     "department": lambda row: row.department.strip().casefold() or None,
 }
 
+class _Sortable(Protocol):
+    @property
+    def candidate_id(self) -> int: ...
 
-def sort_rows(rows: list[m.ResultRowOut], column: str, order: str) -> list[m.ResultRowOut]:
+    @property
+    def ra_number(self) -> str: ...
+
+
+RowT = TypeVar("RowT", bound=_Sortable)
+
+
+@dataclass(frozen=True, slots=True)
+class _Listed:
+    """One results row before it becomes a ``ResultRowOut``: the fields
+    ``sort_rows`` reads, and the rest only for the page that is returned."""
+
+    raw: dict[str, Any]
+    placement: Placement | None
+    bucket: str
+
+    @property
+    def candidate_id(self) -> int:
+        return self.raw["candidate_id"]
+
+    @property
+    def ra_number(self) -> str:
+        return self.raw["ra_number"]
+
+    @property
+    def name(self) -> str:
+        return self.raw["name"]
+
+    @property
+    def department(self) -> str:
+        return self.raw["department"]
+
+    @property
+    def cgpa(self) -> float | None:
+        return self.raw["cgpa"]
+
+    @property
+    def rank(self) -> int | None:
+        return self.placement.rank if self.placement else None
+
+    @property
+    def score(self) -> int | None:
+        return self.raw["overall_score"] if self.placement else None
+
+    def out(self, shared_ranks: Counter[int]) -> m.ResultRowOut:
+        r, p = self.raw, self.placement
+        return m.ResultRowOut(
+            candidate_id=r["candidate_id"], rank=p.rank if p else None, ra_number=r["ra_number"],
+            name=r["name"], department=r["department"], cgpa=r["cgpa"],
+            score=r["overall_score"] if p else None, bucket=self.bucket,
+            auto_bucket=p.auto_bucket if p else None, how_placed=p.reason if p else None,
+            tie=bool(p and shared_ranks[p.rank] > 1), flags=len(r["flags"]),
+            failure_kind=r["failure_kind"], failure_reason=r["failure_reason"],
+            filter_reason=r["filter_reason"], link_kind=link_kind(r["resume_link"]),
+        )
+
+
+def sort_rows(rows: list[RowT], column: str, order: str) -> list[RowT]:
     """Rows sorted by one column. Rows without a value (no name, no CGPA, not
     ranked) go last in either direction; ties keep RA-number order."""
     value = _SORT_VALUE[column]

@@ -7,6 +7,7 @@ network, no database.
 
 from __future__ import annotations
 
+import functools
 import re
 from dataclasses import dataclass
 from typing import Literal
@@ -68,6 +69,9 @@ def plan_download(link: str) -> DownloadPlan:
 LinkKind = Literal["drive_file", "google_doc", "folder", "web", "invalid"]
 
 
+# Pure, and the results screen asks for every row of a run on each cutoff
+# change (parsing 2,000 URLs was most of a request's time).
+@functools.lru_cache(maxsize=16384)
 def link_kind(link: str) -> LinkKind:
     """What kind of link this is, by the same rules the downloader uses.
 

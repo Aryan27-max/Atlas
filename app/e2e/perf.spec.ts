@@ -51,7 +51,7 @@ test.afterAll(async () => {
   await close(launched)
 })
 
-test('open 2,000 results, scroll end to end', async () => {
+test('open 2,000 results, scroll end to end', { tag: '@perf' }, async () => {
   const { page } = launched
   await longTasks()
   const started = Date.now()
@@ -82,7 +82,7 @@ test('open 2,000 results, scroll end to end', async () => {
   expect(scrollTasks.filter((ms) => ms > 100)).toEqual([])
 })
 
-test(`live cutoffs answer within ${RESPONSE_BUDGET_MS} ms`, async () => {
+test(`live cutoffs answer within ${RESPONSE_BUDGET_MS} ms`, { tag: '@perf' }, async () => {
   const { page } = launched
   await page.getByRole('button', { name: 'Adjust cutoffs' }).first().click()
   const slider = page.getByRole('dialog', { name: 'Adjust cutoffs' }).getByRole('slider', { name: 'Shortlist score' })

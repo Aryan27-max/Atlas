@@ -175,11 +175,12 @@ There is **no `/docs` page**: interactive docs are switched off in the engine. T
 | Playwright (all; builds first) | `cd app; npm run e2e` | ~5–6 min |
 | One Playwright spec | `cd app; npx electron-vite build; npx playwright test e2e/results.spec.ts` | ~1 min |
 | The demo walkthrough | `cd app; npx electron-vite build; npx playwright test e2e/demo.spec.ts` | ~1 min |
+| Performance budgets only (2,000 students; tagged `@perf`) | `cd app; npx electron-vite build; npx playwright test --grep "@perf"` | ~40 s |
 | Live test with the real model | `$env:ATLAS_LIVE = "1"; $env:ATLAS_MODEL = "qwen3:8b"; python -m unittest engine.tests.test_live -v` (zsh: `ATLAS_LIVE=1 ATLAS_MODEL=qwen3:8b python -m unittest engine.tests.test_live -v`) | ~5 min, needs Ollama |
 | Third-party licences | `python packaging/check_licenses.py` | seconds |
 | TROUBLESHOOTING.md is current | `python -m engine.tools.troubleshooting --check` | seconds |
 
-**You should see** `OK` (one skip: the OCR test, unless EasyOCR is installed), and `passed` from npm and Playwright. Playwright drives Atlas's own Electron: **no `npx playwright install` is needed**. Two Playwright tests are skipped unless a packaged build or an install exists (section 9).
+**You should see** `OK` (one skip: the OCR test, unless EasyOCR is installed), and `passed` from npm and Playwright. Playwright drives Atlas's own Electron: **no `npx playwright install` is needed**. Two Playwright tests are skipped unless a packaged build or an install exists (section 9). The `@perf` budgets are strict here. In CI they run in their own report-only step, with the timings in the job summary, because shared runners' timing is noise.
 
 ---
 
