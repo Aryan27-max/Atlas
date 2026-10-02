@@ -42,10 +42,15 @@ atlas/
 ├── CLAUDE.md            ← this file
 ├── ARCHITECTURE.md      ← design reference (read before structural changes)
 ├── PLAN.md              ← phases, steps, exit criteria, design rules
+├── README.md            ← the project for a newcomer: features, Mermaid system design, status
+├── START_CMDS.md        ← every command: setup, dev, demo, tests, builds (verified by running them)
+├── LICENSE              ← proprietary, © 2026 Aryan Gupta
+├── THIRD_PARTY_NOTICES.md ← shipped dependencies + licences; packaging/check_licenses.py keeps it honest
 ├── prompts/             ← execution prompts per phase (phase1.md, …)
 ├── docs/
 │   ├── INSTALL.md · DATA_HANDLING.md · SIGNING.md · EVAL.md   ← for the firm and the owner
 │   ├── TROUBLESHOOTING.md        ← GENERATED from engine/errors.py (python -m engine.tools.troubleshooting)
+│   ├── demo/demo-students.xlsx   ← fictional demo list (engine/tests/demo_stubs.py make-file); npm run demo / demo:fast
 │   ├── legacy/UNDERSTANDING.md   ← how the old QWENTUS CLI worked + its bugs
 │   └── summaries/       ← per-step summaries, PHASE*_SUMMARY.md, CHANGELOG.md
 ├── legacy/qwentus/      ← old source, REFERENCE ONLY, never import
@@ -70,7 +75,7 @@ atlas/
 │   ├── filters.py       ← CGPA/department filter rule (worker + preview) [done]
 │   ├── tools/           ← graph_audit, graph_query, leak_check (counts only), speed_bench, troubleshooting (writes docs/TROUBLESHOOTING.md) [done]
 │   └── tests/           ← unittest; stubs/ = local fake Drive + Ollama; fixtures.py = generated PDFs
-├── packaging/           ← PyInstaller engine.spec, build_engine.py + smoke_engine.py, icons/ (placeholder), mac entitlements [done]
+├── packaging/           ← PyInstaller engine.spec, build_engine.py + smoke_engine.py, check_licenses.py, icons/ (placeholder), mac entitlements [done]
 ├── .github/workflows/ci.yml ← test (Windows + macOS) and build (installers) jobs; .python-version = 3.12 [done]
 └── app/                 ← Electron + React (Phase 2)
     ├── main/            ← engine process, IPC validation, SSE, window, keep-awake, native menus [done]
@@ -109,7 +114,7 @@ python -m unittest engine.tests.test_db -v
 python -m engine.cli --help
 
 # the local API; after changing it, regenerate the schema the app's types come from
-python -m engine.server --data-dir <dir> --port 0 --token <32+ chars>
+python -m engine.server --data-dir <dir> --port 0 --token <16+ chars>   # or ATLAS_TOKEN; the app uses 32 random bytes
 python -m engine.server --openapi app/src/shared/api-schema.json
 
 # the app (from app/): unit tests, type checks, end-to-end (builds first)

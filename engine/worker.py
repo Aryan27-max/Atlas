@@ -20,8 +20,8 @@ Whose problem is it? (§8)
   retryable, the run goes on — unless the *same* bug hits 5 candidates in a
   row, then the run pauses instead of failing everyone.
 
-Only runs paused for "No internet connection" or "Ollama isn't running"
-resume on their own, when the probe (polled every 5 s) says so. After an
+Only runs paused for "No internet connection", "Connected to Wi-Fi that needs
+a sign-in page" or "Ollama isn't running" (``AUTO_RESUME_REASONS``) resume on their own, when the probe (polled every 5 s) says so. After an
 app restart, ``attach`` watches such a run again (``run_waiting_to_resume``).
 
 One worker processes one run at a time. Starting another run is refused

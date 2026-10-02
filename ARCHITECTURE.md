@@ -931,7 +931,7 @@ Repository:
 
 ```text
 atlas/
-├── CLAUDE.md · ARCHITECTURE.md · PLAN.md
+├── CLAUDE.md · ARCHITECTURE.md · PLAN.md · README.md · START_CMDS.md · LICENSE · THIRD_PARTY_NOTICES.md
 ├── engine/
 │   ├── db.py · buckets.py                     Built
 │   ├── ingest/csv_loader.py · links.py        Built
