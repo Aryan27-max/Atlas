@@ -34,6 +34,10 @@ function useModal(
     const focusFirst = (): void => {
       const node = container.current
       if (!node) return
+      // Runs a frame after opening, and a busy or hidden window can make that
+      // frame late. If the user has already focused something inside (a slider
+      // handle, and pressed keys on it), focus stays there.
+      if (node.contains(document.activeElement)) return
       const target =
         initial?.current ??
         node.querySelector<HTMLElement>('[data-autofocus]') ??

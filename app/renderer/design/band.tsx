@@ -50,11 +50,20 @@ export function ScoreBand({ value, onChange, label = 'Score bands' }: ScoreBandP
   const track = useRef<HTMLDivElement>(null)
   const [dragging, setDragging] = useState<Handle | null>(null)
   const { shortlist, band } = value
+  // What the handles last asked for. A key press that arrives before the parent
+  // re-renders builds on it, so every press counts however busy the screen is.
+  const latest = useRef(value)
+  latest.current = value
 
   const set = (handle: Handle, raw: number): void => {
     const v = Math.round(Math.min(100, Math.max(0, raw)))
-    if (handle === 'shortlist') onChange({ shortlist: Math.max(v, band), band })
-    else onChange({ shortlist, band: Math.min(v, shortlist) })
+    const now = latest.current
+    const next =
+      handle === 'shortlist'
+        ? { shortlist: Math.max(v, now.band), band: now.band }
+        : { shortlist: now.shortlist, band: Math.min(v, now.shortlist) }
+    latest.current = next
+    onChange(next)
   }
 
   const valueAt = (clientX: number): number => {
@@ -66,7 +75,7 @@ export function ScoreBand({ value, onChange, label = 'Score bands' }: ScoreBandP
   const onKey =
     (handle: Handle) =>
     (event: KeyboardEvent<HTMLElement>): void => {
-      const current = handle === 'shortlist' ? shortlist : band
+      const current = latest.current[handle]
       const next = {
         ArrowRight: current + 1,
         ArrowUp: current + 1,

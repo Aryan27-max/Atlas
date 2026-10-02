@@ -12,6 +12,7 @@ import {
   Popover,
   ProgressBar,
   ProgressRing,
+  ScoreBand,
   ScorePill,
   SegmentedControl,
   Sheet,
@@ -29,6 +30,7 @@ import {
 afterEach(() => {
   cleanup()
   vi.useRealTimers()
+  vi.restoreAllMocks()
 })
 
 describe('Button', () => {
@@ -373,5 +375,63 @@ describe('Popover', () => {
     render(<Harness />)
     const pop = screen.getByRole('dialog', { name: 'Adjust cutoffs' })
     expect(pop.querySelector('.atl-popover-arrow')).not.toBeNull()
+  })
+})
+
+describe('ScoreBand in a Popover', () => {
+  function Harness() {
+    const anchor = useRef<HTMLButtonElement>(null)
+    const [value, setValue] = useState({ shortlist: 60, band: 50 })
+    return (
+      <>
+        <div id="root">
+          <Button ref={anchor}>Adjust cutoffs</Button>
+        </div>
+        <Popover open onClose={() => {}} anchor={anchor} label="Adjust cutoffs">
+          <ScoreBand value={value} onChange={setValue} />
+        </Popover>
+      </>
+    )
+  }
+
+  it('a late first frame never takes focus from a handle the user already chose', () => {
+    // CI (macOS): the popover's "focus the first control" frame arrived after the
+    // first key press and moved focus to the band handle; the other four presses
+    // moved the band, and the shortlist stopped at 61.
+    const frames: FrameRequestCallback[] = []
+    vi.spyOn(window, 'requestAnimationFrame').mockImplementation((cb) => frames.push(cb))
+    render(<Harness />)
+    const shortlist = screen.getByRole('slider', { name: 'Shortlist score' })
+    const band = screen.getByRole('slider', { name: 'Cutoff band starts at' })
+    act(() => shortlist.focus())
+    fireEvent.keyDown(shortlist, { key: 'ArrowRight' })
+    act(() => frames.splice(0).forEach((cb) => cb(performance.now())))
+    expect(document.activeElement).toBe(shortlist)
+    for (let i = 0; i < 4; i++) fireEvent.keyDown(document.activeElement as HTMLElement, { key: 'ArrowRight' })
+    expect(shortlist.getAttribute('aria-valuenow')).toBe('65')
+    expect(band.getAttribute('aria-valuenow')).toBe('50')
+  })
+
+  it('with nothing chosen yet, the first frame still focuses the first control', () => {
+    const frames: FrameRequestCallback[] = []
+    vi.spyOn(window, 'requestAnimationFrame').mockImplementation((cb) => frames.push(cb))
+    render(<Harness />)
+    act(() => frames.splice(0).forEach((cb) => cb(performance.now())))
+    expect(document.activeElement).toBe(screen.getByRole('slider', { name: 'Cutoff band starts at' }))
+  })
+})
+
+describe('ScoreBand', () => {
+  it('counts every key press, even before the parent re-renders', () => {
+    // A parent that is slow to pass the new value back (here: never) must not
+    // turn five presses into one.
+    const onChange = vi.fn()
+    render(<ScoreBand value={{ shortlist: 60, band: 50 }} onChange={onChange} />)
+    const shortlist = screen.getByRole('slider', { name: 'Shortlist score' })
+    for (let i = 0; i < 5; i++) fireEvent.keyDown(shortlist, { key: 'ArrowRight' })
+    expect(onChange.mock.calls.map(([v]) => v.shortlist)).toEqual([61, 62, 63, 64, 65])
+    const band = screen.getByRole('slider', { name: 'Cutoff band starts at' })
+    fireEvent.keyDown(band, { key: 'End' })
+    expect(onChange).toHaveBeenLastCalledWith({ shortlist: 65, band: 65 }) // never above the shortlist
   })
 })
