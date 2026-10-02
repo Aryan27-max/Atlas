@@ -5,7 +5,25 @@
  * files (and the dev server in development).
  */
 
+import { fileURLToPath } from 'node:url'
 import type { Session, WebContents } from 'electron'
+import { samePath } from './paths'
+
+/**
+ * Whether `url` is the app's own page: the dev server in development, else
+ * renderer/index.html. Chromium reports a file URL percent-encoded (a space or a
+ * non-ASCII letter in the Windows user name) and as file:///C:/… on Windows, so
+ * it is turned back into a path and compared as a path, never as a string.
+ */
+export function isAppPage(url: string, devServer: string | null, rendererFile: string): boolean {
+  const page = url.split('#')[0] ?? ''
+  try {
+    if (devServer !== null) return new URL(page).href === new URL(devServer).href
+    return new URL(page).protocol === 'file:' && samePath(fileURLToPath(page), rendererFile)
+  } catch {
+    return false // not a URL at all
+  }
+}
 
 export function isAllowedRequest(url: string, devServer: string | null): boolean {
   if (

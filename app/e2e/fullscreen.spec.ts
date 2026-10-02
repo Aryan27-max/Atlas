@@ -106,11 +106,23 @@ test('1280×800: every screen fits', async () => {
 
 test('full screen: every screen fits', async () => {
   const { app, page } = launched
-  await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0]?.setFullScreen(true))
+  // A Mac animates into full screen for about a second, longer on a busy runner, so
+  // wait for the transition to end ('enter-full-screen'), then for the page to be laid
+  // out at the window's new size, rather than for a fixed time.
+  await app.evaluate(({ BrowserWindow }) => {
+    const state = globalThis as { __fullScreen?: boolean }
+    const win = BrowserWindow.getAllWindows()[0]
+    state.__fullScreen = false
+    win?.once('enter-full-screen', () => (state.__fullScreen = true))
+    win?.setFullScreen(true)
+  })
+  await expect.poll(() => app.evaluate(() => (globalThis as { __fullScreen?: boolean }).__fullScreen)).toBe(true)
+  expect(await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0]?.isFullScreen())).toBe(true)
+  const contentWidth = () =>
+    app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0]?.getContentBounds().width ?? 0)
   await expect
-    .poll(() => app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0]?.isFullScreen()))
-    .toBe(true)
-  await page.waitForTimeout(800)
+    .poll(async () => Math.abs((await page.evaluate(() => window.innerWidth)) - (await contentWidth())))
+    .toBeLessThanOrEqual(1)
   await everyScreen(page, 'full screen')
   await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0]?.setFullScreen(false))
   await expect

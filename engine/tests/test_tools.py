@@ -246,5 +246,41 @@ class LicenceCheckTests(unittest.TestCase):
         self.assertIn("pymupdf", {p.key for p in python if p.key in check.ALLOWED})
 
 
+def _names(path: Path) -> dict[str, str]:
+    """Normalised package name → the whole line, for one requirements file (``-r`` lines skipped)."""
+    names: dict[str, str] = {}
+    for raw in path.read_text(encoding="utf-8").splitlines():
+        line = raw.split("#", 1)[0].strip()
+        if not line or line.startswith("-"):
+            continue
+        name = line.replace(" ", "")
+        for stop in ("==", ">=", "<=", "~=", "!=", ">", "<", "[", ";"):
+            name = name.split(stop, 1)[0]
+        names[name.lower().replace("_", "-").replace(".", "-")] = line
+    return names
+
+
+class ConstraintsTests(unittest.TestCase):
+    """CI and release builds install exact versions (engine/constraints.txt)."""
+
+    ROOT = Path(__file__).resolve().parents[2]
+
+    def test_every_requirement_has_an_exact_pin(self) -> None:
+        pins = _names(self.ROOT / "engine" / "constraints.txt")
+        for name, line in pins.items():
+            self.assertRegex(line, r"^[A-Za-z0-9_.-]+==[0-9][A-Za-z0-9.+!-]*$", f"not an exact pin: {line}")
+        for requirements in ("engine/requirements.txt", "engine/requirements-dev.txt",
+                             "packaging/requirements-build.txt"):
+            for name in _names(self.ROOT / requirements):
+                self.assertIn(name, pins, f"{name} ({requirements}) has no pin in engine/constraints.txt")
+
+    def test_ci_installs_with_the_constraints(self) -> None:
+        workflow = (self.ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+        installs = [line for line in workflow.splitlines() if "pip install" in line]
+        self.assertGreaterEqual(len(installs), 2)
+        for line in installs:
+            self.assertIn("-c engine/constraints.txt", line, line.strip())
+
+
 if __name__ == "__main__":
     unittest.main()
