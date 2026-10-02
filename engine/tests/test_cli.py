@@ -267,6 +267,31 @@ class CliTests(CliTestCase):
         with Database(db_path) as db:
             self.assertEqual(db.state_counts(1)["scored"], 5)
 
+    def test_a_short_ollama_outage_pauses_and_fails_nobody(self) -> None:
+        # Windows takes ~2 s to refuse a localhost connection, so a 3 s outage was over
+        # by the time the worker's probe looked: the student was failed as "The model
+        # stopped before finishing this résumé." A refused connection means Ollama
+        # isn't running (rule 5), whatever the probe says next.
+        csv_path = self.csv({i: 60 + i for i in range(1, 6)})
+        real_chat = OllamaClient.chat_json
+        calls = {"n": 0}
+
+        def ollama_drops_out(client, *args, **kwargs):
+            calls["n"] += 1
+            if calls["n"] == 4:                       # pre-check + 2 candidates went through
+                self.ollama.go_offline()
+                threading.Timer(3.0, self.ollama.go_online).start()
+            return real_chat(client, *args, **kwargs)
+
+        with patch.object(OllamaClient, "chat_json", ollama_drops_out):
+            code, out = self.cli(*self.run_args(csv_path, "--yes"))
+        self.assertEqual(code, 0, out)
+        with Database(self.data / "atlas.db") as db:
+            self.assertEqual(db.list_candidates(1, states=["failed"]), [])
+            self.assertEqual(db.state_counts(1)["scored"], 5)
+            events = [e["message"] for e in db.events(1, limit=1000) if e["candidate_id"] is None]
+        self.assertIn(f"Paused: {Pause.OLLAMA_DOWN}", events)
+
     def test_run_events_become_lines_once(self) -> None:
         lines: list[str] = []
         announced = None

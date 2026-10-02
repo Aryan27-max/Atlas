@@ -49,3 +49,10 @@ After the fix, 20 more ordinary loop runs all ended with exactly 3. Runs with ev
 
 ## The slow demo runs (a separate thing, not a bug)
 Some demo runs took about 55 s instead of 35 s. Their traces show nearly every click taking about 2.0 s. Playwright waits for two animation frames before clicking, and Chromium throttles frames to about one per second when the window is covered or in the background. These runs happened whether or not the race did.
+
+## The mirror case: an Ollama outage that is over before the probe looks
+Found later the same day, while writing a CLI test (commit `fix(engine): a refused Ollama connection pauses the run`).
+- **On Windows, a connection to a closed localhost port takes about 2 s to be refused** (measured here: 2.02 s).
+- **What happened:** with a 3 s Ollama outage, the chat was refused at about 2 s. The worker's probe then reached Ollama, which was back up, so it said "healthy" twice. Student #3 was failed as "The model stopped before finishing this résumé." No pause, no message (2 of 2 runs).
+- **The fix:** a refused chat connection is "Ollama isn't running" at once, without a probe; the probe is for a chat that broke midway. A connection that was made and then dropped still goes to the probe, because that can be Ollama failing on that one résumé.
+- **Test:** the same 3 s outage now pauses the run and fails nobody (failed before the fix, 2 of 2).

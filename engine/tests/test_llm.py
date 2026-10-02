@@ -6,6 +6,7 @@ import inspect
 import json
 import os
 import re
+import socket
 import tempfile
 import time
 import unittest
@@ -366,7 +367,7 @@ class ClientTests(unittest.TestCase):
     def test_mid_chat_failures_are_transient(self) -> None:
         good_start = stream_lines(json.dumps(answer()))[:2]
         cases = {
-            "refused": requests.exceptions.ConnectionError("refused"),
+            "connection error, cause unknown": requests.exceptions.ConnectionError("no reply"),
             "reset mid-stream": FakeHttpResponse(lines=[*good_start, requests.exceptions.ChunkedEncodingError("reset")]),
             "ended early": FakeHttpResponse(lines=good_start),
             "error chunk": FakeHttpResponse(lines=[b'{"error": "llama runner process has terminated"}']),
@@ -379,6 +380,34 @@ class ClientTests(unittest.TestCase):
                     client.chat_json(build_prompt(prepared().context, {}, CRITERIA, budget_chars=10), SCHEMA,
                                      model="m", num_ctx=4096, num_predict=512)
                 self.assertEqual((ctx.exception.probe, ctx.exception.reason), ("ollama", Reason.MODEL_STOPPED))
+
+    def test_a_refused_chat_connection_means_ollama_is_not_running(self) -> None:
+        # requests' real chain: ConnectionError > MaxRetryError > NewConnectionError > ConnectionRefusedError.
+        def wrapped(cause: OSError) -> requests.exceptions.ConnectionError:
+            inner = OSError("Failed to establish a new connection")
+            inner.__cause__ = cause
+            return requests.exceptions.ConnectionError(inner)
+
+        prompt = build_prompt(prepared().context, {}, CRITERIA, budget_chars=10)
+        client, _ = self.client(wrapped(ConnectionRefusedError(10061, "refused")))
+        with self.assertRaises(SystemUnavailable) as ctx:
+            client.chat_json(prompt, SCHEMA, model="m", num_ctx=4096, num_predict=512)
+        self.assertEqual(ctx.exception.reason, Pause.OLLAMA_DOWN)
+        # A connection that was made and then dropped may be this résumé: the probe decides.
+        client, _ = self.client(wrapped(ConnectionResetError(10054, "reset")))
+        with self.assertRaises(TransientError):
+            client.chat_json(prompt, SCHEMA, model="m", num_ctx=4096, num_predict=512)
+
+    def test_a_chat_to_a_closed_port_pauses_rather_than_failing_the_student(self) -> None:
+        # The real thing, through requests: nothing listens on this port (Windows takes ~2 s to say so).
+        with socket.socket() as probe:
+            probe.bind(("127.0.0.1", 0))
+            port = probe.getsockname()[1]
+        client = OllamaClient(f"http://127.0.0.1:{port}")
+        with self.assertRaises(SystemUnavailable) as ctx:
+            client.chat_json(build_prompt(prepared().context, {}, CRITERIA, budget_chars=10), SCHEMA,
+                             model="m", num_ctx=4096, num_predict=512)
+        self.assertEqual(ctx.exception.reason, Pause.OLLAMA_DOWN)
 
     def test_missing_model_pauses_with_a_clear_reason(self) -> None:
         client, _ = self.client(FakeHttpResponse(status=404, payload={"error": "model 'x' not found"}))

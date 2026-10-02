@@ -6,9 +6,10 @@ Adapted from QWENTUS ``llm/ollama.py``. What changed and why:
   ``logs/ollama/`` and never deleted them, so résumé excerpts piled up on disk
   forever. Now the raw reply is returned to the caller, which stores it in
   SQLite with the evaluation (deleted with the run).
-* **Typed failures.** Ollama not answering ``/api/tags`` is
-  ``SystemUnavailable("Ollama isn't running")``; a chat that breaks midway is a
-  ``TransientError``, and the worker probes ``/api/tags`` to decide.
+* **Typed failures.** Ollama not answering ``/api/tags``, or refusing a chat's
+  connection (nothing listening), is ``SystemUnavailable("Ollama isn't
+  running")``; a chat that breaks midway is a ``TransientError``, and the worker
+  probes ``/api/tags`` to decide.
 * ``format`` is the evaluation's JSON schema (not just ``"json"``),
   ``think: false``, ``temperature: 0``, and ``num_ctx``/``num_predict`` come
   from the caller (QWENTUS hard-coded ``num_predict=256``, too small for the
@@ -287,6 +288,12 @@ class OllamaClient:
         except requests.Timeout:
             raise self._deadline_or_stopped(timeout, "no reply before the read timeout") from None
         except requests.RequestException as exc:
+            if _refused(exc):
+                # Nothing is listening on Ollama's port: Ollama isn't running (rule 5),
+                # whatever the worker's probe says a moment later. Windows takes ~2 s
+                # to refuse a localhost connection, long enough for a short outage to
+                # be over when the probe looks, and the student would be failed.
+                raise SystemUnavailable(Pause.OLLAMA_DOWN) from None
             raise TransientError("ollama", Reason.MODEL_STOPPED, f"chat request failed: {type(exc).__name__}") from None
 
         parts: list[str] = []
@@ -353,3 +360,25 @@ def _error_text(response: requests.Response) -> str:
         return str(response.json().get("error") or response.status_code)
     except ValueError:
         return str(response.status_code)
+
+
+def _refused(exc: BaseException) -> bool:
+    """True when the connection was refused (nothing listening on the port).
+
+    requests wraps it (``ConnectionError`` → urllib3's ``MaxRetryError`` →
+    ``NewConnectionError`` → ``ConnectionRefusedError``), so walk the chain.
+    A connection that was made and then dropped is not "refused": that can be
+    Ollama failing on this one résumé, and the worker's probe decides.
+    """
+    seen: set[int] = set()
+    todo: list[BaseException] = [exc]
+    while todo:
+        current = todo.pop()
+        if id(current) in seen:
+            continue
+        seen.add(id(current))
+        if isinstance(current, ConnectionRefusedError):
+            return True
+        linked = [current.__cause__, current.__context__, getattr(current, "reason", None), *current.args]
+        todo.extend(item for item in linked if isinstance(item, BaseException))
+    return False
