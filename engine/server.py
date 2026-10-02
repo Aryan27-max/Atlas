@@ -937,8 +937,25 @@ def _error(status: int, code: str, message: str) -> JSONResponse:
     return JSONResponse({"code": code, "message": message}, status_code=status)
 
 
+# Every declared error response names its own description. Left out, FastAPI
+# copies Python's HTTP status phrase, which changed in Python 3.13 (413 "Request
+# Entity Too Large" → "Content Too Large", 422 "Unprocessable Entity" →
+# "Unprocessable Content"), so the exported schema would depend on the Python
+# that wrote it.
+ERROR_DESCRIPTIONS: dict[int, str] = {
+    400: "Bad request: no file in the upload",
+    401: "Missing or wrong API token",
+    403: "Request not sent to 127.0.0.1:<port>",
+    404: "Not found",
+    409: "Not possible in the current state",
+    413: "File is too large",
+    415: "Unsupported file type",
+    422: "Invalid request",
+    500: "Engine error",
+    503: "Ollama or the network is unavailable",
+}
 ERRORS: dict[int | str, dict[str, Any]] = {
-    status: {"model": m.ErrorOut} for status in (400, 401, 403, 404, 409, 413, 415, 422, 500, 503)
+    status: {"model": m.ErrorOut, "description": description} for status, description in ERROR_DESCRIPTIONS.items()
 }
 
 

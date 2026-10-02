@@ -718,6 +718,29 @@ class OpenApiTests(unittest.TestCase):
                 with self.subTest(path=path, method=method):
                     self.assertIn("401", operation["responses"])
 
+    def test_the_schema_is_the_same_on_every_python_version(self) -> None:
+        """Python 3.13 renamed some HTTP status phrases; FastAPI copies the phrase into a
+        response's description unless it's given one. CI and releases use 3.12, and
+        development may use 3.14: no description may come from a status phrase."""
+        import http
+
+        changed_in_313 = {"Request Entity Too Large", "Content Too Large", "Unprocessable Entity",
+                          "Unprocessable Content", "Request-URI Too Long", "URI Too Long",
+                          "Requested Range Not Satisfiable", "Range Not Satisfiable"}
+        phrases = {status.phrase for status in http.HTTPStatus} | changed_in_313
+        with tempfile.TemporaryDirectory() as tmp:
+            fresh = Path(tmp) / "schema.json"
+            export_openapi(fresh)
+            text = fresh.read_text(encoding="utf-8")
+            schema = json.loads(text)
+        for phrase in sorted(changed_in_313):
+            self.assertNotIn(phrase, text)
+        for path, methods in schema["paths"].items():
+            for method, operation in methods.items():
+                for status, response in operation["responses"].items():
+                    with self.subTest(path=path, method=method, status=status):
+                        self.assertNotIn(response.get("description"), phrases)
+
 
 # --------------------------------------------------------------------------- #
 # The real process

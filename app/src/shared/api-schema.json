@@ -2430,7 +2430,7 @@
                 }
               }
             },
-            "description": "Bad Request"
+            "description": "Bad request: no file in the upload"
           },
           "401": {
             "content": {
@@ -2440,7 +2440,7 @@
                 }
               }
             },
-            "description": "Unauthorized"
+            "description": "Missing or wrong API token"
           },
           "403": {
             "content": {
@@ -2450,7 +2450,7 @@
                 }
               }
             },
-            "description": "Forbidden"
+            "description": "Request not sent to 127.0.0.1:<port>"
           },
           "404": {
             "content": {
@@ -2460,7 +2460,7 @@
                 }
               }
             },
-            "description": "Not Found"
+            "description": "Not found"
           },
           "409": {
             "content": {
@@ -2470,7 +2470,7 @@
                 }
               }
             },
-            "description": "Conflict"
+            "description": "Not possible in the current state"
           },
           "413": {
             "content": {
@@ -2480,7 +2480,7 @@
                 }
               }
             },
-            "description": "Content Too Large"
+            "description": "File is too large"
           },
           "415": {
             "content": {
@@ -2490,7 +2490,7 @@
                 }
               }
             },
-            "description": "Unsupported Media Type"
+            "description": "Unsupported file type"
           },
           "422": {
             "content": {
@@ -2500,7 +2500,7 @@
                 }
               }
             },
-            "description": "Unprocessable Content"
+            "description": "Invalid request"
           },
           "500": {
             "content": {
@@ -2510,7 +2510,7 @@
                 }
               }
             },
-            "description": "Internal Server Error"
+            "description": "Engine error"
           },
           "503": {
             "content": {
@@ -2520,7 +2520,7 @@
                 }
               }
             },
-            "description": "Service Unavailable"
+            "description": "Ollama or the network is unavailable"
           }
         },
         "summary": "Data Delete"
@@ -2571,7 +2571,7 @@
                 }
               }
             },
-            "description": "Bad Request"
+            "description": "Bad request: no file in the upload"
           },
           "401": {
             "content": {
@@ -2581,7 +2581,7 @@
                 }
               }
             },
-            "description": "Unauthorized"
+            "description": "Missing or wrong API token"
           },
           "403": {
             "content": {
@@ -2591,7 +2591,7 @@
                 }
               }
             },
-            "description": "Forbidden"
+            "description": "Request not sent to 127.0.0.1:<port>"
           },
           "404": {
             "content": {
@@ -2601,7 +2601,7 @@
                 }
               }
             },
-            "description": "Not Found"
+            "description": "Not found"
           },
           "409": {
             "content": {
@@ -2611,7 +2611,7 @@
                 }
               }
             },
-            "description": "Conflict"
+            "description": "Not possible in the current state"
           },
           "413": {
             "content": {
@@ -2621,7 +2621,7 @@
                 }
               }
             },
-            "description": "Content Too Large"
+            "description": "File is too large"
           },
           "415": {
             "content": {
@@ -2631,7 +2631,7 @@
                 }
               }
             },
-            "description": "Unsupported Media Type"
+            "description": "Unsupported file type"
           },
           "422": {
             "content": {
@@ -2641,7 +2641,7 @@
                 }
               }
             },
-            "description": "Unprocessable Content"
+            "description": "Invalid request"
           },
           "500": {
             "content": {
@@ -2651,7 +2651,7 @@
                 }
               }
             },
-            "description": "Internal Server Error"
+            "description": "Engine error"
           },
           "503": {
             "content": {
@@ -2661,7 +2661,7 @@
                 }
               }
             },
-            "description": "Service Unavailable"
+            "description": "Ollama or the network is unavailable"
           }
         },
         "summary": "App Events"
@@ -2689,7 +2689,7 @@
                 }
               }
             },
-            "description": "Bad Request"
+            "description": "Bad request: no file in the upload"
           },
           "401": {
             "content": {
@@ -2699,7 +2699,7 @@
                 }
               }
             },
-            "description": "Unauthorized"
+            "description": "Missing or wrong API token"
           },
           "403": {
             "content": {
@@ -2709,7 +2709,7 @@
                 }
               }
             },
-            "description": "Forbidden"
+            "description": "Request not sent to 127.0.0.1:<port>"
           },
           "404": {
             "content": {
@@ -2719,7 +2719,7 @@
                 }
               }
             },
-            "description": "Not Found"
+            "description": "Not found"
           },
           "409": {
             "content": {
@@ -2729,7 +2729,7 @@
                 }
               }
             },
-            "description": "Conflict"
+            "description": "Not possible in the current state"
           },
           "413": {
             "content": {
@@ -2739,7 +2739,7 @@
                 }
               }
             },
-            "description": "Content Too Large"
+            "description": "File is too large"
           },
           "415": {
             "content": {
@@ -2749,7 +2749,7 @@
                 }
               }
             },
-            "description": "Unsupported Media Type"
+            "description": "Unsupported file type"
           },
           "422": {
             "content": {
@@ -2759,7 +2759,7 @@
                 }
               }
             },
-            "description": "Unprocessable Content"
+            "description": "Invalid request"
           },
           "500": {
             "content": {
@@ -2769,7 +2769,7 @@
                 }
               }
             },
-            "description": "Internal Server Error"
+            "description": "Engine error"
           },
           "503": {
             "content": {
@@ -2779,7 +2779,7 @@
                 }
               }
             },
-            "description": "Service Unavailable"
+            "description": "Ollama or the network is unavailable"
           }
         },
         "summary": "Health"
@@ -2807,7 +2807,7 @@
                 }
               }
             },
-            "description": "Bad Request"
+            "description": "Bad request: no file in the upload"
           },
           "401": {
             "content": {
@@ -2817,7 +2817,7 @@
                 }
               }
             },
-            "description": "Unauthorized"
+            "description": "Missing or wrong API token"
           },
           "403": {
             "content": {
@@ -2827,7 +2827,7 @@
                 }
               }
             },
-            "description": "Forbidden"
+            "description": "Request not sent to 127.0.0.1:<port>"
           },
           "404": {
             "content": {
@@ -2837,7 +2837,7 @@
                 }
               }
             },
-            "description": "Not Found"
+            "description": "Not found"
           },
           "409": {
             "content": {
@@ -2847,7 +2847,7 @@
                 }
               }
             },
-            "description": "Conflict"
+            "description": "Not possible in the current state"
           },
           "413": {
             "content": {
@@ -2857,7 +2857,7 @@
                 }
               }
             },
-            "description": "Content Too Large"
+            "description": "File is too large"
           },
           "415": {
             "content": {
@@ -2867,7 +2867,7 @@
                 }
               }
             },
-            "description": "Unsupported Media Type"
+            "description": "Unsupported file type"
           },
           "422": {
             "content": {
@@ -2877,7 +2877,7 @@
                 }
               }
             },
-            "description": "Unprocessable Content"
+            "description": "Invalid request"
           },
           "500": {
             "content": {
@@ -2887,7 +2887,7 @@
                 }
               }
             },
-            "description": "Internal Server Error"
+            "description": "Engine error"
           },
           "503": {
             "content": {
@@ -2897,7 +2897,7 @@
                 }
               }
             },
-            "description": "Service Unavailable"
+            "description": "Ollama or the network is unavailable"
           }
         },
         "summary": "Models"
@@ -2936,7 +2936,7 @@
                 }
               }
             },
-            "description": "Bad Request"
+            "description": "Bad request: no file in the upload"
           },
           "401": {
             "content": {
@@ -2946,7 +2946,7 @@
                 }
               }
             },
-            "description": "Unauthorized"
+            "description": "Missing or wrong API token"
           },
           "403": {
             "content": {
@@ -2956,7 +2956,7 @@
                 }
               }
             },
-            "description": "Forbidden"
+            "description": "Request not sent to 127.0.0.1:<port>"
           },
           "404": {
             "content": {
@@ -2966,7 +2966,7 @@
                 }
               }
             },
-            "description": "Not Found"
+            "description": "Not found"
           },
           "409": {
             "content": {
@@ -2976,7 +2976,7 @@
                 }
               }
             },
-            "description": "Conflict"
+            "description": "Not possible in the current state"
           },
           "413": {
             "content": {
@@ -2986,7 +2986,7 @@
                 }
               }
             },
-            "description": "Content Too Large"
+            "description": "File is too large"
           },
           "415": {
             "content": {
@@ -2996,7 +2996,7 @@
                 }
               }
             },
-            "description": "Unsupported Media Type"
+            "description": "Unsupported file type"
           },
           "422": {
             "content": {
@@ -3006,7 +3006,7 @@
                 }
               }
             },
-            "description": "Unprocessable Content"
+            "description": "Invalid request"
           },
           "500": {
             "content": {
@@ -3016,7 +3016,7 @@
                 }
               }
             },
-            "description": "Internal Server Error"
+            "description": "Engine error"
           },
           "503": {
             "content": {
@@ -3026,7 +3026,7 @@
                 }
               }
             },
-            "description": "Service Unavailable"
+            "description": "Ollama or the network is unavailable"
           }
         },
         "summary": "Model Precheck"
@@ -3058,7 +3058,7 @@
                 }
               }
             },
-            "description": "Bad Request"
+            "description": "Bad request: no file in the upload"
           },
           "401": {
             "content": {
@@ -3068,7 +3068,7 @@
                 }
               }
             },
-            "description": "Unauthorized"
+            "description": "Missing or wrong API token"
           },
           "403": {
             "content": {
@@ -3078,7 +3078,7 @@
                 }
               }
             },
-            "description": "Forbidden"
+            "description": "Request not sent to 127.0.0.1:<port>"
           },
           "404": {
             "content": {
@@ -3088,7 +3088,7 @@
                 }
               }
             },
-            "description": "Not Found"
+            "description": "Not found"
           },
           "409": {
             "content": {
@@ -3098,7 +3098,7 @@
                 }
               }
             },
-            "description": "Conflict"
+            "description": "Not possible in the current state"
           },
           "413": {
             "content": {
@@ -3108,7 +3108,7 @@
                 }
               }
             },
-            "description": "Content Too Large"
+            "description": "File is too large"
           },
           "415": {
             "content": {
@@ -3118,7 +3118,7 @@
                 }
               }
             },
-            "description": "Unsupported Media Type"
+            "description": "Unsupported file type"
           },
           "422": {
             "content": {
@@ -3128,7 +3128,7 @@
                 }
               }
             },
-            "description": "Unprocessable Content"
+            "description": "Invalid request"
           },
           "500": {
             "content": {
@@ -3138,7 +3138,7 @@
                 }
               }
             },
-            "description": "Internal Server Error"
+            "description": "Engine error"
           },
           "503": {
             "content": {
@@ -3148,7 +3148,7 @@
                 }
               }
             },
-            "description": "Service Unavailable"
+            "description": "Ollama or the network is unavailable"
           }
         },
         "summary": "Model Pull Cancel"
@@ -3185,7 +3185,7 @@
                 }
               }
             },
-            "description": "Bad Request"
+            "description": "Bad request: no file in the upload"
           },
           "401": {
             "content": {
@@ -3195,7 +3195,7 @@
                 }
               }
             },
-            "description": "Unauthorized"
+            "description": "Missing or wrong API token"
           },
           "403": {
             "content": {
@@ -3205,7 +3205,7 @@
                 }
               }
             },
-            "description": "Forbidden"
+            "description": "Request not sent to 127.0.0.1:<port>"
           },
           "404": {
             "content": {
@@ -3215,7 +3215,7 @@
                 }
               }
             },
-            "description": "Not Found"
+            "description": "Not found"
           },
           "409": {
             "content": {
@@ -3225,7 +3225,7 @@
                 }
               }
             },
-            "description": "Conflict"
+            "description": "Not possible in the current state"
           },
           "413": {
             "content": {
@@ -3235,7 +3235,7 @@
                 }
               }
             },
-            "description": "Content Too Large"
+            "description": "File is too large"
           },
           "415": {
             "content": {
@@ -3245,7 +3245,7 @@
                 }
               }
             },
-            "description": "Unsupported Media Type"
+            "description": "Unsupported file type"
           },
           "422": {
             "content": {
@@ -3255,7 +3255,7 @@
                 }
               }
             },
-            "description": "Unprocessable Content"
+            "description": "Invalid request"
           },
           "500": {
             "content": {
@@ -3265,7 +3265,7 @@
                 }
               }
             },
-            "description": "Internal Server Error"
+            "description": "Engine error"
           },
           "503": {
             "content": {
@@ -3275,7 +3275,7 @@
                 }
               }
             },
-            "description": "Service Unavailable"
+            "description": "Ollama or the network is unavailable"
           }
         },
         "summary": "Model Pull"
@@ -3303,7 +3303,7 @@
                 }
               }
             },
-            "description": "Bad Request"
+            "description": "Bad request: no file in the upload"
           },
           "401": {
             "content": {
@@ -3313,7 +3313,7 @@
                 }
               }
             },
-            "description": "Unauthorized"
+            "description": "Missing or wrong API token"
           },
           "403": {
             "content": {
@@ -3323,7 +3323,7 @@
                 }
               }
             },
-            "description": "Forbidden"
+            "description": "Request not sent to 127.0.0.1:<port>"
           },
           "404": {
             "content": {
@@ -3333,7 +3333,7 @@
                 }
               }
             },
-            "description": "Not Found"
+            "description": "Not found"
           },
           "409": {
             "content": {
@@ -3343,7 +3343,7 @@
                 }
               }
             },
-            "description": "Conflict"
+            "description": "Not possible in the current state"
           },
           "413": {
             "content": {
@@ -3353,7 +3353,7 @@
                 }
               }
             },
-            "description": "Content Too Large"
+            "description": "File is too large"
           },
           "415": {
             "content": {
@@ -3363,7 +3363,7 @@
                 }
               }
             },
-            "description": "Unsupported Media Type"
+            "description": "Unsupported file type"
           },
           "422": {
             "content": {
@@ -3373,7 +3373,7 @@
                 }
               }
             },
-            "description": "Unprocessable Content"
+            "description": "Invalid request"
           },
           "500": {
             "content": {
@@ -3383,7 +3383,7 @@
                 }
               }
             },
-            "description": "Internal Server Error"
+            "description": "Engine error"
           },
           "503": {
             "content": {
@@ -3393,7 +3393,7 @@
                 }
               }
             },
-            "description": "Service Unavailable"
+            "description": "Ollama or the network is unavailable"
           }
         },
         "summary": "Ollama Start"
@@ -3425,7 +3425,7 @@
                 }
               }
             },
-            "description": "Bad Request"
+            "description": "Bad request: no file in the upload"
           },
           "401": {
             "content": {
@@ -3435,7 +3435,7 @@
                 }
               }
             },
-            "description": "Unauthorized"
+            "description": "Missing or wrong API token"
           },
           "403": {
             "content": {
@@ -3445,7 +3445,7 @@
                 }
               }
             },
-            "description": "Forbidden"
+            "description": "Request not sent to 127.0.0.1:<port>"
           },
           "404": {
             "content": {
@@ -3455,7 +3455,7 @@
                 }
               }
             },
-            "description": "Not Found"
+            "description": "Not found"
           },
           "409": {
             "content": {
@@ -3465,7 +3465,7 @@
                 }
               }
             },
-            "description": "Conflict"
+            "description": "Not possible in the current state"
           },
           "413": {
             "content": {
@@ -3475,7 +3475,7 @@
                 }
               }
             },
-            "description": "Content Too Large"
+            "description": "File is too large"
           },
           "415": {
             "content": {
@@ -3485,7 +3485,7 @@
                 }
               }
             },
-            "description": "Unsupported Media Type"
+            "description": "Unsupported file type"
           },
           "422": {
             "content": {
@@ -3495,7 +3495,7 @@
                 }
               }
             },
-            "description": "Unprocessable Content"
+            "description": "Invalid request"
           },
           "500": {
             "content": {
@@ -3505,7 +3505,7 @@
                 }
               }
             },
-            "description": "Internal Server Error"
+            "description": "Engine error"
           },
           "503": {
             "content": {
@@ -3515,7 +3515,7 @@
                 }
               }
             },
-            "description": "Service Unavailable"
+            "description": "Ollama or the network is unavailable"
           }
         },
         "summary": "Runs"
@@ -3551,7 +3551,7 @@
                 }
               }
             },
-            "description": "Bad Request"
+            "description": "Bad request: no file in the upload"
           },
           "401": {
             "content": {
@@ -3561,7 +3561,7 @@
                 }
               }
             },
-            "description": "Unauthorized"
+            "description": "Missing or wrong API token"
           },
           "403": {
             "content": {
@@ -3571,7 +3571,7 @@
                 }
               }
             },
-            "description": "Forbidden"
+            "description": "Request not sent to 127.0.0.1:<port>"
           },
           "404": {
             "content": {
@@ -3581,7 +3581,7 @@
                 }
               }
             },
-            "description": "Not Found"
+            "description": "Not found"
           },
           "409": {
             "content": {
@@ -3591,7 +3591,7 @@
                 }
               }
             },
-            "description": "Conflict"
+            "description": "Not possible in the current state"
           },
           "413": {
             "content": {
@@ -3601,7 +3601,7 @@
                 }
               }
             },
-            "description": "Content Too Large"
+            "description": "File is too large"
           },
           "415": {
             "content": {
@@ -3611,7 +3611,7 @@
                 }
               }
             },
-            "description": "Unsupported Media Type"
+            "description": "Unsupported file type"
           },
           "422": {
             "content": {
@@ -3621,7 +3621,7 @@
                 }
               }
             },
-            "description": "Unprocessable Content"
+            "description": "Invalid request"
           },
           "500": {
             "content": {
@@ -3631,7 +3631,7 @@
                 }
               }
             },
-            "description": "Internal Server Error"
+            "description": "Engine error"
           },
           "503": {
             "content": {
@@ -3641,7 +3641,7 @@
                 }
               }
             },
-            "description": "Service Unavailable"
+            "description": "Ollama or the network is unavailable"
           }
         },
         "summary": "Run Create"
@@ -3680,7 +3680,7 @@
                 }
               }
             },
-            "description": "Bad Request"
+            "description": "Bad request: no file in the upload"
           },
           "401": {
             "content": {
@@ -3690,7 +3690,7 @@
                 }
               }
             },
-            "description": "Unauthorized"
+            "description": "Missing or wrong API token"
           },
           "403": {
             "content": {
@@ -3700,7 +3700,7 @@
                 }
               }
             },
-            "description": "Forbidden"
+            "description": "Request not sent to 127.0.0.1:<port>"
           },
           "404": {
             "content": {
@@ -3710,7 +3710,7 @@
                 }
               }
             },
-            "description": "Not Found"
+            "description": "Not found"
           },
           "409": {
             "content": {
@@ -3720,7 +3720,7 @@
                 }
               }
             },
-            "description": "Conflict"
+            "description": "Not possible in the current state"
           },
           "413": {
             "content": {
@@ -3730,7 +3730,7 @@
                 }
               }
             },
-            "description": "Content Too Large"
+            "description": "File is too large"
           },
           "415": {
             "content": {
@@ -3740,7 +3740,7 @@
                 }
               }
             },
-            "description": "Unsupported Media Type"
+            "description": "Unsupported file type"
           },
           "422": {
             "content": {
@@ -3750,7 +3750,7 @@
                 }
               }
             },
-            "description": "Unprocessable Content"
+            "description": "Invalid request"
           },
           "500": {
             "content": {
@@ -3760,7 +3760,7 @@
                 }
               }
             },
-            "description": "Internal Server Error"
+            "description": "Engine error"
           },
           "503": {
             "content": {
@@ -3770,7 +3770,7 @@
                 }
               }
             },
-            "description": "Service Unavailable"
+            "description": "Ollama or the network is unavailable"
           }
         },
         "summary": "Run Delete"
@@ -3807,7 +3807,7 @@
                 }
               }
             },
-            "description": "Bad Request"
+            "description": "Bad request: no file in the upload"
           },
           "401": {
             "content": {
@@ -3817,7 +3817,7 @@
                 }
               }
             },
-            "description": "Unauthorized"
+            "description": "Missing or wrong API token"
           },
           "403": {
             "content": {
@@ -3827,7 +3827,7 @@
                 }
               }
             },
-            "description": "Forbidden"
+            "description": "Request not sent to 127.0.0.1:<port>"
           },
           "404": {
             "content": {
@@ -3837,7 +3837,7 @@
                 }
               }
             },
-            "description": "Not Found"
+            "description": "Not found"
           },
           "409": {
             "content": {
@@ -3847,7 +3847,7 @@
                 }
               }
             },
-            "description": "Conflict"
+            "description": "Not possible in the current state"
           },
           "413": {
             "content": {
@@ -3857,7 +3857,7 @@
                 }
               }
             },
-            "description": "Content Too Large"
+            "description": "File is too large"
           },
           "415": {
             "content": {
@@ -3867,7 +3867,7 @@
                 }
               }
             },
-            "description": "Unsupported Media Type"
+            "description": "Unsupported file type"
           },
           "422": {
             "content": {
@@ -3877,7 +3877,7 @@
                 }
               }
             },
-            "description": "Unprocessable Content"
+            "description": "Invalid request"
           },
           "500": {
             "content": {
@@ -3887,7 +3887,7 @@
                 }
               }
             },
-            "description": "Internal Server Error"
+            "description": "Engine error"
           },
           "503": {
             "content": {
@@ -3897,7 +3897,7 @@
                 }
               }
             },
-            "description": "Service Unavailable"
+            "description": "Ollama or the network is unavailable"
           }
         },
         "summary": "Run Get"
@@ -3944,7 +3944,7 @@
                 }
               }
             },
-            "description": "Bad Request"
+            "description": "Bad request: no file in the upload"
           },
           "401": {
             "content": {
@@ -3954,7 +3954,7 @@
                 }
               }
             },
-            "description": "Unauthorized"
+            "description": "Missing or wrong API token"
           },
           "403": {
             "content": {
@@ -3964,7 +3964,7 @@
                 }
               }
             },
-            "description": "Forbidden"
+            "description": "Request not sent to 127.0.0.1:<port>"
           },
           "404": {
             "content": {
@@ -3974,7 +3974,7 @@
                 }
               }
             },
-            "description": "Not Found"
+            "description": "Not found"
           },
           "409": {
             "content": {
@@ -3984,7 +3984,7 @@
                 }
               }
             },
-            "description": "Conflict"
+            "description": "Not possible in the current state"
           },
           "413": {
             "content": {
@@ -3994,7 +3994,7 @@
                 }
               }
             },
-            "description": "Content Too Large"
+            "description": "File is too large"
           },
           "415": {
             "content": {
@@ -4004,7 +4004,7 @@
                 }
               }
             },
-            "description": "Unsupported Media Type"
+            "description": "Unsupported file type"
           },
           "422": {
             "content": {
@@ -4014,7 +4014,7 @@
                 }
               }
             },
-            "description": "Unprocessable Content"
+            "description": "Invalid request"
           },
           "500": {
             "content": {
@@ -4024,7 +4024,7 @@
                 }
               }
             },
-            "description": "Internal Server Error"
+            "description": "Engine error"
           },
           "503": {
             "content": {
@@ -4034,7 +4034,7 @@
                 }
               }
             },
-            "description": "Service Unavailable"
+            "description": "Ollama or the network is unavailable"
           }
         },
         "summary": "Run Patch"
@@ -4073,7 +4073,7 @@
                 }
               }
             },
-            "description": "Bad Request"
+            "description": "Bad request: no file in the upload"
           },
           "401": {
             "content": {
@@ -4083,7 +4083,7 @@
                 }
               }
             },
-            "description": "Unauthorized"
+            "description": "Missing or wrong API token"
           },
           "403": {
             "content": {
@@ -4093,7 +4093,7 @@
                 }
               }
             },
-            "description": "Forbidden"
+            "description": "Request not sent to 127.0.0.1:<port>"
           },
           "404": {
             "content": {
@@ -4103,7 +4103,7 @@
                 }
               }
             },
-            "description": "Not Found"
+            "description": "Not found"
           },
           "409": {
             "content": {
@@ -4113,7 +4113,7 @@
                 }
               }
             },
-            "description": "Conflict"
+            "description": "Not possible in the current state"
           },
           "413": {
             "content": {
@@ -4123,7 +4123,7 @@
                 }
               }
             },
-            "description": "Content Too Large"
+            "description": "File is too large"
           },
           "415": {
             "content": {
@@ -4133,7 +4133,7 @@
                 }
               }
             },
-            "description": "Unsupported Media Type"
+            "description": "Unsupported file type"
           },
           "422": {
             "content": {
@@ -4143,7 +4143,7 @@
                 }
               }
             },
-            "description": "Unprocessable Content"
+            "description": "Invalid request"
           },
           "500": {
             "content": {
@@ -4153,7 +4153,7 @@
                 }
               }
             },
-            "description": "Internal Server Error"
+            "description": "Engine error"
           },
           "503": {
             "content": {
@@ -4163,7 +4163,7 @@
                 }
               }
             },
-            "description": "Service Unavailable"
+            "description": "Ollama or the network is unavailable"
           }
         },
         "summary": "Run Cancel"
@@ -4211,7 +4211,7 @@
                 }
               }
             },
-            "description": "Bad Request"
+            "description": "Bad request: no file in the upload"
           },
           "401": {
             "content": {
@@ -4221,7 +4221,7 @@
                 }
               }
             },
-            "description": "Unauthorized"
+            "description": "Missing or wrong API token"
           },
           "403": {
             "content": {
@@ -4231,7 +4231,7 @@
                 }
               }
             },
-            "description": "Forbidden"
+            "description": "Request not sent to 127.0.0.1:<port>"
           },
           "404": {
             "content": {
@@ -4241,7 +4241,7 @@
                 }
               }
             },
-            "description": "Not Found"
+            "description": "Not found"
           },
           "409": {
             "content": {
@@ -4251,7 +4251,7 @@
                 }
               }
             },
-            "description": "Conflict"
+            "description": "Not possible in the current state"
           },
           "413": {
             "content": {
@@ -4261,7 +4261,7 @@
                 }
               }
             },
-            "description": "Content Too Large"
+            "description": "File is too large"
           },
           "415": {
             "content": {
@@ -4271,7 +4271,7 @@
                 }
               }
             },
-            "description": "Unsupported Media Type"
+            "description": "Unsupported file type"
           },
           "422": {
             "content": {
@@ -4281,7 +4281,7 @@
                 }
               }
             },
-            "description": "Unprocessable Content"
+            "description": "Invalid request"
           },
           "500": {
             "content": {
@@ -4291,7 +4291,7 @@
                 }
               }
             },
-            "description": "Internal Server Error"
+            "description": "Engine error"
           },
           "503": {
             "content": {
@@ -4301,7 +4301,7 @@
                 }
               }
             },
-            "description": "Service Unavailable"
+            "description": "Ollama or the network is unavailable"
           }
         },
         "summary": "Run Candidate"
@@ -4359,7 +4359,7 @@
                 }
               }
             },
-            "description": "Bad Request"
+            "description": "Bad request: no file in the upload"
           },
           "401": {
             "content": {
@@ -4369,7 +4369,7 @@
                 }
               }
             },
-            "description": "Unauthorized"
+            "description": "Missing or wrong API token"
           },
           "403": {
             "content": {
@@ -4379,7 +4379,7 @@
                 }
               }
             },
-            "description": "Forbidden"
+            "description": "Request not sent to 127.0.0.1:<port>"
           },
           "404": {
             "content": {
@@ -4389,7 +4389,7 @@
                 }
               }
             },
-            "description": "Not Found"
+            "description": "Not found"
           },
           "409": {
             "content": {
@@ -4399,7 +4399,7 @@
                 }
               }
             },
-            "description": "Conflict"
+            "description": "Not possible in the current state"
           },
           "413": {
             "content": {
@@ -4409,7 +4409,7 @@
                 }
               }
             },
-            "description": "Content Too Large"
+            "description": "File is too large"
           },
           "415": {
             "content": {
@@ -4419,7 +4419,7 @@
                 }
               }
             },
-            "description": "Unsupported Media Type"
+            "description": "Unsupported file type"
           },
           "422": {
             "content": {
@@ -4429,7 +4429,7 @@
                 }
               }
             },
-            "description": "Unprocessable Content"
+            "description": "Invalid request"
           },
           "500": {
             "content": {
@@ -4439,7 +4439,7 @@
                 }
               }
             },
-            "description": "Internal Server Error"
+            "description": "Engine error"
           },
           "503": {
             "content": {
@@ -4449,7 +4449,7 @@
                 }
               }
             },
-            "description": "Service Unavailable"
+            "description": "Ollama or the network is unavailable"
           }
         },
         "summary": "Run Override"
@@ -4498,7 +4498,7 @@
                 }
               }
             },
-            "description": "Bad Request"
+            "description": "Bad request: no file in the upload"
           },
           "401": {
             "content": {
@@ -4508,7 +4508,7 @@
                 }
               }
             },
-            "description": "Unauthorized"
+            "description": "Missing or wrong API token"
           },
           "403": {
             "content": {
@@ -4518,7 +4518,7 @@
                 }
               }
             },
-            "description": "Forbidden"
+            "description": "Request not sent to 127.0.0.1:<port>"
           },
           "404": {
             "content": {
@@ -4528,7 +4528,7 @@
                 }
               }
             },
-            "description": "Not Found"
+            "description": "Not found"
           },
           "409": {
             "content": {
@@ -4538,7 +4538,7 @@
                 }
               }
             },
-            "description": "Conflict"
+            "description": "Not possible in the current state"
           },
           "413": {
             "content": {
@@ -4548,7 +4548,7 @@
                 }
               }
             },
-            "description": "Content Too Large"
+            "description": "File is too large"
           },
           "415": {
             "content": {
@@ -4558,7 +4558,7 @@
                 }
               }
             },
-            "description": "Unsupported Media Type"
+            "description": "Unsupported file type"
           },
           "422": {
             "content": {
@@ -4568,7 +4568,7 @@
                 }
               }
             },
-            "description": "Unprocessable Content"
+            "description": "Invalid request"
           },
           "500": {
             "content": {
@@ -4578,7 +4578,7 @@
                 }
               }
             },
-            "description": "Internal Server Error"
+            "description": "Engine error"
           },
           "503": {
             "content": {
@@ -4588,7 +4588,7 @@
                 }
               }
             },
-            "description": "Service Unavailable"
+            "description": "Ollama or the network is unavailable"
           }
         },
         "summary": "Run Cutoffs"
@@ -4644,7 +4644,7 @@
                 }
               }
             },
-            "description": "Bad Request"
+            "description": "Bad request: no file in the upload"
           },
           "401": {
             "content": {
@@ -4654,7 +4654,7 @@
                 }
               }
             },
-            "description": "Unauthorized"
+            "description": "Missing or wrong API token"
           },
           "403": {
             "content": {
@@ -4664,7 +4664,7 @@
                 }
               }
             },
-            "description": "Forbidden"
+            "description": "Request not sent to 127.0.0.1:<port>"
           },
           "404": {
             "content": {
@@ -4674,7 +4674,7 @@
                 }
               }
             },
-            "description": "Not Found"
+            "description": "Not found"
           },
           "409": {
             "content": {
@@ -4684,7 +4684,7 @@
                 }
               }
             },
-            "description": "Conflict"
+            "description": "Not possible in the current state"
           },
           "413": {
             "content": {
@@ -4694,7 +4694,7 @@
                 }
               }
             },
-            "description": "Content Too Large"
+            "description": "File is too large"
           },
           "415": {
             "content": {
@@ -4704,7 +4704,7 @@
                 }
               }
             },
-            "description": "Unsupported Media Type"
+            "description": "Unsupported file type"
           },
           "422": {
             "content": {
@@ -4714,7 +4714,7 @@
                 }
               }
             },
-            "description": "Unprocessable Content"
+            "description": "Invalid request"
           },
           "500": {
             "content": {
@@ -4724,7 +4724,7 @@
                 }
               }
             },
-            "description": "Internal Server Error"
+            "description": "Engine error"
           },
           "503": {
             "content": {
@@ -4734,7 +4734,7 @@
                 }
               }
             },
-            "description": "Service Unavailable"
+            "description": "Ollama or the network is unavailable"
           }
         },
         "summary": "Run Estimate"
@@ -4794,7 +4794,7 @@
                 }
               }
             },
-            "description": "Bad Request"
+            "description": "Bad request: no file in the upload"
           },
           "401": {
             "content": {
@@ -4804,7 +4804,7 @@
                 }
               }
             },
-            "description": "Unauthorized"
+            "description": "Missing or wrong API token"
           },
           "403": {
             "content": {
@@ -4814,7 +4814,7 @@
                 }
               }
             },
-            "description": "Forbidden"
+            "description": "Request not sent to 127.0.0.1:<port>"
           },
           "404": {
             "content": {
@@ -4824,7 +4824,7 @@
                 }
               }
             },
-            "description": "Not Found"
+            "description": "Not found"
           },
           "409": {
             "content": {
@@ -4834,7 +4834,7 @@
                 }
               }
             },
-            "description": "Conflict"
+            "description": "Not possible in the current state"
           },
           "413": {
             "content": {
@@ -4844,7 +4844,7 @@
                 }
               }
             },
-            "description": "Content Too Large"
+            "description": "File is too large"
           },
           "415": {
             "content": {
@@ -4854,7 +4854,7 @@
                 }
               }
             },
-            "description": "Unsupported Media Type"
+            "description": "Unsupported file type"
           },
           "422": {
             "content": {
@@ -4864,7 +4864,7 @@
                 }
               }
             },
-            "description": "Unprocessable Content"
+            "description": "Invalid request"
           },
           "500": {
             "content": {
@@ -4874,7 +4874,7 @@
                 }
               }
             },
-            "description": "Internal Server Error"
+            "description": "Engine error"
           },
           "503": {
             "content": {
@@ -4884,7 +4884,7 @@
                 }
               }
             },
-            "description": "Service Unavailable"
+            "description": "Ollama or the network is unavailable"
           }
         },
         "summary": "Run Events"
@@ -4940,7 +4940,7 @@
                 }
               }
             },
-            "description": "Bad Request"
+            "description": "Bad request: no file in the upload"
           },
           "401": {
             "content": {
@@ -4950,7 +4950,7 @@
                 }
               }
             },
-            "description": "Unauthorized"
+            "description": "Missing or wrong API token"
           },
           "403": {
             "content": {
@@ -4960,7 +4960,7 @@
                 }
               }
             },
-            "description": "Forbidden"
+            "description": "Request not sent to 127.0.0.1:<port>"
           },
           "404": {
             "content": {
@@ -4970,7 +4970,7 @@
                 }
               }
             },
-            "description": "Not Found"
+            "description": "Not found"
           },
           "409": {
             "content": {
@@ -4980,7 +4980,7 @@
                 }
               }
             },
-            "description": "Conflict"
+            "description": "Not possible in the current state"
           },
           "413": {
             "content": {
@@ -4990,7 +4990,7 @@
                 }
               }
             },
-            "description": "Content Too Large"
+            "description": "File is too large"
           },
           "415": {
             "content": {
@@ -5000,7 +5000,7 @@
                 }
               }
             },
-            "description": "Unsupported Media Type"
+            "description": "Unsupported file type"
           },
           "422": {
             "content": {
@@ -5010,7 +5010,7 @@
                 }
               }
             },
-            "description": "Unprocessable Content"
+            "description": "Invalid request"
           },
           "500": {
             "content": {
@@ -5020,7 +5020,7 @@
                 }
               }
             },
-            "description": "Internal Server Error"
+            "description": "Engine error"
           },
           "503": {
             "content": {
@@ -5030,7 +5030,7 @@
                 }
               }
             },
-            "description": "Service Unavailable"
+            "description": "Ollama or the network is unavailable"
           }
         },
         "summary": "Run Export"
@@ -5077,7 +5077,7 @@
                 }
               }
             },
-            "description": "Bad Request"
+            "description": "Bad request: no file in the upload"
           },
           "401": {
             "content": {
@@ -5087,7 +5087,7 @@
                 }
               }
             },
-            "description": "Unauthorized"
+            "description": "Missing or wrong API token"
           },
           "403": {
             "content": {
@@ -5097,7 +5097,7 @@
                 }
               }
             },
-            "description": "Forbidden"
+            "description": "Request not sent to 127.0.0.1:<port>"
           },
           "404": {
             "content": {
@@ -5107,7 +5107,7 @@
                 }
               }
             },
-            "description": "Not Found"
+            "description": "Not found"
           },
           "409": {
             "content": {
@@ -5117,7 +5117,7 @@
                 }
               }
             },
-            "description": "Conflict"
+            "description": "Not possible in the current state"
           },
           "413": {
             "content": {
@@ -5127,7 +5127,7 @@
                 }
               }
             },
-            "description": "Content Too Large"
+            "description": "File is too large"
           },
           "415": {
             "content": {
@@ -5137,7 +5137,7 @@
                 }
               }
             },
-            "description": "Unsupported Media Type"
+            "description": "Unsupported file type"
           },
           "422": {
             "content": {
@@ -5147,7 +5147,7 @@
                 }
               }
             },
-            "description": "Unprocessable Content"
+            "description": "Invalid request"
           },
           "500": {
             "content": {
@@ -5157,7 +5157,7 @@
                 }
               }
             },
-            "description": "Internal Server Error"
+            "description": "Engine error"
           },
           "503": {
             "content": {
@@ -5167,7 +5167,7 @@
                 }
               }
             },
-            "description": "Service Unavailable"
+            "description": "Ollama or the network is unavailable"
           }
         },
         "summary": "Run Export To"
@@ -5206,7 +5206,7 @@
                 }
               }
             },
-            "description": "Bad Request"
+            "description": "Bad request: no file in the upload"
           },
           "401": {
             "content": {
@@ -5216,7 +5216,7 @@
                 }
               }
             },
-            "description": "Unauthorized"
+            "description": "Missing or wrong API token"
           },
           "403": {
             "content": {
@@ -5226,7 +5226,7 @@
                 }
               }
             },
-            "description": "Forbidden"
+            "description": "Request not sent to 127.0.0.1:<port>"
           },
           "404": {
             "content": {
@@ -5236,7 +5236,7 @@
                 }
               }
             },
-            "description": "Not Found"
+            "description": "Not found"
           },
           "409": {
             "content": {
@@ -5246,7 +5246,7 @@
                 }
               }
             },
-            "description": "Conflict"
+            "description": "Not possible in the current state"
           },
           "413": {
             "content": {
@@ -5256,7 +5256,7 @@
                 }
               }
             },
-            "description": "Content Too Large"
+            "description": "File is too large"
           },
           "415": {
             "content": {
@@ -5266,7 +5266,7 @@
                 }
               }
             },
-            "description": "Unsupported Media Type"
+            "description": "Unsupported file type"
           },
           "422": {
             "content": {
@@ -5276,7 +5276,7 @@
                 }
               }
             },
-            "description": "Unprocessable Content"
+            "description": "Invalid request"
           },
           "500": {
             "content": {
@@ -5286,7 +5286,7 @@
                 }
               }
             },
-            "description": "Internal Server Error"
+            "description": "Engine error"
           },
           "503": {
             "content": {
@@ -5296,7 +5296,7 @@
                 }
               }
             },
-            "description": "Service Unavailable"
+            "description": "Ollama or the network is unavailable"
           }
         },
         "summary": "Run Filters Clear"
@@ -5372,7 +5372,7 @@
                 }
               }
             },
-            "description": "Bad Request"
+            "description": "Bad request: no file in the upload"
           },
           "401": {
             "content": {
@@ -5382,7 +5382,7 @@
                 }
               }
             },
-            "description": "Unauthorized"
+            "description": "Missing or wrong API token"
           },
           "403": {
             "content": {
@@ -5392,7 +5392,7 @@
                 }
               }
             },
-            "description": "Forbidden"
+            "description": "Request not sent to 127.0.0.1:<port>"
           },
           "404": {
             "content": {
@@ -5402,7 +5402,7 @@
                 }
               }
             },
-            "description": "Not Found"
+            "description": "Not found"
           },
           "409": {
             "content": {
@@ -5412,7 +5412,7 @@
                 }
               }
             },
-            "description": "Conflict"
+            "description": "Not possible in the current state"
           },
           "413": {
             "content": {
@@ -5422,7 +5422,7 @@
                 }
               }
             },
-            "description": "Content Too Large"
+            "description": "File is too large"
           },
           "415": {
             "content": {
@@ -5432,7 +5432,7 @@
                 }
               }
             },
-            "description": "Unsupported Media Type"
+            "description": "Unsupported file type"
           },
           "422": {
             "content": {
@@ -5442,7 +5442,7 @@
                 }
               }
             },
-            "description": "Unprocessable Content"
+            "description": "Invalid request"
           },
           "500": {
             "content": {
@@ -5452,7 +5452,7 @@
                 }
               }
             },
-            "description": "Internal Server Error"
+            "description": "Engine error"
           },
           "503": {
             "content": {
@@ -5462,7 +5462,7 @@
                 }
               }
             },
-            "description": "Service Unavailable"
+            "description": "Ollama or the network is unavailable"
           }
         },
         "summary": "Run Filters Preview"
@@ -5501,7 +5501,7 @@
                 }
               }
             },
-            "description": "Bad Request"
+            "description": "Bad request: no file in the upload"
           },
           "401": {
             "content": {
@@ -5511,7 +5511,7 @@
                 }
               }
             },
-            "description": "Unauthorized"
+            "description": "Missing or wrong API token"
           },
           "403": {
             "content": {
@@ -5521,7 +5521,7 @@
                 }
               }
             },
-            "description": "Forbidden"
+            "description": "Request not sent to 127.0.0.1:<port>"
           },
           "404": {
             "content": {
@@ -5531,7 +5531,7 @@
                 }
               }
             },
-            "description": "Not Found"
+            "description": "Not found"
           },
           "409": {
             "content": {
@@ -5541,7 +5541,7 @@
                 }
               }
             },
-            "description": "Conflict"
+            "description": "Not possible in the current state"
           },
           "413": {
             "content": {
@@ -5551,7 +5551,7 @@
                 }
               }
             },
-            "description": "Content Too Large"
+            "description": "File is too large"
           },
           "415": {
             "content": {
@@ -5561,7 +5561,7 @@
                 }
               }
             },
-            "description": "Unsupported Media Type"
+            "description": "Unsupported file type"
           },
           "422": {
             "content": {
@@ -5571,7 +5571,7 @@
                 }
               }
             },
-            "description": "Unprocessable Content"
+            "description": "Invalid request"
           },
           "500": {
             "content": {
@@ -5581,7 +5581,7 @@
                 }
               }
             },
-            "description": "Internal Server Error"
+            "description": "Engine error"
           },
           "503": {
             "content": {
@@ -5591,7 +5591,7 @@
                 }
               }
             },
-            "description": "Service Unavailable"
+            "description": "Ollama or the network is unavailable"
           }
         },
         "summary": "Run Pause"
@@ -5630,7 +5630,7 @@
                 }
               }
             },
-            "description": "Bad Request"
+            "description": "Bad request: no file in the upload"
           },
           "401": {
             "content": {
@@ -5640,7 +5640,7 @@
                 }
               }
             },
-            "description": "Unauthorized"
+            "description": "Missing or wrong API token"
           },
           "403": {
             "content": {
@@ -5650,7 +5650,7 @@
                 }
               }
             },
-            "description": "Forbidden"
+            "description": "Request not sent to 127.0.0.1:<port>"
           },
           "404": {
             "content": {
@@ -5660,7 +5660,7 @@
                 }
               }
             },
-            "description": "Not Found"
+            "description": "Not found"
           },
           "409": {
             "content": {
@@ -5670,7 +5670,7 @@
                 }
               }
             },
-            "description": "Conflict"
+            "description": "Not possible in the current state"
           },
           "413": {
             "content": {
@@ -5680,7 +5680,7 @@
                 }
               }
             },
-            "description": "Content Too Large"
+            "description": "File is too large"
           },
           "415": {
             "content": {
@@ -5690,7 +5690,7 @@
                 }
               }
             },
-            "description": "Unsupported Media Type"
+            "description": "Unsupported file type"
           },
           "422": {
             "content": {
@@ -5700,7 +5700,7 @@
                 }
               }
             },
-            "description": "Unprocessable Content"
+            "description": "Invalid request"
           },
           "500": {
             "content": {
@@ -5710,7 +5710,7 @@
                 }
               }
             },
-            "description": "Internal Server Error"
+            "description": "Engine error"
           },
           "503": {
             "content": {
@@ -5720,7 +5720,7 @@
                 }
               }
             },
-            "description": "Service Unavailable"
+            "description": "Ollama or the network is unavailable"
           }
         },
         "summary": "Run Progress"
@@ -5903,7 +5903,7 @@
                 }
               }
             },
-            "description": "Bad Request"
+            "description": "Bad request: no file in the upload"
           },
           "401": {
             "content": {
@@ -5913,7 +5913,7 @@
                 }
               }
             },
-            "description": "Unauthorized"
+            "description": "Missing or wrong API token"
           },
           "403": {
             "content": {
@@ -5923,7 +5923,7 @@
                 }
               }
             },
-            "description": "Forbidden"
+            "description": "Request not sent to 127.0.0.1:<port>"
           },
           "404": {
             "content": {
@@ -5933,7 +5933,7 @@
                 }
               }
             },
-            "description": "Not Found"
+            "description": "Not found"
           },
           "409": {
             "content": {
@@ -5943,7 +5943,7 @@
                 }
               }
             },
-            "description": "Conflict"
+            "description": "Not possible in the current state"
           },
           "413": {
             "content": {
@@ -5953,7 +5953,7 @@
                 }
               }
             },
-            "description": "Content Too Large"
+            "description": "File is too large"
           },
           "415": {
             "content": {
@@ -5963,7 +5963,7 @@
                 }
               }
             },
-            "description": "Unsupported Media Type"
+            "description": "Unsupported file type"
           },
           "422": {
             "content": {
@@ -5973,7 +5973,7 @@
                 }
               }
             },
-            "description": "Unprocessable Content"
+            "description": "Invalid request"
           },
           "500": {
             "content": {
@@ -5983,7 +5983,7 @@
                 }
               }
             },
-            "description": "Internal Server Error"
+            "description": "Engine error"
           },
           "503": {
             "content": {
@@ -5993,7 +5993,7 @@
                 }
               }
             },
-            "description": "Service Unavailable"
+            "description": "Ollama or the network is unavailable"
           }
         },
         "summary": "Run Results"
@@ -6032,7 +6032,7 @@
                 }
               }
             },
-            "description": "Bad Request"
+            "description": "Bad request: no file in the upload"
           },
           "401": {
             "content": {
@@ -6042,7 +6042,7 @@
                 }
               }
             },
-            "description": "Unauthorized"
+            "description": "Missing or wrong API token"
           },
           "403": {
             "content": {
@@ -6052,7 +6052,7 @@
                 }
               }
             },
-            "description": "Forbidden"
+            "description": "Request not sent to 127.0.0.1:<port>"
           },
           "404": {
             "content": {
@@ -6062,7 +6062,7 @@
                 }
               }
             },
-            "description": "Not Found"
+            "description": "Not found"
           },
           "409": {
             "content": {
@@ -6072,7 +6072,7 @@
                 }
               }
             },
-            "description": "Conflict"
+            "description": "Not possible in the current state"
           },
           "413": {
             "content": {
@@ -6082,7 +6082,7 @@
                 }
               }
             },
-            "description": "Content Too Large"
+            "description": "File is too large"
           },
           "415": {
             "content": {
@@ -6092,7 +6092,7 @@
                 }
               }
             },
-            "description": "Unsupported Media Type"
+            "description": "Unsupported file type"
           },
           "422": {
             "content": {
@@ -6102,7 +6102,7 @@
                 }
               }
             },
-            "description": "Unprocessable Content"
+            "description": "Invalid request"
           },
           "500": {
             "content": {
@@ -6112,7 +6112,7 @@
                 }
               }
             },
-            "description": "Internal Server Error"
+            "description": "Engine error"
           },
           "503": {
             "content": {
@@ -6122,7 +6122,7 @@
                 }
               }
             },
-            "description": "Service Unavailable"
+            "description": "Ollama or the network is unavailable"
           }
         },
         "summary": "Run Resume"
@@ -6171,7 +6171,7 @@
                 }
               }
             },
-            "description": "Bad Request"
+            "description": "Bad request: no file in the upload"
           },
           "401": {
             "content": {
@@ -6181,7 +6181,7 @@
                 }
               }
             },
-            "description": "Unauthorized"
+            "description": "Missing or wrong API token"
           },
           "403": {
             "content": {
@@ -6191,7 +6191,7 @@
                 }
               }
             },
-            "description": "Forbidden"
+            "description": "Request not sent to 127.0.0.1:<port>"
           },
           "404": {
             "content": {
@@ -6201,7 +6201,7 @@
                 }
               }
             },
-            "description": "Not Found"
+            "description": "Not found"
           },
           "409": {
             "content": {
@@ -6211,7 +6211,7 @@
                 }
               }
             },
-            "description": "Conflict"
+            "description": "Not possible in the current state"
           },
           "413": {
             "content": {
@@ -6221,7 +6221,7 @@
                 }
               }
             },
-            "description": "Content Too Large"
+            "description": "File is too large"
           },
           "415": {
             "content": {
@@ -6231,7 +6231,7 @@
                 }
               }
             },
-            "description": "Unsupported Media Type"
+            "description": "Unsupported file type"
           },
           "422": {
             "content": {
@@ -6241,7 +6241,7 @@
                 }
               }
             },
-            "description": "Unprocessable Content"
+            "description": "Invalid request"
           },
           "500": {
             "content": {
@@ -6251,7 +6251,7 @@
                 }
               }
             },
-            "description": "Internal Server Error"
+            "description": "Engine error"
           },
           "503": {
             "content": {
@@ -6261,7 +6261,7 @@
                 }
               }
             },
-            "description": "Service Unavailable"
+            "description": "Ollama or the network is unavailable"
           }
         },
         "summary": "Run Retry"
@@ -6300,7 +6300,7 @@
                 }
               }
             },
-            "description": "Bad Request"
+            "description": "Bad request: no file in the upload"
           },
           "401": {
             "content": {
@@ -6310,7 +6310,7 @@
                 }
               }
             },
-            "description": "Unauthorized"
+            "description": "Missing or wrong API token"
           },
           "403": {
             "content": {
@@ -6320,7 +6320,7 @@
                 }
               }
             },
-            "description": "Forbidden"
+            "description": "Request not sent to 127.0.0.1:<port>"
           },
           "404": {
             "content": {
@@ -6330,7 +6330,7 @@
                 }
               }
             },
-            "description": "Not Found"
+            "description": "Not found"
           },
           "409": {
             "content": {
@@ -6340,7 +6340,7 @@
                 }
               }
             },
-            "description": "Conflict"
+            "description": "Not possible in the current state"
           },
           "413": {
             "content": {
@@ -6350,7 +6350,7 @@
                 }
               }
             },
-            "description": "Content Too Large"
+            "description": "File is too large"
           },
           "415": {
             "content": {
@@ -6360,7 +6360,7 @@
                 }
               }
             },
-            "description": "Unsupported Media Type"
+            "description": "Unsupported file type"
           },
           "422": {
             "content": {
@@ -6370,7 +6370,7 @@
                 }
               }
             },
-            "description": "Unprocessable Content"
+            "description": "Invalid request"
           },
           "500": {
             "content": {
@@ -6380,7 +6380,7 @@
                 }
               }
             },
-            "description": "Internal Server Error"
+            "description": "Engine error"
           },
           "503": {
             "content": {
@@ -6390,7 +6390,7 @@
                 }
               }
             },
-            "description": "Service Unavailable"
+            "description": "Ollama or the network is unavailable"
           }
         },
         "summary": "Run Start"
@@ -6422,7 +6422,7 @@
                 }
               }
             },
-            "description": "Bad Request"
+            "description": "Bad request: no file in the upload"
           },
           "401": {
             "content": {
@@ -6432,7 +6432,7 @@
                 }
               }
             },
-            "description": "Unauthorized"
+            "description": "Missing or wrong API token"
           },
           "403": {
             "content": {
@@ -6442,7 +6442,7 @@
                 }
               }
             },
-            "description": "Forbidden"
+            "description": "Request not sent to 127.0.0.1:<port>"
           },
           "404": {
             "content": {
@@ -6452,7 +6452,7 @@
                 }
               }
             },
-            "description": "Not Found"
+            "description": "Not found"
           },
           "409": {
             "content": {
@@ -6462,7 +6462,7 @@
                 }
               }
             },
-            "description": "Conflict"
+            "description": "Not possible in the current state"
           },
           "413": {
             "content": {
@@ -6472,7 +6472,7 @@
                 }
               }
             },
-            "description": "Content Too Large"
+            "description": "File is too large"
           },
           "415": {
             "content": {
@@ -6482,7 +6482,7 @@
                 }
               }
             },
-            "description": "Unsupported Media Type"
+            "description": "Unsupported file type"
           },
           "422": {
             "content": {
@@ -6492,7 +6492,7 @@
                 }
               }
             },
-            "description": "Unprocessable Content"
+            "description": "Invalid request"
           },
           "500": {
             "content": {
@@ -6502,7 +6502,7 @@
                 }
               }
             },
-            "description": "Internal Server Error"
+            "description": "Engine error"
           },
           "503": {
             "content": {
@@ -6512,7 +6512,7 @@
                 }
               }
             },
-            "description": "Service Unavailable"
+            "description": "Ollama or the network is unavailable"
           }
         },
         "summary": "Run Table Discard"
@@ -6568,7 +6568,7 @@
                 }
               }
             },
-            "description": "Bad Request"
+            "description": "Bad request: no file in the upload"
           },
           "401": {
             "content": {
@@ -6578,7 +6578,7 @@
                 }
               }
             },
-            "description": "Unauthorized"
+            "description": "Missing or wrong API token"
           },
           "403": {
             "content": {
@@ -6588,7 +6588,7 @@
                 }
               }
             },
-            "description": "Forbidden"
+            "description": "Request not sent to 127.0.0.1:<port>"
           },
           "404": {
             "content": {
@@ -6598,7 +6598,7 @@
                 }
               }
             },
-            "description": "Not Found"
+            "description": "Not found"
           },
           "409": {
             "content": {
@@ -6608,7 +6608,7 @@
                 }
               }
             },
-            "description": "Conflict"
+            "description": "Not possible in the current state"
           },
           "413": {
             "content": {
@@ -6618,7 +6618,7 @@
                 }
               }
             },
-            "description": "Content Too Large"
+            "description": "File is too large"
           },
           "415": {
             "content": {
@@ -6628,7 +6628,7 @@
                 }
               }
             },
-            "description": "Unsupported Media Type"
+            "description": "Unsupported file type"
           },
           "422": {
             "content": {
@@ -6638,7 +6638,7 @@
                 }
               }
             },
-            "description": "Unprocessable Content"
+            "description": "Invalid request"
           },
           "500": {
             "content": {
@@ -6648,7 +6648,7 @@
                 }
               }
             },
-            "description": "Internal Server Error"
+            "description": "Engine error"
           },
           "503": {
             "content": {
@@ -6658,7 +6658,7 @@
                 }
               }
             },
-            "description": "Service Unavailable"
+            "description": "Ollama or the network is unavailable"
           }
         },
         "summary": "Run Table"
@@ -6697,7 +6697,7 @@
                 }
               }
             },
-            "description": "Bad Request"
+            "description": "Bad request: no file in the upload"
           },
           "401": {
             "content": {
@@ -6707,7 +6707,7 @@
                 }
               }
             },
-            "description": "Unauthorized"
+            "description": "Missing or wrong API token"
           },
           "403": {
             "content": {
@@ -6717,7 +6717,7 @@
                 }
               }
             },
-            "description": "Forbidden"
+            "description": "Request not sent to 127.0.0.1:<port>"
           },
           "404": {
             "content": {
@@ -6727,7 +6727,7 @@
                 }
               }
             },
-            "description": "Not Found"
+            "description": "Not found"
           },
           "409": {
             "content": {
@@ -6737,7 +6737,7 @@
                 }
               }
             },
-            "description": "Conflict"
+            "description": "Not possible in the current state"
           },
           "413": {
             "content": {
@@ -6747,7 +6747,7 @@
                 }
               }
             },
-            "description": "Content Too Large"
+            "description": "File is too large"
           },
           "415": {
             "content": {
@@ -6757,7 +6757,7 @@
                 }
               }
             },
-            "description": "Unsupported Media Type"
+            "description": "Unsupported file type"
           },
           "422": {
             "content": {
@@ -6767,7 +6767,7 @@
                 }
               }
             },
-            "description": "Unprocessable Content"
+            "description": "Invalid request"
           },
           "500": {
             "content": {
@@ -6777,7 +6777,7 @@
                 }
               }
             },
-            "description": "Internal Server Error"
+            "description": "Engine error"
           },
           "503": {
             "content": {
@@ -6787,7 +6787,7 @@
                 }
               }
             },
-            "description": "Service Unavailable"
+            "description": "Ollama or the network is unavailable"
           }
         },
         "summary": "Run Table Confirm"
@@ -6815,7 +6815,7 @@
                 }
               }
             },
-            "description": "Bad Request"
+            "description": "Bad request: no file in the upload"
           },
           "401": {
             "content": {
@@ -6825,7 +6825,7 @@
                 }
               }
             },
-            "description": "Unauthorized"
+            "description": "Missing or wrong API token"
           },
           "403": {
             "content": {
@@ -6835,7 +6835,7 @@
                 }
               }
             },
-            "description": "Forbidden"
+            "description": "Request not sent to 127.0.0.1:<port>"
           },
           "404": {
             "content": {
@@ -6845,7 +6845,7 @@
                 }
               }
             },
-            "description": "Not Found"
+            "description": "Not found"
           },
           "409": {
             "content": {
@@ -6855,7 +6855,7 @@
                 }
               }
             },
-            "description": "Conflict"
+            "description": "Not possible in the current state"
           },
           "413": {
             "content": {
@@ -6865,7 +6865,7 @@
                 }
               }
             },
-            "description": "Content Too Large"
+            "description": "File is too large"
           },
           "415": {
             "content": {
@@ -6875,7 +6875,7 @@
                 }
               }
             },
-            "description": "Unsupported Media Type"
+            "description": "Unsupported file type"
           },
           "422": {
             "content": {
@@ -6885,7 +6885,7 @@
                 }
               }
             },
-            "description": "Unprocessable Content"
+            "description": "Invalid request"
           },
           "500": {
             "content": {
@@ -6895,7 +6895,7 @@
                 }
               }
             },
-            "description": "Internal Server Error"
+            "description": "Engine error"
           },
           "503": {
             "content": {
@@ -6905,7 +6905,7 @@
                 }
               }
             },
-            "description": "Service Unavailable"
+            "description": "Ollama or the network is unavailable"
           }
         },
         "summary": "Settings Get"
@@ -6941,7 +6941,7 @@
                 }
               }
             },
-            "description": "Bad Request"
+            "description": "Bad request: no file in the upload"
           },
           "401": {
             "content": {
@@ -6951,7 +6951,7 @@
                 }
               }
             },
-            "description": "Unauthorized"
+            "description": "Missing or wrong API token"
           },
           "403": {
             "content": {
@@ -6961,7 +6961,7 @@
                 }
               }
             },
-            "description": "Forbidden"
+            "description": "Request not sent to 127.0.0.1:<port>"
           },
           "404": {
             "content": {
@@ -6971,7 +6971,7 @@
                 }
               }
             },
-            "description": "Not Found"
+            "description": "Not found"
           },
           "409": {
             "content": {
@@ -6981,7 +6981,7 @@
                 }
               }
             },
-            "description": "Conflict"
+            "description": "Not possible in the current state"
           },
           "413": {
             "content": {
@@ -6991,7 +6991,7 @@
                 }
               }
             },
-            "description": "Content Too Large"
+            "description": "File is too large"
           },
           "415": {
             "content": {
@@ -7001,7 +7001,7 @@
                 }
               }
             },
-            "description": "Unsupported Media Type"
+            "description": "Unsupported file type"
           },
           "422": {
             "content": {
@@ -7011,7 +7011,7 @@
                 }
               }
             },
-            "description": "Unprocessable Content"
+            "description": "Invalid request"
           },
           "500": {
             "content": {
@@ -7021,7 +7021,7 @@
                 }
               }
             },
-            "description": "Internal Server Error"
+            "description": "Engine error"
           },
           "503": {
             "content": {
@@ -7031,7 +7031,7 @@
                 }
               }
             },
-            "description": "Service Unavailable"
+            "description": "Ollama or the network is unavailable"
           }
         },
         "summary": "Settings Put"
@@ -7059,7 +7059,7 @@
                 }
               }
             },
-            "description": "Bad Request"
+            "description": "Bad request: no file in the upload"
           },
           "401": {
             "content": {
@@ -7069,7 +7069,7 @@
                 }
               }
             },
-            "description": "Unauthorized"
+            "description": "Missing or wrong API token"
           },
           "403": {
             "content": {
@@ -7079,7 +7079,7 @@
                 }
               }
             },
-            "description": "Forbidden"
+            "description": "Request not sent to 127.0.0.1:<port>"
           },
           "404": {
             "content": {
@@ -7089,7 +7089,7 @@
                 }
               }
             },
-            "description": "Not Found"
+            "description": "Not found"
           },
           "409": {
             "content": {
@@ -7099,7 +7099,7 @@
                 }
               }
             },
-            "description": "Conflict"
+            "description": "Not possible in the current state"
           },
           "413": {
             "content": {
@@ -7109,7 +7109,7 @@
                 }
               }
             },
-            "description": "Content Too Large"
+            "description": "File is too large"
           },
           "415": {
             "content": {
@@ -7119,7 +7119,7 @@
                 }
               }
             },
-            "description": "Unsupported Media Type"
+            "description": "Unsupported file type"
           },
           "422": {
             "content": {
@@ -7129,7 +7129,7 @@
                 }
               }
             },
-            "description": "Unprocessable Content"
+            "description": "Invalid request"
           },
           "500": {
             "content": {
@@ -7139,7 +7139,7 @@
                 }
               }
             },
-            "description": "Internal Server Error"
+            "description": "Engine error"
           },
           "503": {
             "content": {
@@ -7149,7 +7149,7 @@
                 }
               }
             },
-            "description": "Service Unavailable"
+            "description": "Ollama or the network is unavailable"
           }
         },
         "summary": "Shutdown"
@@ -7177,7 +7177,7 @@
                 }
               }
             },
-            "description": "Bad Request"
+            "description": "Bad request: no file in the upload"
           },
           "401": {
             "content": {
@@ -7187,7 +7187,7 @@
                 }
               }
             },
-            "description": "Unauthorized"
+            "description": "Missing or wrong API token"
           },
           "403": {
             "content": {
@@ -7197,7 +7197,7 @@
                 }
               }
             },
-            "description": "Forbidden"
+            "description": "Request not sent to 127.0.0.1:<port>"
           },
           "404": {
             "content": {
@@ -7207,7 +7207,7 @@
                 }
               }
             },
-            "description": "Not Found"
+            "description": "Not found"
           },
           "409": {
             "content": {
@@ -7217,7 +7217,7 @@
                 }
               }
             },
-            "description": "Conflict"
+            "description": "Not possible in the current state"
           },
           "413": {
             "content": {
@@ -7227,7 +7227,7 @@
                 }
               }
             },
-            "description": "Content Too Large"
+            "description": "File is too large"
           },
           "415": {
             "content": {
@@ -7237,7 +7237,7 @@
                 }
               }
             },
-            "description": "Unsupported Media Type"
+            "description": "Unsupported file type"
           },
           "422": {
             "content": {
@@ -7247,7 +7247,7 @@
                 }
               }
             },
-            "description": "Unprocessable Content"
+            "description": "Invalid request"
           },
           "500": {
             "content": {
@@ -7257,7 +7257,7 @@
                 }
               }
             },
-            "description": "Internal Server Error"
+            "description": "Engine error"
           },
           "503": {
             "content": {
@@ -7267,7 +7267,7 @@
                 }
               }
             },
-            "description": "Service Unavailable"
+            "description": "Ollama or the network is unavailable"
           }
         },
         "summary": "System"
