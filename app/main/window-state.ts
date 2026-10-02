@@ -14,7 +14,8 @@ export interface WindowBounds {
   maximized: boolean
 }
 
-export const DEFAULT_BOUNDS: WindowBounds = { width: 1280, height: 800, maximized: false }
+export const DEFAULT_WIDTH = 1280
+export const DEFAULT_HEIGHT = 800
 export const MIN_WIDTH = 1100
 export const MIN_HEIGHT = 720
 
@@ -25,26 +26,46 @@ interface Rect {
   height: number
 }
 
-/** Saved bounds if they are sane and at least partly on a screen we have now; else the default. */
+/**
+ * A size that fits the work area (the screen less the menu bar, Dock or
+ * taskbar), never below the minimum. Asking for more than the screen has lets
+ * the OS shrink the window on its own terms (on a small Mac it ends at the
+ * minimum), so the window opens at a size Atlas chose.
+ */
+export function fitSize(width: number, height: number, area?: Rect): { width: number; height: number } {
+  return {
+    width: Math.max(MIN_WIDTH, Math.min(width, area?.width ?? width)),
+    height: Math.max(MIN_HEIGHT, Math.min(height, area?.height ?? height)),
+  }
+}
+
+/** The first launch: 1280×800, or the primary display's work area if that is smaller. */
+export function defaultBounds(primary?: Rect): WindowBounds {
+  return { ...fitSize(DEFAULT_WIDTH, DEFAULT_HEIGHT, primary), maximized: false }
+}
+
+/**
+ * Saved bounds if they are sane, kept on a screen we have now and no larger
+ * than its work area; else the default. `workAreas[0]` is the primary display.
+ */
 export function restoreBounds(saved: unknown, workAreas: Rect[]): WindowBounds {
-  if (typeof saved !== 'object' || saved === null) return { ...DEFAULT_BOUNDS }
+  const primary = workAreas[0]
+  if (typeof saved !== 'object' || saved === null) return defaultBounds(primary)
   const s = saved as Record<string, unknown>
   const width = num(s.width)
   const height = num(s.height)
-  if (width === null || height === null) return { ...DEFAULT_BOUNDS }
-  const bounds: WindowBounds = {
-    width: Math.max(MIN_WIDTH, Math.min(width, 10_000)),
-    height: Math.max(MIN_HEIGHT, Math.min(height, 10_000)),
-    maximized: s.maximized === true,
-  }
+  if (width === null || height === null) return defaultBounds(primary)
   const x = num(s.x)
   const y = num(s.y)
-  if (x !== null && y !== null) {
-    const visible = workAreas.some(
-      (a) => x + 100 > a.x && x < a.x + a.width - 100 && y + 40 > a.y && y < a.y + a.height - 40,
-    )
-    if (visible) Object.assign(bounds, { x, y })
+  const area =
+    x !== null && y !== null
+      ? workAreas.find((a) => x + 100 > a.x && x < a.x + a.width - 100 && y + 40 > a.y && y < a.y + a.height - 40)
+      : undefined
+  const bounds: WindowBounds = {
+    ...fitSize(Math.min(width, 10_000), Math.min(height, 10_000), area ?? primary),
+    maximized: s.maximized === true,
   }
+  if (area) Object.assign(bounds, { x, y })
   return bounds
 }
 
@@ -56,7 +77,7 @@ export function loadBounds(dir: string, workAreas: Rect[]): WindowBounds {
   try {
     return restoreBounds(JSON.parse(readFileSync(join(dir, 'window-state.json'), 'utf8')), workAreas)
   } catch {
-    return { ...DEFAULT_BOUNDS }
+    return defaultBounds(workAreas[0])
   }
 }
 

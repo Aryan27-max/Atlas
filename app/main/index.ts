@@ -103,10 +103,15 @@ const webPreferences = {
 } as const
 
 function createWindow(): void {
-  const bounds = loadBounds(
-    userData,
-    screen.getAllDisplays().map((d) => d.workArea),
-  )
+  // The primary display first: a first launch fits its work area.
+  const primary = screen.getPrimaryDisplay()
+  const bounds = loadBounds(userData, [
+    primary.workArea,
+    ...screen
+      .getAllDisplays()
+      .filter((d) => d.id !== primary.id)
+      .map((d) => d.workArea),
+  ])
   window = new BrowserWindow({
     ...bounds,
     minWidth: MIN_WIDTH,

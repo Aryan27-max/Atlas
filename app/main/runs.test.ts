@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { RunWatcher, type RunStatus, notificationFor } from './runs'
-import { restoreBounds } from './window-state'
+import { defaultBounds, restoreBounds } from './window-state'
 
 const run = (status: string, pause_reason: string | null = null, auto_resume = false): RunStatus => ({
   run_id: 1,
@@ -105,6 +105,58 @@ describe('restoreBounds', () => {
       width: 1100,
       height: 720,
       maximized: true,
+    })
+  })
+
+  it('opens at 1280×800, or the work area if smaller, never below the minimum', () => {
+    expect(defaultBounds({ x: 0, y: 0, width: 1920, height: 1040 })).toEqual({
+      width: 1280,
+      height: 800,
+      maximized: false,
+    })
+    // A 1440×900 MacBook Air less its menu bar and Dock.
+    expect(defaultBounds({ x: 0, y: 25, width: 1440, height: 790 })).toEqual({
+      width: 1280,
+      height: 790,
+      maximized: false,
+    })
+    // A 1024×768 screen (a CI Mac): the minimum, not something smaller.
+    expect(defaultBounds({ x: 0, y: 25, width: 1024, height: 743 })).toEqual({
+      width: 1100,
+      height: 743,
+      maximized: false,
+    })
+    expect(defaultBounds({ x: 0, y: 25, width: 1024, height: 700 })).toEqual({
+      width: 1100,
+      height: 720,
+      maximized: false,
+    })
+    expect(defaultBounds()).toEqual({ width: 1280, height: 800, maximized: false })
+    expect(restoreBounds(null, [{ x: 0, y: 25, width: 1200, height: 760 }])).toEqual({
+      width: 1200,
+      height: 760,
+      maximized: false,
+    })
+  })
+
+  it('shrinks a saved size to the work area of the screen it opens on', () => {
+    const laptop = { x: 0, y: 0, width: 1440, height: 860 }
+    const monitor = { x: 1440, y: 0, width: 2560, height: 1400 }
+    expect(restoreBounds({ x: 1500, y: 50, width: 2400, height: 1300 }, [laptop, monitor])).toMatchObject({
+      x: 1500,
+      width: 2400,
+      height: 1300,
+    })
+    expect(restoreBounds({ x: 100, y: 50, width: 2400, height: 1300 }, [laptop, monitor])).toMatchObject({
+      x: 100,
+      width: 1440,
+      height: 860,
+    })
+    // The monitor is gone: the primary display's work area.
+    expect(restoreBounds({ x: 1500, y: 50, width: 2400, height: 1300 }, [laptop])).toEqual({
+      width: 1440,
+      height: 860,
+      maximized: false,
     })
   })
 

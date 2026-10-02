@@ -141,13 +141,18 @@ test('no Node in the renderer and no new windows', async () => {
 
 test('the window has the design size and the security preferences', async () => {
   const { app } = launched
-  const facts = await app.evaluate(({ BrowserWindow }) => {
+  const facts = await app.evaluate(({ BrowserWindow, screen }) => {
     const win = BrowserWindow.getAllWindows()[0]
     if (!win) return null
+    // 1280×800, or the primary display's work area if that is smaller (a CI Mac's
+    // screen is), but never below the 1100×720 minimum.
+    const area = screen.getPrimaryDisplay().workArea
+    const expected = [Math.max(1100, Math.min(1280, area.width)), Math.max(720, Math.min(800, area.height))]
     const hooks = (globalThis as unknown as { __atlasTest: { webPreferences: Record<string, unknown> } }).__atlasTest
     const prefs = hooks.webPreferences
     return {
       size: win.getSize(),
+      expected,
       min: win.getMinimumSize(),
       contextIsolation: prefs.contextIsolation,
       sandbox: prefs.sandbox,
@@ -155,8 +160,8 @@ test('the window has the design size and the security preferences', async () => 
       webSecurity: prefs.webSecurity,
     }
   })
-  expect(facts).toEqual({
-    size: [1280, 800],
+  expect(facts?.size).toEqual(facts?.expected)
+  expect(facts).toMatchObject({
     min: [1100, 720],
     contextIsolation: true,
     sandbox: true,
