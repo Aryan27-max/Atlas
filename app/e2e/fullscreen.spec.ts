@@ -120,7 +120,13 @@ test('full screen: every screen fits', async () => {
 
 test('a large display (1920×1200): every screen fits', async () => {
   const { app, page } = launched
-  await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0]?.webContents.setZoomFactor(1280 / 1920))
+  // Zoom from the window's real width: 1280, or less where the screen is
+  // smaller (the window opens to fit it), so the page is 1920 CSS pixels wide.
+  const width = (await layout(page)).width
+  await app.evaluate(
+    ({ BrowserWindow }, factor) => BrowserWindow.getAllWindows()[0]?.webContents.setZoomFactor(factor),
+    width / 1920,
+  )
   await expect.poll(async () => (await layout(page)).width).toBeGreaterThan(1900)
   await everyScreen(page, '1920×1200')
   await page.getByRole('button', { name: /Campus drive/ }).click()
