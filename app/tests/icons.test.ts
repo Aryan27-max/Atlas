@@ -112,7 +112,7 @@ describe('the committed app icons', () => {
     expect(alpha(512, 990)).toBe(0)
   })
 
-  it('Windows: icon.ico holds 16 to 256 px, each a PNG', () => {
+  it('Windows: icon.ico holds 16 to 256 px, as bitmaps with a PNG at 256 (what Explorer and the taskbar can show)', () => {
     const ico = readFileSync(join(ICONS, 'icon.ico'))
     expect(ico.readUInt16LE(2)).toBe(1) // an icon
     const count = ico.readUInt16LE(4)
@@ -121,8 +121,20 @@ describe('the committed app icons', () => {
       const entry = 6 + 16 * i
       const size = ico.readUInt8(entry) || 256
       const offset = ico.readUInt32LE(entry + 12)
-      const length = ico.readUInt32LE(entry + 8)
-      expect(pngSize(ico.subarray(offset, offset + length))).toEqual([size, size])
+      const image = ico.subarray(offset, offset + ico.readUInt32LE(entry + 8))
+      if (size === 256) {
+        expect(pngSize(image)).toEqual([256, 256])
+      } else {
+        // A PNG here makes Windows show the generic program icon instead (found by e2e/packaged.spec.ts).
+        expect(image.subarray(1, 4).toString('latin1'), `${size} px`).not.toBe('PNG')
+        expect([image.readUInt32LE(0), image.readInt32LE(4), image.readInt32LE(8), image.readUInt16LE(14)]).toEqual([
+          40,
+          size,
+          size * 2,
+          32,
+        ])
+        expect(image.length).toBe(40 + size * size * 4 + Math.ceil(size / 32) * 4 * size)
+      }
       sizes.push(size)
     }
     expect(sizes).toEqual([16, 24, 32, 48, 64, 128, 256])

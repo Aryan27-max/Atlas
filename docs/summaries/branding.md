@@ -179,3 +179,46 @@ The colour is a theme-independent token in `tokens.css`, never themed.
 
   The README's limitations and licence sections point to it.
 - **`brand.test.ts`.** It used to require the logo's exact `viewBox="0 0 256 256"`. It now requires a square viewBox of any size, which is what the test's name says. Otherwise the documented swap would fail on a perfectly good square logo.
+
+## Step 6: everything locally, and the packaged app
+
+**Suites:**
+- engine 427 + 3 (`test_gated_engine`) + 2 (licence check) tests, including both kill tests;
+- Vitest 245;
+- typecheck, lint and format clean;
+- the full e2e suite: 69 passed, 2 skipped (the two that need a packaged build);
+- `check_licenses.py` passes.
+
+**The build.** The engine was rebuilt with Python 3.12: 72.5 MB, and its smoke test passed. `electron-builder` ran with its output outside the repository. This time Smart App Control let the NSIS step finish, so the installer was built as well.
+
+**A real bug, caught by the new packaged test.** The icon check failed on `Atlas.exe` and on the installer: Windows showed its generic program icon for both. Yet both files contained all seven icon sizes; I searched the binaries for the PNGs' bytes and found them.
+
+The cause was the `.ico` from step 2: it stored every size as PNG. A scratch experiment settled it. I put two different `.ico` files into two copies of `electron.exe`:
+
+| `.ico` | What Windows showed |
+|---|---|
+| PNG at every size (step 2's) | The generic program icon |
+| Bitmaps below 256 px, PNG at 256 (Windows' own layout) | The Swift logo |
+
+This would have shown a blank icon in the taskbar, Explorer and the Start menu.
+
+**The fix.**
+- `render-icons.mjs` now writes 32-bit bitmaps (straight alpha, empty AND mask) for 16–128 px, from the canvas's own pixels, and a PNG at 256. Re-rendering is still byte-identical (`--check`), and the PNG files didn't change.
+- `icons.test.ts` used to assert "each a PNG", which encoded the bug. It now requires the bitmap layout below 256: it fails on the old icon and passes on the new one.
+
+**After the fix:**
+- The packaged test passes, with Atlas's icon on the exe and on the installer.
+- The installer installed **silently on this laptop** (per-user, exit 0) and uninstalled the same way (exit 0, files and Start-menu shortcut gone). That closes the one open Phase 3 item.
+
+**What Windows showed, installed:**
+
+| Place | Icon |
+|---|---|
+| `Atlas.exe` at 16, 32 and 48 px (Explorer, taskbar, desktop) | The logo |
+| `Uninstall Atlas.exe` | The logo |
+| The Start-menu shortcut | Points at `Atlas.exe,0` |
+| *Settings → Apps* | Shows `uninstallerIcon.ico`, which is byte-identical to `icon.ico` |
+
+**Screenshots.** The splash was captured from the installed, packaged build (`packaged-splash-windows.png`): off-white, centred, nothing cut off. I didn't keep a taskbar screenshot. Finding the Atlas button automatically was unreliable, and a full capture shows the owner's other open apps. The taskbar uses the exe's icon, which is checked above at taskbar sizes.
+
+![The packaged build's start-up screen on Windows](branding/screens/packaged-splash-windows.png)

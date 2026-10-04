@@ -15,7 +15,10 @@
 //                                Dock like other apps' icons instead of looking oversized
 //   icon.ico                     16-256 px in one file (Windows: the exe, the installer,
 //                                the uninstaller, the window), each size drawn from the
-//                                vector rather than shrunk from 1024 px
+//                                vector rather than shrunk from 1024 px. Below 256 px the
+//                                images are 32-bit bitmaps, 256 px a PNG: Windows' own
+//                                layout. With PNGs at every size, Explorer, the taskbar and
+//                                the Start menu showed the generic program icon instead.
 //   SHA256SUMS                   what was written (checked by app/tests/icons.test.ts)
 
 import { createHash } from 'node:crypto'
@@ -46,9 +49,9 @@ async function render() {
   })
   try {
     const page = await app.firstWindow()
-    const draw = (size, art, shadow) =>
+    const draw = (size, art, shadow, pixels = false) =>
       page.evaluate(
-        async ([source, size, art, shadow]) => {
+        async ([source, size, art, shadow, pixels]) => {
           const image = new Image()
           image.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(source)}`
           await image.decode()
@@ -62,22 +65,57 @@ async function render() {
           }
           const at = (size - art) / 2
           ctx.drawImage(image, at, at, art, art)
-          return canvas.toDataURL('image/png').split(',')[1]
+          if (!pixels) return canvas.toDataURL('image/png').split(',')[1]
+          // RGBA, not premultiplied, top row first.
+          return btoa(String.fromCharCode(...ctx.getImageData(0, 0, size, size).data))
         },
-        [svg, size, art, shadow],
+        [svg, size, art, shadow, pixels],
       )
     const files = new Map()
     for (const size of SIZES) files.set(`icon-${size}.png`, Buffer.from(await draw(size, size, null), 'base64'))
     files.set('icon.png', Buffer.from(await draw(1024, 1024, null), 'base64'))
     files.set('icon-mac.png', Buffer.from(await draw(MAC.canvas, MAC.art, MAC.shadow), 'base64'))
-    files.set('icon.ico', ico(ICO_SIZES.map((size) => ({ size, png: files.get(`icon-${size}.png`) }))))
+    const images = []
+    for (const size of ICO_SIZES) {
+      images.push({
+        size,
+        data:
+          size >= 256
+            ? files.get(`icon-${size}.png`)
+            : bitmap(size, Buffer.from(await draw(size, size, null, true), 'base64')),
+      })
+    }
+    files.set('icon.ico', ico(images))
     return files
   } finally {
     await app.close()
   }
 }
 
-/** An .ico holding PNG images (supported since Windows Vista), largest last. */
+/** A 32-bit icon bitmap: BITMAPINFOHEADER (height doubled for the mask), BGRA rows bottom-up, an empty AND mask. */
+function bitmap(size, rgba) {
+  const header = Buffer.alloc(40)
+  header.writeUInt32LE(40, 0) // header size
+  header.writeInt32LE(size, 4)
+  header.writeInt32LE(size * 2, 8) // colour image + mask
+  header.writeUInt16LE(1, 12) // planes
+  header.writeUInt16LE(32, 14) // bits per pixel (alpha in the fourth byte)
+  const colour = Buffer.alloc(size * size * 4)
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const from = (y * size + x) * 4
+      const to = ((size - 1 - y) * size + x) * 4
+      colour[to] = rgba[from + 2]
+      colour[to + 1] = rgba[from + 1]
+      colour[to + 2] = rgba[from]
+      colour[to + 3] = rgba[from + 3]
+    }
+  }
+  const mask = Buffer.alloc(Math.ceil(size / 32) * 4 * size) // all 0: alpha decides
+  return Buffer.concat([header, colour, mask])
+}
+
+/** An .ico: 32-bit bitmaps, and a PNG at 256 px; smallest first. */
 function ico(images) {
   const header = Buffer.alloc(6)
   header.writeUInt16LE(0, 0) // reserved
@@ -85,7 +123,7 @@ function ico(images) {
   header.writeUInt16LE(images.length, 4)
   const entries = []
   let offset = 6 + 16 * images.length
-  for (const { size, png } of images) {
+  for (const { size, data } of images) {
     const entry = Buffer.alloc(16)
     entry.writeUInt8(size >= 256 ? 0 : size, 0) // 0 means 256
     entry.writeUInt8(size >= 256 ? 0 : size, 1)
@@ -93,12 +131,12 @@ function ico(images) {
     entry.writeUInt8(0, 3) // reserved
     entry.writeUInt16LE(1, 4) // colour planes
     entry.writeUInt16LE(32, 6) // bits per pixel
-    entry.writeUInt32LE(png.length, 8)
+    entry.writeUInt32LE(data.length, 8)
     entry.writeUInt32LE(offset, 12)
     entries.push(entry)
-    offset += png.length
+    offset += data.length
   }
-  return Buffer.concat([header, ...entries, ...images.map(({ png }) => png)])
+  return Buffer.concat([header, ...entries, ...images.map(({ data }) => data)])
 }
 
 const sha256 = (data) => createHash('sha256').update(data).digest('hex')

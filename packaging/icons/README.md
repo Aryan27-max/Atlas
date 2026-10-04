@@ -11,7 +11,7 @@ The script draws with the Chromium inside Electron, driven by Playwright, both a
 
 | File | Size | Used for |
 |---|---|---|
-| `icon.ico` | 16, 24, 32, 48, 64, 128, 256 px | Windows: the exe (taskbar, Start menu, Explorer, desktop shortcut), the installer and the uninstaller (`win.icon`, `nsis.installerIcon`, `nsis.uninstallerIcon` in `app/electron-builder.yml`), and the window icon at run time. Each size is drawn from the vector, not shrunk from 1024 px |
+| `icon.ico` | 16, 24, 32, 48, 64, 128, 256 px (32-bit bitmaps, a PNG at 256: with PNGs at every size Windows shows the generic program icon) | Windows: the exe (taskbar, Start menu, Explorer, desktop shortcut), the installer and the uninstaller (`win.icon`, `nsis.installerIcon`, `nsis.uninstallerIcon` in `app/electron-builder.yml`), and the window icon at run time. Each size is drawn from the vector, not shrunk from 1024 px |
 | `icon-mac.png` | 1024 px | macOS: electron-builder turns it into the `.icns` in `Atlas.app` and the DMG's volume icon (`mac.icon`); the Dock icon in development. Apple's icon grid: the artwork at 824 × 824 px, centred, on a transparent canvas, with a soft drop shadow |
 | `icon-256.png` | 256 px | Windows notifications |
 | `icon.png` | 1024 px | Full-bleed, for anything else that needs a large PNG |
