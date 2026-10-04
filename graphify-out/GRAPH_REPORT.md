@@ -1,48 +1,48 @@
-# Graph Report - atlas  (2026-10-02)
+# Graph Report - atlas  (2026-10-05)
 
 ## Corpus Check
-- 240 files · ~646,795 words
+- 256 files · ~731,534 words
 - Verdict: corpus is large enough that graph structure adds value.
-- Unclassified: 17 file(s) not represented in the graph (top: .css 8, (none) 6, .csv 1)
+- Unclassified: 20 file(s) not represented in the graph (top: .css 9, (none) 7, .csv 1)
 
 ## Summary
-- 3538 nodes · 8980 edges · 180 communities (126 shown, 54 thin omitted)
-- Extraction: 92% EXTRACTED · 8% INFERRED · 0% AMBIGUOUS · INFERRED: 747 edges (avg confidence: 0.93)
+- 3646 nodes · 9204 edges · 186 communities (126 shown, 60 thin omitted)
+- Extraction: 92% EXTRACTED · 8% INFERRED · 0% AMBIGUOUS · INFERRED: 752 edges (avg confidence: 0.93)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `5325f0a2`
+- Built from commit: `ab4d50cc`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
 ## Community Hubs (Navigation)
-- troubleshooting.py
-- EndToEndTest
-- compute_buckets
+- scoring_input
+- main
+- export_csv
 - ServerTestCase
 - harness.py
 - .worker
-- api
+- Button
 - .transaction
 - design/index.ts
 - .downloader
-- test_llm.py
+- OllamaClient
 - api_models.py
 - CancelTests
-- Button
-- build_prompt
+- Results.tsx
+- test_llm.py
 - create_app
 - Settings.tsx
 - csv_loader.py
 - .recover
-- CandidateSheet.tsx
+- Settings
 - api-types.ts
 - local_only
 - check_licenses.py
-- EasyOcrEngine
-- ResultList.tsx
+- 2. Steps
+- compute_buckets
 - schema.py
-- RunTests
+- db.py
 - CliTests
 - ipc.ts
 - answer
@@ -51,41 +51,42 @@
 - Adjust Cutoffs Popover (light)
 - Progress Screen (Paused, light)
 - .new_run
-- stubs.ts
+- Progress
 - bridge.ts
 - Settings screen - Data section (light)
 - package.json
 - main/index.ts
-- load_table
-- Welcome.tsx
+- _Cli
+- filters.py
 - EngineProcess
 - ref_node_path
 - Database
 - build_engine.py
-- Downloader
+- downloader.py
 - devDependencies
 - demo.mjs
 - helpers.ts
 - Findings
 - contrast.test.ts
-- RunWatcher
+- window-state.ts
 - compilerOptions
 - compilerOptions
 - Results: Needs Attention View (light)
 - compilerOptions
 - split_sections
 - menus.ts
-- test_server.py
+- configure_logging
 - hardware.py
+- ._score
 - compilerOptions
-- e2e_stubs.py
+- main
 - Step 2.0 — Deferred work recorded, engine gaps filled
 - OllamaInstall
 - Step 3.1 — Required before real use
 - Engine
 - When a student needs attention
 - run_waiting_to_resume
-- ollama_stub.py
+- StubServer
 - 1. Build the real set
 - Starting Atlas: commands
 - HealthTests
@@ -93,21 +94,20 @@
 - Phase 2 Summary - the Atlas desktop app
 - Atlas — Build Plan
 - _FormScanner
-- _error
-- demo_stubs.py
+- splash.ts
+- export.py
 - sse.ts
-- DriveStub
 - ._handler
 - _Listed
 - scripts
-- Live cutoffs: the first key press was close to its limit
+- link_kind
 - Pre-check sample résumé (fictional Meera Nair)
 - When a screening pauses
 - test_downloader.py
 - Phase 3 Summary — Atlas made shippable
-- ClientTests
-- Step 2.1 — The local API (engine/server.py)
-- engine.ts
+- Step 3.3 — First run: Ollama in four states, the hardware profile, the long-screening warning
+- splash.spec.ts
+- render-icons.mjs
 - CompletedRunCutoffTests
 - Engine runtime requirements (requests, PyMuPDF, pydantic, openpyxl, fastapi, uvicorn)
 - .estimate
@@ -115,55 +115,64 @@
 - CLAUDE.md — Atlas
 - .prettierrc.json
 - Atlas — Architecture
-- FakePs
 - parse_multipart_file
 - build_parser
-- test_e2e.py
-- PdfExtractor
+- make_pdf
+- LexiconTests
 - Live sample résumé: strong backend (Rohan Pillai)
 - Get Another Model Dialog (light)
-- link_identity
+- _leaks
 - App.tsx
+- Hardware
 - Atlas: private, on-device résumé screening for campus hiring
 - assets.d.ts
 - tsconfig.json
+- FakeScorer
 - electron.vite.config.ts
 - graph_audit.py
 - Step 3.0 — The graph: privacy check, ignore rules and CLAUDE.md
-- scoring_input
+- leak_check.py
+- Branding: Swift app icon and hello splash
+- write_set
 - CI fixes: four failures on the first full CI run (2026-10-02)
 - Worker
 - Step 3.2 — Scoring quality: anchored rubric and eval harness
 - gen-api-types.mjs
-- server.py
+- test_server.py
+- ._precheck_status
 - How Atlas handles student data
+- ClearFiltersTests
 - Step 3.5 — Packaging: the engine binary, the installers, signing by secrets
+- WaitForGateTests
 - graph_query.py
-- .__init__
+- remember
+- FakeHealth
+- wait_for_gate
 - FakeHttp
 - LaunchTests
 - Code signing: what to buy and how to add it
 - Third-party notices
+- exploding_writer
 - MigrationTests
 - Installing and using Atlas
 - report.md
 - links.py
 - Step 3.6 — CI on Windows and macOS
-- Extraction
-- Progress
+- Public_assets/README.md
+- worker.py
+- flows.spec.ts
 - Troubleshooting
 - README, LICENSE, START_CMDS and a third-party licence check
 - Step 3.7 — Docs for the firm
-- README.md
 - Step 3.4 — Native-feel quick wins
-- OllamaStub
+- README.md
+- control_server
 - System design
-- Step 2.2 — The Electron shell (app/main, app/preload)
-- _Sortable
+- fullscreen.spec.ts
+- server.py
 - .__call__
 - GraphAuditTests
 - LicenceCheckTests
-- app_events
 
 ## God Nodes (most connected - your core abstractions)
 1. `Database` - 121 edges
@@ -211,131 +220,131 @@
 - **View-time bucketing surfaced in the UI (cutoffs, min fill, ties, bucket counts)** — docs_summaries_phase2_screens_settings_light_score_bands_slider, docs_summaries_phase2_screens_settings_light_min_shortlist_setting, docs_summaries_phase2_screens_results_light_bucket_sidebar, docs_summaries_phase2_screens_results_light_filled_to_minimum_badge, docs_summaries_phase2_screens_results_large_display_light_tie_badge, docs_summaries_phase2_screens_results_light_min_fill_banner [INFERRED 0.85]
 - **Every screen captured in light and dark theme** — atlas_light_dark_theming, docs_summaries_phase2_screens_settings_data_dark_settings_data_screen, docs_summaries_phase2_screens_upload_empty_dark_students_model_empty_screen, docs_summaries_phase2_screens_upload_model_dark_students_model_loaded_screen, docs_summaries_phase2_screens_welcome_dark_welcome_screen, docs_summaries_phase2_screens_welcome_resume_dark_welcome_resume_screen [INFERRED 0.95]
 
-## Communities (180 total, 54 thin omitted)
+## Communities (186 total, 60 thin omitted)
 
-### Community 0 - "troubleshooting.py"
-Cohesion: 0.11
-Nodes (8): main(), seed(), TroubleshootingTests, all_keys(), Help, main(), messages(), render()
+### Community 0 - "scoring_input"
+Cohesion: 0.10
+Nodes (12): Files, _Identity, identity_of(), _phone_sub(), redact(), scoring_input(), ScoringInput, ScrubPII (+4 more)
 
-### Community 1 - "EndToEndTest"
+### Community 1 - "main"
+Cohesion: 0.24
+Nodes (8): Atlas CHANGELOG, Step 1.0 - Baseline on Windows, Step 1.10 - Stub servers and end-to-end tests, Step 1.3 - CSV loading and the pre-flight report, Step 1.8 - CSV export, Step 1.9 - The headless CLI, Phase 1 Summary - the Atlas engine, main()
+
+### Community 2 - "export_csv"
 Cohesion: 0.15
-Nodes (3): Step 1.10 - Stub servers and end-to-end tests, main(), EndToEndTest
-
-### Community 2 - "compute_buckets"
-Cohesion: 0.05
-Nodes (29): 16. Export, Atlas CHANGELOG, Step 1.0 - Baseline on Windows, Step 1.3 - CSV loading and the pre-flight report, Step 1.5 - Text and section extraction, Step 1.8 - CSV export, Step 1.9 - The headless CLI, Phase 1 Summary - the Atlas engine (+21 more)
+Nodes (8): export_csv(), AtomicWriteTests, DatabaseRowsTests, ExportTestCase, FormatTests, placements(), row(), ViewTests
 
 ### Community 3 - "ServerTestCase"
 Cohesion: 0.06
-Nodes (13): AuthTests, BootTests, CancelTests, CaptivePortalTests, ConfigLockTests, ErrorBodyTests, FlowTests, ras() (+5 more)
+Nodes (15): Api, sort_rows(), AuthTests, BootTests, CancelTests, CaptivePortalTests, ConfigLockTests, ErrorBodyTests (+7 more)
 
 ### Community 4 - "harness.py"
-Cohesion: 0.08
-Nodes (21): Files, Sample, write_set(), evaluate(), _leaks(), _ranks(), read_labels(), render() (+13 more)
+Cohesion: 0.15
+Nodes (10): evaluate(), _ranks(), read_labels(), render(), Report, ResumeResult, spearman(), write_report() (+2 more)
 
 ### Community 6 - ".worker"
 Cohesion: 0.10
-Nodes (18): Proving it in the app, Reproducing it, Tests, The demo flake: a student failed during an outage (rule 5), The fix (`engine/worker.py`), The mirror case: an Ollama outage that is over before the probe looks, The slow demo runs (a separate thing, not a bug), Why the probe said "online" (+10 more)
+Nodes (19): Proving it in the app, Reproducing it, Tests, The demo flake: a student failed during an outage (rule 5), The fix (`engine/worker.py`), The mirror case: an Ollama outage that is over before the probe looks, The slow demo runs (a separate thing, not a bug), Why the probe said "online" (+11 more)
 
-### Community 7 - "api"
+### Community 7 - "Button"
 Cohesion: 0.09
-Nodes (46): api(), ApiFailure, ApiResponse, buildPath(), CallOptions, messageOf(), Part, Screens() (+38 more)
+Nodes (50): api(), ApiFailure, ApiResponse, buildPath(), CallOptions, messageOf(), Part, Chip() (+42 more)
 
 ### Community 9 - ".transaction"
 Cohesion: 0.08
-Nodes (11): bucket(), 5. Candidate state machine, 7. The worker pipeline, Hard rules (never break these), Step 1.7 - The resumable job loop, InvalidTransitionError, NotFoundError, _now() (+3 more)
+Nodes (10): bucket(), 5. Candidate state machine, 7. The worker pipeline, Hard rules (never break these), Step 1.7 - The resumable job loop, NotFoundError, _now(), ValidationError (+2 more)
 
 ### Community 10 - "design/index.ts"
-Cohesion: 0.06
-Nodes (49): Band, ChipProps, Handle, HANDLE_LABEL, ScoreBandProps, ButtonProps, ButtonSize, ButtonVariant (+41 more)
+Cohesion: 0.04
+Nodes (57): SheetHarness(), ButtonProps, ButtonSize, ButtonVariant, decimalsOf(), FieldShell, SegmentedControlProps, SegmentOption (+49 more)
 
 ### Community 11 - ".downloader"
-Cohesion: 0.07
-Nodes (18): is_disk_full(), confirm_page(), do_GET(), _head(), _send(), _serve(), DiskAndThrottleTests, DownloaderTestCase (+10 more)
+Cohesion: 0.08
+Nodes (17): confirm_page(), do_GET(), _head(), _send(), _serve(), DiskAndThrottleTests, DownloaderTestCase, FakeClock (+9 more)
 
-### Community 12 - "test_llm.py"
+### Community 12 - "OllamaClient"
 Cohesion: 0.04
-Nodes (34): 8. Failure classification, 1 · The estimate on Windows, Step 1.4 - Downloading résumés, Step 1.6 - LLM scoring, How TROUBLESHOOTING.md can't drift, AtlasError, CandidateError, Flag (+26 more)
+Nodes (25): 8. Failure classification, 1 · The estimate on Windows, Step 1.4 - Downloading résumés, AtlasError, CandidateError, PullError, SystemUnavailable, TransientError (+17 more)
 
 ### Community 13 - "api_models.py"
 Cohesion: 0.06
-Nodes (56): ActivityOut, BucketCountsOut, BucketDeltaOut, CandidateInfoOut, CandidateOut, ClearFiltersOut, ConfirmOut, CountsOut (+48 more)
+Nodes (55): ActivityOut, BucketCountsOut, BucketDeltaOut, CandidateInfoOut, CandidateOut, ClearFiltersOut, ConfirmOut, CountsOut (+47 more)
 
 ### Community 14 - "CancelTests"
 Cohesion: 0.10
 Nodes (5): CancelTests, FiltersTests, LifecycleTestCase, OneRunAtATimeTests, RecoverTests
 
-### Community 15 - "Button"
-Cohesion: 0.11
-Nodes (32): Button, Select(), TextField(), Banner(), EmptyState(), Card(), Sidebar(), AnimatedNumber() (+24 more)
+### Community 15 - "Results.tsx"
+Cohesion: 0.07
+Nodes (42): TextField(), ScorePill(), CandidateSheet(), CutoffPopover(), CutoffPopoverProps, describeDelta(), NAMES, Failure (+34 more)
 
-### Community 16 - "build_prompt"
-Cohesion: 0.11
-Nodes (12): _allocate(), build_prompt(), _claims_lines(), _context_lines(), _defang(), _fit(), _ordered_sections(), Prompt (+4 more)
+### Community 16 - "test_llm.py"
+Cohesion: 0.04
+Nodes (34): Step 1.6 - LLM scoring, Tests, Flag, ChatResult, _allocate(), build_prompt(), _claims_lines(), _context_lines() (+26 more)
 
 ### Community 17 - "create_app"
-Cohesion: 0.10
-Nodes (34): create_app(), data_delete(), eng(), model_precheck(), model_pull(), model_pull_cancel(), models(), ollama_start() (+26 more)
+Cohesion: 0.07
+Nodes (50): create_app(), _api_error(), app_events(), _busy(), data_delete(), _db(), _db_invalid(), eng() (+42 more)
 
 ### Community 18 - "Settings.tsx"
-Cohesion: 0.07
-Nodes (47): ScoreBand(), Harness(), Harness(), Linked(), Segments(), SheetHarness(), decimalsOf(), SegmentedControl() (+39 more)
+Cohesion: 0.08
+Nodes (46): Harness(), Linked(), Segments(), SegmentedControl(), Select(), Stepper(), Toggle(), Badge() (+38 more)
 
 ### Community 19 - "csv_loader.py"
-Cohesion: 0.08
-Nodes (26): _build_report(), _cell_text(), _clean_cell(), _decode(), _fail(), _find_header(), _format_decimals(), Issue (+18 more)
+Cohesion: 0.09
+Nodes (24): _build_report(), _cell_text(), _clean_cell(), _decode(), _fail(), _find_header(), _format_decimals(), Issue (+16 more)
 
-### Community 20 - ".recover"
-Cohesion: 0.15
-Nodes (4): 6. Run state machine, Headless CLI (Built, Phase 1), RecoveryReport, WorkerBusyError
-
-### Community 21 - "CandidateSheet.tsx"
-Cohesion: 0.10
-Nodes (24): KeyValue(), formatBytes(), formatDate(), formatPerResume(), formatRange(), greeting(), plural(), BucketName (+16 more)
+### Community 21 - "Settings"
+Cohesion: 0.13
+Nodes (13): Band, ChipProps, Handle, HANDLE_LABEL, ScoreBand(), ScoreBandProps, Harness(), Settings() (+5 more)
 
 ### Community 22 - "api-types.ts"
 Cohesion: 0.05
-Nodes (37): CutoffPopoverProps, ActivityOut, BucketDeltaOut, CandidateInfoOut, ClearFiltersOut, ConfirmOut, CountsOut, CutoffsIn (+29 more)
+Nodes (40): ExportSheetProps, SystemCardProps, ActivityOut, BucketCountsOut, CandidateInfoOut, ClearFiltersOut, ConfirmOut, CountsOut (+32 more)
 
 ### Community 23 - "local_only"
 Cohesion: 0.24
 Nodes (4): A hardening found on the way: Ollama must be on this computer, Files, local_only(), LocalOnlyTests
 
 ### Community 24 - "check_licenses.py"
-Cohesion: 0.19
-Nodes (12): _app_imports(), main(), _manifest(), _marker_applies(), _npm_licence(), npm_packages(), Package, problems() (+4 more)
+Cohesion: 0.16
+Nodes (14): _app_imports(), brand_assets(), brand_problems(), main(), _manifest(), _marker_applies(), _npm_licence(), npm_packages() (+6 more)
 
-### Community 25 - "EasyOcrEngine"
-Cohesion: 0.08
-Nodes (18): EasyOcrEngine, OcrUnavailable, EasyOcrEngineTests, 0.0 Setup check (do this before anything else), 0. Read first, in this order, 1.10 Stub servers and end-to-end tests, 1.3 `engine/ingest/csv_loader.py`: CSV loading and the pre-flight report, 1.4 `engine/ingest/downloader.py`: downloading résumés (+10 more)
+### Community 25 - "2. Steps"
+Cohesion: 0.11
+Nodes (15): 0.0 Setup check (do this before anything else), 0. Read first, in this order, 1.10 Stub servers and end-to-end tests, 1.3 `engine/ingest/csv_loader.py`: CSV loading and the pre-flight report, 1.4 `engine/ingest/downloader.py`: downloading résumés, 1.5 `engine/extract/`: text and section extraction, 1.8 `engine/export.py`: CSV export, 1.9 `engine/cli.py`: headless proof of Phase 1 (+7 more)
 
-### Community 26 - "ResultList.tsx"
-Cohesion: 0.09
-Nodes (23): PillBucket, ScorePill(), tokens.css (design tokens), describeDelta(), Column, COLUMNS, FilteredCells(), isMac() (+15 more)
+### Community 26 - "compute_buckets"
+Cohesion: 0.26
+Nodes (4): compute_buckets(), buckets_of(), BucketTests, rows()
 
 ### Community 27 - "schema.py"
-Cohesion: 0.06
-Nodes (18): overall_from(), Evaluation, EvaluationParseError, Evidence, _load_json_object(), ModelAnswer, _Strict, SubScores (+10 more)
+Cohesion: 0.14
+Nodes (9): _clip(), evaluation_json_schema(), inline(), Evidence, _load_json_object(), ModelAnswer, _not_bool(), _Strict (+1 more)
+
+### Community 28 - "db.py"
+Cohesion: 0.08
+Nodes (9): criteria_hash(), DatabaseError, InvalidTransitionError, RecoveryReport, RunLockedError, _status_event(), CandidateInputTests, _rows() (+1 more)
 
 ### Community 30 - "CliTests"
 Cohesion: 0.14
 Nodes (5): run_event_lines(), CliTestCase, CliTests, paused(), wait_past_pauses()
 
 ### Community 31 - "ipc.ts"
-Cohesion: 0.13
-Nodes (35): IpcContext, OLLAMA_DOWNLOAD_URL, registerIpc(), handle(), TOO_LARGE, CheckedRequest, compile(), copy() (+27 more)
+Cohesion: 0.12
+Nodes (37): IpcContext, OLLAMA_DOWNLOAD_URL, registerIpc(), handle(), TOO_LARGE, CheckedRequest, compile(), copy() (+29 more)
 
 ### Community 32 - "answer"
-Cohesion: 0.06
-Nodes (17): 13. LLM scoring, Guardrails, Model pre-check, Output contract (Pydantic, `extra="forbid"`), Prompt shape, Rubric and the overall score *(Phase 3, 3.2a; `engine/llm/rubric.py`)*, _clip(), evaluation_json_schema() (+9 more)
+Cohesion: 0.09
+Nodes (13): 13. LLM scoring, Guardrails, Model pre-check, Output contract (Pydantic, `extra="forbid"`), Prompt shape, Rubric and the overall score *(Phase 3, 3.2a; `engine/llm/rubric.py`)*, overall_from(), parse_evaluation() (+5 more)
 
 ### Community 33 - "Progress.tsx"
-Cohesion: 0.15
-Nodes (16): ProgressRing(), formatClock(), formatDuration(), ACTIVITY, Feed(), FeedLine, feedLines(), Live() (+8 more)
+Cohesion: 0.07
+Nodes (41): isPullEvent(), PullEvent, useAppEvents(), useRunEvents(), useSubscription(), ProgressRing(), formatBytes(), formatClock() (+33 more)
 
 ### Community 34 - "load_csv"
-Cohesion: 0.12
-Nodes (11): _join_limited(), load_csv(), render_report(), ContractTests, CsvTestCase, drive(), EncodingAndDelimiterTests, FileLevelTests (+3 more)
+Cohesion: 0.06
+Nodes (18): _join_limited(), load_csv(), load_table(), render_report(), ContractTests, CsvTestCase, drive(), EncodingAndDelimiterTests (+10 more)
 
 ### Community 35 - "Adjust Cutoffs Popover (light)"
 Cohesion: 0.08
@@ -346,16 +355,16 @@ Cohesion: 0.09
 Nodes (31): Progress Screen (Paused, dark), Activity Log (run events timeline), Measured Estimate Badge, Progress Screen (Paused, light), Progress Ring (9 of 25 students), Stage Count Tiles (Waiting / Downloading / Reading / Scoring / Done / Needs attention), System Pause Banner (Ollama isn't running - Nothing is lost), Results Screen (dark) (+23 more)
 
 ### Community 38 - ".new_run"
-Cohesion: 0.09
-Nodes (9): CandidateInputTests, DbTestCase, OverrideAndSettingsTests, RecoveryTests, _rows(), ScoringDurationTests, StateMachineTests, claim() (+1 more)
-
-### Community 39 - "stubs.ts"
 Cohesion: 0.12
-Nodes (23): Hooks, Request, DemoLib, DemoStubs, check(), everyScreen(), Layout, launch() (+15 more)
+Nodes (6): DbTestCase, OverrideAndSettingsTests, RecoveryTests, ScoringDurationTests, StateMachineTests, claim()
+
+### Community 39 - "Progress"
+Cohesion: 0.13
+Nodes (24): Hooks, Request, DemoLib, DemoStubs, SetupOptions, startScreening(), waitForStatus(), SET (+16 more)
 
 ### Community 40 - "bridge.ts"
 Cohesion: 0.08
-Nodes (12): atlas, listeners, on(), Window, ExportOut, ApiErrorBody, AtlasBridge, Channels (+4 more)
+Nodes (13): atlas, listeners, on(), Window, applyTheme(), ExportOut, ApiErrorBody, AtlasBridge (+5 more)
 
 ### Community 41 - "Settings screen - Data section (light)"
 Cohesion: 0.11
@@ -366,60 +375,60 @@ Cohesion: 0.11
 Nodes (18): author, description, license, main, name, private, productName, version (+10 more)
 
 ### Community 43 - "main/index.ts"
-Cohesion: 0.11
-Nodes (30): buildMenu(), createWindow(), engine, isAppUrl(), navigate(), overlayColors(), RENDERER_FILE, setTheme() (+22 more)
-
-### Community 44 - "load_table"
 Cohesion: 0.15
-Nodes (6): load_table(), CellTextTests, CsvStillWorksTests, TableTestCase, XlsTests, XlsxTests
+Nodes (21): buildMenu(), confirmAndQuit(), createWindow(), engine, iconPlace, isAppUrl(), navigate(), overlayColors() (+13 more)
 
-### Community 45 - "Welcome.tsx"
-Cohesion: 0.10
-Nodes (20): isPullEvent(), PullEvent, useAppEvents(), useRunEvents(), useSubscription(), defaultRunName(), FRIENDLY, ModelPickerProps (+12 more)
+### Community 44 - "_Cli"
+Cohesion: 0.24
+Nodes (3): _Cli, _read_criteria(), _wait()
+
+### Community 45 - "filters.py"
+Cohesion: 0.18
+Nodes (6): department_counts(), department_key(), filter_reason(), FilterPreview, preview(), FilterTests
 
 ### Community 46 - "EngineProcess"
-Cohesion: 0.14
-Nodes (6): EngineProcess, followRunStatuses(), watcher, ApiResult, EngineState, 17. Local API
+Cohesion: 0.09
+Nodes (11): engineCommand, EngineOptions, EngineProcess, findRepo(), watcher, ReadyLineParser, ApiResult, EngineState (+3 more)
 
 ### Community 47 - "ref_node_path"
-Cohesion: 0.16
-Nodes (10): executable, realPath(), samePath(), real, root, folder, page, root (+2 more)
+Cohesion: 0.09
+Nodes (19): builtInstaller(), executable, expectMacBundleIcon(), IconName, iconPath(), IconPlace, SPLASH_BACKGROUND, root (+11 more)
 
 ### Community 48 - "Database"
 Cohesion: 0.08
-Nodes (4): Database, _dict(), SchemaTests, LeakCheckTests
+Nodes (6): 17. Local API, Headless CLI (Built, Phase 1), Database, _dict(), SchemaTests, LeakCheckTests
 
 ### Community 49 - "build_engine.py"
 Cohesion: 0.15
 Nodes (6): folder_size(), main(), main(), _ready_line(), _request(), smoke()
 
-### Community 50 - "Downloader"
-Cohesion: 0.10
-Nodes (8): _confirm_url(), _connection_error(), Downloader, _fsync_dir(), _is_signin(), _looks_like_html(), _prepend(), _read_head()
+### Community 50 - "downloader.py"
+Cohesion: 0.06
+Nodes (9): _OllamaHealth, _connection_error(), Downloader, _fsync_dir(), is_disk_full(), _is_signin(), _looks_like_html(), _prepend() (+1 more)
 
 ### Community 51 - "devDependencies"
 Cohesion: 0.09
 Nodes (23): devDependencies, electron, electron-builder, electron-vite, eslint, @fontsource-variable/inter, jsdom, lucide-react (+15 more)
 
 ### Community 52 - "demo.mjs"
-Cohesion: 0.17
-Nodes (13): app, args, build, dataDir, electron, fast, APP_DIR, DEMO_FILE (+5 more)
+Cohesion: 0.16
+Nodes (14): app, args, build, dataDir, electron, fast, APP_DIR, DEMO_FILE (+6 more)
 
 ### Community 53 - "helpers.ts"
-Cohesion: 0.18
-Nodes (15): open(), screenshots(), APP_DIR, close(), Launched, capture(), PHASE3_SCREENS_DIR, setTheme() (+7 more)
+Cohesion: 0.19
+Nodes (19): open(), screenshots(), open(), APP_DIR, close(), Launched, LaunchOptions, splashGone() (+11 more)
 
 ### Community 54 - "Findings"
 Cohesion: 0.11
-Nodes (13): CI audit: what can behave differently on Windows, macOS and the development laptop, Failures in the last five runs, Files that exist only on the development laptop, Findings, Line endings, encodings, locale, time zone, Packaging, signing, macOS security, Processes, ports, file locks, Still risky after this branch (+5 more)
+Nodes (12): CI audit: what can behave differently on Windows, macOS and the development laptop, Failures in the last five runs, Files that exist only on the development laptop, Findings, Packaging, signing, macOS security, Processes, ports, file locks, Still risky after this branch, Temporary, home and user-data folders (+4 more)
 
 ### Community 55 - "contrast.test.ts"
 Cohesion: 0.18
 Nodes (12): BACKGROUNDS, contrast(), css, DARK_MEDIA, luminance(), over(), parse(), resolve() (+4 more)
 
-### Community 56 - "RunWatcher"
-Cohesion: 0.16
-Nodes (10): confirmAndQuit(), notificationFor(), Preferences, QUIET_REASONS, RunStatus, RunWatcher, RunWatcherDeps, start() (+2 more)
+### Community 56 - "window-state.ts"
+Cohesion: 0.10
+Nodes (20): notificationFor(), Preferences, QUIET_REASONS, RunStatus, RunWatcher, RunWatcherDeps, start(), stop() (+12 more)
 
 ### Community 57 - "compilerOptions"
 Cohesion: 0.10
@@ -438,44 +447,48 @@ Cohesion: 0.11
 Nodes (18): compilerOptions, allowJs, esModuleInterop, isolatedModules, jsx, lib, module, moduleResolution (+10 more)
 
 ### Community 61 - "split_sections"
-Cohesion: 0.10
-Nodes (10): QWENTUS (legacy CLI), Section extraction instead of truncation, _lookup(), _match(), match_heading(), _norm(), split_sections(), SectionTests (+2 more)
+Cohesion: 0.04
+Nodes (18): Step 1.5 - Text and section extraction, QWENTUS (legacy CLI), Section extraction instead of truncation, EasyOcrEngine, OcrUnavailable, clean_text(), OcrEngine, PdfExtractor (+10 more)
 
 ### Community 62 - "menus.ts"
-Cohesion: 0.27
-Nodes (8): BUCKET_LABEL, copyFailedMessage(), MINOR, rowMenuTemplate(), build(), Item, RowMenuChoice, RowMenuRequest
+Cohesion: 0.21
+Nodes (10): BUCKET_LABEL, copyFailedMessage(), MINOR, rowMenuTemplate(), build(), Item, RowMenuChoice, RowMenuRequest (+2 more)
 
-### Community 63 - "test_server.py"
-Cohesion: 0.05
-Nodes (11): Pause, HealthProbe, _OllamaHealth, configure_logging(), remove_logging(), scrub(), ScrubPII, export_openapi() (+3 more)
+### Community 63 - "configure_logging"
+Cohesion: 0.16
+Nodes (3): configure_logging(), remove_logging(), LogTests
 
 ### Community 64 - "hardware.py"
-Cohesion: 0.19
-Nodes (7): _cpu_name(), _ollama_gpu(), _OllamaPs, _os_name(), profile(), _ram_gb(), mac_sysctl()
+Cohesion: 0.14
+Nodes (9): _cpu_name(), _ollama_gpu(), _OllamaPs, _os_name(), profile(), _ram_gb(), FakePs, HardwareTests (+1 more)
+
+### Community 65 - "._score"
+Cohesion: 0.20
+Nodes (3): _delete(), HealthLike, _sha256()
 
 ### Community 66 - "compilerOptions"
 Cohesion: 0.12
 Nodes (16): compilerOptions, esModuleInterop, isolatedModules, lib, module, moduleResolution, noEmit, noUncheckedIndexedAccess (+8 more)
 
-### Community 67 - "e2e_stubs.py"
-Cohesion: 0.18
-Nodes (7): Deterministic fictional fixtures (25 students), build(), student(), SignIn, Status, grade(), WorkerKillTest
+### Community 67 - "main"
+Cohesion: 0.14
+Nodes (5): What was built, build_parser(), export_openapi(), main(), OpenApiTests
 
 ### Community 68 - "Step 2.0 — Deferred work recorded, engine gaps filled"
-Cohesion: 0.22
-Nodes (4): Step 2.0 — Deferred work recorded, engine gaps filled, PLAN Deferred (must finish before real use) — 1.11a redaction blocking, EWMA moving average of scoring times, Magic bytes vs file extensions
+Cohesion: 0.13
+Nodes (6): Step 2.0 — Deferred work recorded, engine gaps filled, PLAN Deferred (must finish before real use) — 1.11a redaction blocking, EWMA moving average of scoring times, Magic bytes vs file extensions, Estimate, ewma()
 
 ### Community 69 - "OllamaInstall"
-Cohesion: 0.09
-Nodes (12): Files, find_ollama(), OllamaInstall, start_ollama(), build_parser(), EngineOptions, main(), options_from_env() (+4 more)
+Cohesion: 0.11
+Nodes (13): About(), computerLine(), gpuLine(), Files, find_ollama(), OllamaInstall, start_ollama(), EngineOptions (+5 more)
 
 ### Community 70 - "Step 3.1 — Required before real use"
-Cohesion: 0.12
-Nodes (12): Concepts to learn, Failure handling, Graph usefulness (this step), How to try it yourself, Key decisions and why, Known limitations, Speed: before and after (report only, no target), Step 3.1 — Required before real use (+4 more)
+Cohesion: 0.22
+Nodes (9): Concepts to learn, Failure handling, Graph usefulness (this step), How to try it yourself, Key decisions and why, Known limitations, Speed: before and after (report only, no target), Step 3.1 — Required before real use (+1 more)
 
 ### Community 71 - "Engine"
-Cohesion: 0.04
-Nodes (18): 11. Downloading résumés, 5. Design changes vs ARCHITECTURE (all reflected in it now), BucketResult, Hardware, ApiError, _app_event_stream(), AppEvents, _clear_logs() (+10 more)
+Cohesion: 0.05
+Nodes (9): 11. Downloading résumés, 5. Design changes vs ARCHITECTURE (all reflected in it now), ApiError, _clear_logs(), _empty_folder(), Engine, _folder_size(), PendingTable (+1 more)
 
 ### Community 72 - "When a student needs attention"
 Cohesion: 0.11
@@ -494,72 +507,68 @@ Cohesion: 0.12
 Nodes (4): FakeSocket, HealthTests, probe(), connect()
 
 ### Community 79 - "Phase 2 Summary - the Atlas desktop app"
-Cohesion: 0.16
-Nodes (7): Phase 2 Summary - the Atlas desktop app, 1.11a Identity redaction from the résumé itself (blocks real data), What still feels un-Apple-like, Smoke test 1: Phase 1 engine on real student data, CPU-only scoring speed (~141 s/résumé), Explanations vary for identical inputs, Scores bunch at the top (all 95)
+Cohesion: 0.11
+Nodes (12): api-schema.json (exported OpenAPI), Step 2.1 — The local API (engine/server.py), Contract-first API: Pydantic -> OpenAPI -> TypeScript, Host header check against DNS rebinding, Phase 2 Summary - the Atlas desktop app, 1.11a Identity redaction from the résumé itself (blocks real data), What still feels un-Apple-like, Smoke test 1: Phase 1 engine on real student data (+4 more)
 
 ### Community 80 - "Atlas — Build Plan"
 Cohesion: 0.33
 Nodes (6): Atlas — Build Plan, Deferred (must finish before real use), Design system — Apple-inspired, Phase 1 — Engine (headless, no UI), Phase 2 — App (local API + Electron UI), Phase 3 — Hardening & shipping
 
-### Community 82 - "_error"
-Cohesion: 0.15
-Nodes (12): _api_error(), _busy(), _db(), _db_invalid(), _export(), _http(), _invalid(), _locked() (+4 more)
+### Community 82 - "splash.ts"
+Cohesion: 0.22
+Nodes (11): rememberShown(), settled(), shownThisLaunch(), SPLASH_TIMING, SplashPhase, SplashState, SplashTiming, splashDone (+3 more)
 
-### Community 83 - "demo_stubs.py"
-Cohesion: 0.23
-Nodes (7): control_server(), link(), main(), make_file(), serve(), serve_files(), student_id()
+### Community 83 - "export.py"
+Cohesion: 0.19
+Nodes (6): 16. Export, _cells(), _escape(), ExportError, PlacementLike, _select()
 
 ### Community 84 - "sse.ts"
-Cohesion: 0.31
-Nodes (6): followEvents(), FollowOptions, sleep(), SseMessage, SseParser, SSE event streams with Last-Event-ID
+Cohesion: 0.27
+Nodes (7): followRunStatuses(), followEvents(), FollowOptions, sleep(), SseMessage, SseParser, SSE event streams with Last-Event-ID
 
 ### Community 86 - "._handler"
 Cohesion: 0.27
 Nodes (7): evaluation_for(), _body(), _chat(), do_GET(), do_POST(), _json(), _pull()
 
 ### Community 87 - "_Listed"
-Cohesion: 0.14
+Cohesion: 0.18
 Nodes (3): 10. CSV ingest and pre-flight, publish(), _Listed
 
 ### Community 88 - "scripts"
 Cohesion: 0.12
 Nodes (16): scripts, build, demo, demo:fast, demo:reset, dev, dist, e2e (+8 more)
 
-### Community 89 - "Live cutoffs: the first key press was close to its limit"
-Cohesion: 0.33
-Nodes (5): Before and after on this laptop (`perf.spec`, 3 runs each, standalone), CI, Live cutoffs: the first key press was close to its limit, The fix (engine only; the screen didn't change), What the profile showed
+### Community 89 - "link_kind"
+Cohesion: 0.15
+Nodes (7): Before and after on this laptop (`perf.spec`, 3 runs each, standalone), CI, Live cutoffs: the first key press was close to its limit, The fix (engine only; the screen didn't change), What the profile showed, link_kind(), LinkKindTests
 
 ### Community 91 - "When a screening pauses"
 Cohesion: 0.22
 Nodes (9): Atlas hit repeated errors. See logs., Atlas was closed, Connected to Wi-Fi that needs a sign-in page, Disk is full, No internet connection, Ollama isn't running, Paused by you, The model "qwen3:8b" is no longer installed in Ollama. Install it again, then press Resume. (+1 more)
 
 ### Community 92 - "test_downloader.py"
-Cohesion: 0.16
-Nodes (8): Confirm, Drip, Html, Oversized, Pdf, RateLimited, Truncated, StubServerTests
+Cohesion: 0.05
+Nodes (25): control_server(), link(), main(), make_file(), serve(), serve_files(), student_id(), build() (+17 more)
 
 ### Community 93 - "Phase 3 Summary — Atlas made shippable"
 Cohesion: 0.17
 Nodes (12): 1. Overview, 2. Steps, 3. Definition of done: evidence, 4. Numbers the owner asked for, 6. Did graphify help? (honest finding), 7. Known weaknesses (most severe first), 8. Ready for real use?, 9. What you need to do (+4 more)
 
-### Community 94 - "ClientTests"
-Cohesion: 0.21
-Nodes (4): ClientTests, FakeHttpResponse, prepared(), stream_lines()
+### Community 94 - "Step 3.3 — First run: Ollama in four states, the hardware profile, the long-screening warning"
+Cohesion: 0.18
+Nodes (9): Concepts to learn, Failure handling, Graph usefulness (this step), How to try it yourself, Key decisions and why, Known limitations, Step 3.3 — First run: Ollama in four states, the hardware profile, the long-screening warning, Tests (+1 more)
 
-### Community 95 - "Step 2.1 — The local API (engine/server.py)"
+### Community 95 - "splash.spec.ts"
 Cohesion: 0.22
-Nodes (6): api-schema.json (exported OpenAPI), Step 2.1 — The local API (engine/server.py), Contract-first API: Pydantic -> OpenAPI -> TypeScript, Host header check against DNS rebinding, Api, Guard
+Nodes (3): BRANDING_SCREENS_DIR, Handover, screenshot()
 
-### Community 96 - "engine.ts"
-Cohesion: 0.24
-Nodes (4): engineCommand, EngineOptions, findRepo(), ReadyLineParser
+### Community 96 - "render-icons.mjs"
+Cohesion: 0.12
+Nodes (15): decodeRgba(), ICONS, pngSize(), sums, bitmap(), { _electron: electron }, HERE, ico() (+7 more)
 
 ### Community 98 - "Engine runtime requirements (requests, PyMuPDF, pydantic, openpyxl, fastapi, uvicorn)"
 Cohesion: 0.67
 Nodes (3): Engine dev requirements (httpx for TestClient), Optional OCR requirements (easyocr), Engine runtime requirements (requests, PyMuPDF, pydantic, openpyxl, fastapi, uvicorn)
-
-### Community 99 - ".estimate"
-Cohesion: 0.08
-Nodes (12): Concepts to learn, Failure handling, Graph usefulness (this step), How to try it yourself, Key decisions and why, Known limitations, Step 3.3 — First run: Ollama in four states, the hardware profile, the long-screening warning, Tests (+4 more)
 
 ### Community 100 - "Step 3.8 — Verification"
 Cohesion: 0.25
@@ -574,60 +583,64 @@ Cohesion: 0.40
 Nodes (4): printWidth, semi, singleQuote, trailingComma
 
 ### Community 103 - "Atlas — Architecture"
-Cohesion: 0.10
+Cohesion: 0.11
 Nodes (16): 12. Text and section extraction, 14. Buckets, cutoffs and minimum fill, 15. Time estimate, 18. UI screens and flow, 19. Security and privacy, 1. System context, 20. Filesystem layout, 21. Packaging (+8 more)
-
-### Community 105 - "parse_multipart_file"
-Cohesion: 0.40
-Nodes (3): run_table(), parse_multipart_file(), MultipartTests
 
 ### Community 106 - "build_parser"
 Cohesion: 0.29
 Nodes (3): build_parser(), data(), _Parser
 
-### Community 107 - "test_e2e.py"
-Cohesion: 0.08
-Nodes (9): _filler(), make_pdf(), make_ten_page_resume(), simple_resume_text(), ten_page_resume_pages(), ExtractTestCase, FakeOcr, OcrFallbackTests (+1 more)
-
-### Community 108 - "PdfExtractor"
+### Community 107 - "make_pdf"
 Cohesion: 0.11
-Nodes (6): clean_text(), OcrEngine, PdfExtractor, CleanTextTests, main(), prepare()
+Nodes (6): make_pdf(), make_ten_page_resume(), ExtractTestCase, FakeOcr, OcrFallbackTests, PdfTests
 
 ### Community 110 - "Get Another Model Dialog (light)"
 Cohesion: 0.67
 Nodes (4): Get Another Model Dialog (dark), Get Another Model Dialog (light), Local Model Picker (runs on this computer, nothing sent anywhere), Setup Stepper (Students & model, Criteria, Cutoffs, Review)
 
+### Community 111 - "_leaks"
+Cohesion: 0.25
+Nodes (4): _leaks(), _row(), ScorerLike, lexicon_hits()
+
 ### Community 112 - "App.tsx"
-Cohesion: 0.16
-Nodes (12): App(), queries, Shell(), useEngineState(), useHashRoute(), usePlatform(), ToastProvider(), ToastView() (+4 more)
+Cohesion: 0.11
+Nodes (19): App(), queries, Screens(), Shell(), useEngineState(), useHashRoute(), usePlatform(), Gallery() (+11 more)
 
 ### Community 114 - "Atlas: private, on-device résumé screening for campus hiring"
 Cohesion: 0.17
 Nodes (12): Atlas: private, on-device résumé screening for campus hiring, Documentation, Key features, License, Privacy and security, Quick start, Repository layout, Screenshots (+4 more)
+
+### Community 115 - "assets.d.ts"
+Cohesion: 0.50
+Nodes (3): *.css, @fontsource-variable/inter, *.svg
+
+### Community 117 - "FakeScorer"
+Cohesion: 0.32
+Nodes (4): _Eval, score(), FakeScorer, _Scored
 
 ### Community 118 - "electron.vite.config.ts"
 Cohesion: 0.40
 Nodes (3): shared, electron-vite, vite
 
 ### Community 120 - "graph_audit.py"
-Cohesion: 0.30
-Nodes (8): audit(), count(), Count, indexed_files(), main(), _norm(), _texts(), under_local()
+Cohesion: 0.28
+Nodes (9): Files, audit(), count(), Count, indexed_files(), main(), _norm(), _texts() (+1 more)
 
 ### Community 124 - "Step 3.0 — The graph: privacy check, ignore rules and CLAUDE.md"
 Cohesion: 0.18
 Nodes (9): Concepts to learn, Files, Graph usefulness (this step), Key decisions and why, Known limitations, Step 3.0 — The graph: privacy check, ignore rules and CLAUDE.md, Tests, What was built (+1 more)
 
-### Community 125 - "scoring_input"
-Cohesion: 0.09
-Nodes (20): Files, apply(), build_lexicon(), common_words(), Lexicon, name_line(), name_tokens(), profile_usernames() (+12 more)
+### Community 125 - "leak_check.py"
+Cohesion: 0.12
+Nodes (13): apply(), build_lexicon(), common_words(), Lexicon, name_line(), name_tokens(), profile_usernames(), _split_handle() (+5 more)
+
+### Community 126 - "Branding: Swift app icon and hello splash"
+Cohesion: 0.29
+Nodes (6): Branding: Swift app icon and hello splash, Step 0: a clean branch, Step 1: what the SVGs contain, and the clean copies, Step 2: the app icon, Step 4: licence and notices, Step 6: everything locally, and the packaged app
 
 ### Community 142 - "CI fixes: four failures on the first full CI run (2026-10-02)"
-Cohesion: 0.40
-Nodes (4): 2 · The window size on a small screen, CI fixes: four failures on the first full CI run (2026-10-02), Open (not changed), Tests
-
-### Community 147 - "Worker"
-Cohesion: 0.11
-Nodes (3): The database as the queue, _delete(), Worker
+Cohesion: 0.33
+Nodes (5): 2 · The window size on a small screen, 3 · Lost key presses on the cutoff slider, CI fixes: four failures on the first full CI run (2026-10-02), Open (not changed), Tests
 
 ### Community 148 - "Step 3.2 — Scoring quality: anchored rubric and eval harness"
 Cohesion: 0.20
@@ -637,53 +650,49 @@ Nodes (10): Concepts to learn, Failure handling, Graph usefulness (this step), H
 Cohesion: 0.26
 Nodes (15): bodyType(), byKey(), field(), generate(), here, inlineObject(), namedType(), OUT_PATH (+7 more)
 
-### Community 150 - "server.py"
-Cohesion: 0.04
-Nodes (13): Placement, DatabaseError, RunLockedError, remember(), department_counts(), department_key(), filter_reason(), FilterPreview (+5 more)
+### Community 150 - "test_server.py"
+Cohesion: 0.05
+Nodes (15): How TROUBLESHOOTING.md can't drift, Pause, Pull, Reason, HealthProbe, scrub(), main(), seed() (+7 more)
 
 ### Community 152 - "How Atlas handles student data"
 Cohesion: 0.29
 Nodes (7): 1. What stays on the computer, 2. What leaves the computer, and only this, 3. What the AI is and isn't shown, 4. Deleting data, 5. Points for your legal team (India's DPDP Act and similar), How Atlas handles student data, In one paragraph
 
 ### Community 154 - "Step 3.5 — Packaging: the engine binary, the installers, signing by secrets"
-Cohesion: 0.20
-Nodes (10): Concepts to learn, Failure handling, Graph usefulness (this step), How to try it yourself, Key decisions and why, Known limitations, Numbers (Windows x64, this laptop), Step 3.5 — Packaging: the engine binary, the installers, signing by secrets (+2 more)
+Cohesion: 0.22
+Nodes (9): Concepts to learn, Failure handling, Graph usefulness (this step), How to try it yourself, Key decisions and why, Known limitations, Numbers (Windows x64, this laptop), Step 3.5 — Packaging: the engine binary, the installers, signing by secrets (+1 more)
 
 ### Community 156 - "graph_query.py"
 Cohesion: 0.42
 Nodes (5): _load(), main(), _match(), run(), _where()
 
-### Community 158 - ".__init__"
-Cohesion: 0.21
-Nodes (4): ExtractorLike, HealthLike, ScorerLike, _sha256()
-
 ### Community 162 - "Code signing: what to buy and how to add it"
-Cohesion: 0.29
-Nodes (7): Checking a build, Code signing: what to buy and how to add it, How to add the secrets, macOS: the Apple Developer Program, What recruiters see without signing, What to buy, Windows: a code-signing certificate
+Cohesion: 0.25
+Nodes (8): Before any distribution: replace the logo, Checking a build, Code signing: what to buy and how to add it, How to add the secrets, macOS: the Apple Developer Program, What recruiters see without signing, What to buy, Windows: a code-signing certificate
 
 ### Community 163 - "Third-party notices"
 Cohesion: 0.20
-Nodes (9): click(), Bundled packages, Copyleft, restrictive or notable licences (read first), JavaScript packages (bundled into the app by vite, plus the Electron runtime), Needs a decision: PyMuPDF, Not shipped, but used by Atlas, Python packages (bundled into the engine by PyInstaller), Runtimes and system components inside the installer (+1 more)
+Nodes (10): click(), Brand assets, Bundled packages, Copyleft, restrictive or notable licences (read first), JavaScript packages (bundled into the app by vite, plus the Electron runtime), Needs a decision: PyMuPDF, Not shipped, but used by Atlas, Python packages (bundled into the engine by PyInstaller) (+2 more)
 
 ### Community 166 - "Installing and using Atlas"
 Cohesion: 0.18
 Nodes (11): 1. Install Ollama, 2. Install Atlas, 3. The first run, 4. Your first screening, 5. Overnight checklist, 6. Where your data lives, 7. Updating and uninstalling, Installing and using Atlas (+3 more)
 
 ### Community 168 - "links.py"
-Cohesion: 0.14
-Nodes (5): DownloadPlan, link_kind(), plan_download(), LinkKindTests, PlanTests
+Cohesion: 0.16
+Nodes (6): DownloadPlan, drive_file_id(), link_identity(), plan_download(), with_scheme(), PlanTests
 
 ### Community 169 - "Step 3.6 — CI on Windows and macOS"
 Cohesion: 0.20
 Nodes (10): Concepts to learn, Failure handling, Graph usefulness (this step), How it was validated (no push), How to try it yourself, Key decisions and why, Known limitations, Step 3.6 — CI on Windows and macOS (+2 more)
 
-### Community 171 - "Extraction"
-Cohesion: 0.12
-Nodes (7): Extraction, FakeDownloader, FakeExtractor, FakeHealth, _files_in(), ManualClock, action()
-
-### Community 172 - "Progress"
+### Community 171 - "worker.py"
 Cohesion: 0.10
-Nodes (17): SetupOptions, startScreening(), waitForStatus(), Detail, open(), opened, request(), Row (+9 more)
+Nodes (13): Extraction, Downloaded, ScoreResult, FakeDownloader, FakeExtractor, FakeScorer, _files_in(), ManualClock (+5 more)
+
+### Community 172 - "flows.spec.ts"
+Cohesion: 0.11
+Nodes (7): Detail, opened, request(), Row, Run, Stubs, RFC-4180
 
 ### Community 173 - "Troubleshooting"
 Cohesion: 0.20
@@ -701,42 +710,42 @@ Nodes (8): Concepts to learn, Graph usefulness (this step), How to try it yourse
 Cohesion: 0.22
 Nodes (8): Concepts to learn, Failure handling, Graph usefulness (this step), How to try it yourself, Key decisions and why, Known limitations, Step 3.4 — Native-feel quick wins, What was built
 
-### Community 182 - "OllamaStub"
-Cohesion: 0.15
-Nodes (6): control_server(), do_GET(), do_POST(), reply(), main(), OllamaStub
+### Community 182 - "control_server"
+Cohesion: 0.47
+Nodes (4): control_server(), do_GET(), do_POST(), reply()
 
 ### Community 184 - "System design"
 Cohesion: 0.25
 Nodes (8): 1. System context, 2. Process model, 3. The résumé pipeline, 5. Run states, 6. Data model (schema version 3), 7. One screening, from the click to the export, 8. How a score becomes a bucket, System design
 
-### Community 185 - "Step 2.2 — The Electron shell (app/main, app/preload)"
-Cohesion: 0.25
-Nodes (5): isPlainJson(), validateApiRequest(), Step 2.2 — The Electron shell (app/main, app/preload), CSP, context isolation and sandbox, Restart budget: 3 restarts in 60 s then failed
+### Community 185 - "fullscreen.spec.ts"
+Cohesion: 0.15
+Nodes (8): check(), everyScreen(), Layout, launch(), Window, SCREENS_DIR, Step 2.9 — End-to-end flows, keyboard, performance, Performance measured inside the page (PerformanceObserver/MutationObserver)
 
-### Community 193 - "app_events"
-Cohesion: 0.50
-Nodes (3): app_events(), run_events(), _sse()
+### Community 187 - "server.py"
+Cohesion: 0.06
+Nodes (11): BucketResult, Placement, _app_event_stream(), AppEvents, _departments(), _event_fields(), _events_after(), _failure_groups() (+3 more)
 
 ## Ambiguous Edges - Review These
 - `This computer status card (Ollama running, models installed, data folder)` → `Pause reason banner: 'Ollama isn't running - Atlas will continue automatically'`  [AMBIGUOUS]
   docs/summaries/phase2/screens/welcome-resume-light.png · relation: conceptually_related_to
 
 ## Knowledge Gaps
-- **557 isolated node(s):** `semi`, `singleQuote`, `printWidth`, `trailingComma`, `Request` (+552 more)
-  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 1259 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
-- **54 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **587 isolated node(s):** `semi`, `singleQuote`, `printWidth`, `trailingComma`, `Request` (+582 more)
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 1312 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+- **60 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
 - **What is the exact relationship between `This computer status card (Ollama running, models installed, data folder)` and `Pause reason banner: 'Ollama isn't running - Atlas will continue automatically'`?**
   _Edge tagged AMBIGUOUS (relation: conceptually_related_to) - confidence is low._
-- **Why does `Progress` connect `Progress` to `compute_buckets`, `api`, `.transaction`, `test_llm.py`, `Button`, `Settings.tsx`, `csv_loader.py`, `.recover`, `schema.py`, `ipc.ts`, `Progress.tsx`, `load_csv`, `stubs.ts`, `bridge.ts`, `load_table`, `Database`, `helpers.ts`, `RunWatcher`, `test_server.py`, `Step 2.0 — Deferred work recorded, engine gaps filled`, `Step 3.1 — Required before real use`, `Engine`, `ollama_stub.py`, `Atlas — Build Plan`, `.estimate`, `test_e2e.py`, `link_identity`?**
-  _High betweenness centrality (0.232) - this node is a cross-community bridge._
-- **Why does `Database` connect `Database` to `troubleshooting.py`, `EndToEndTest`, `compute_buckets`, `.worker`, `.transaction`, `Worker`, `server.py`, `EasyOcrEngine`, `CliTests`, `.__init__`, `load_csv`, `MigrationTests`, `.new_run`, `Extraction`, `Progress`, `e2e_stubs.py`, `Engine`, `run_waiting_to_resume`, `CompletedRunCutoffTests`, `CLAUDE.md — Atlas`, `Atlas — Architecture`, `test_e2e.py`?**
-  _High betweenness centrality (0.111) - this node is a cross-community bridge._
-- **Why does `Engine` connect `Engine` to `compute_buckets`, `ServerTestCase`, `.transaction`, `test_llm.py`, `api_models.py`, `Button`, `create_app`, `Worker`, `.recover`, `server.py`, `EasyOcrEngine`, `load_table`, `Progress`, `Database`, `Downloader`, `test_server.py`, `Step 2.0 — Deferred work recorded, engine gaps filled`, `OllamaInstall`, `run_waiting_to_resume`, `Phase 2 Summary - the Atlas desktop app`, `_Listed`, `Step 2.1 — The local API (engine/server.py)`, `.estimate`, `PdfExtractor`?**
-  _High betweenness centrality (0.077) - this node is a cross-community bridge._
+- **Why does `Progress` connect `Progress` to `Button`, `.transaction`, `design/index.ts`, `OllamaClient`, `Results.tsx`, `test_llm.py`, `Settings.tsx`, `.recover`, `Settings`, `test_server.py`, `schema.py`, `db.py`, `ipc.ts`, `load_csv`, `bridge.ts`, `links.py`, `Database`, `helpers.ts`, `window-state.ts`, `Step 2.0 — Deferred work recorded, engine gaps filled`, `Engine`, `StubServer`, `Atlas — Build Plan`, `export.py`, `Step 3.3 — First run: Ollama in four states, the hardware profile, the long-screening warning`, `make_pdf`?**
+  _High betweenness centrality (0.210) - this node is a cross-community bridge._
+- **Why does `Database` connect `Database` to `export_csv`, `.worker`, `.transaction`, `csv_loader.py`, `Worker`, `test_server.py`, `2. Steps`, `db.py`, `CliTests`, `load_csv`, `MigrationTests`, `.new_run`, `Progress`, `worker.py`, `_Cli`, `downloader.py`, `server.py`, `._score`, `Engine`, `run_waiting_to_resume`, `test_downloader.py`, `CompletedRunCutoffTests`, `CLAUDE.md — Atlas`, `Atlas — Architecture`?**
+  _High betweenness centrality (0.076) - this node is a cross-community bridge._
+- **Why does `Engine` connect `Engine` to `ServerTestCase`, `.transaction`, `OllamaClient`, `test_llm.py`, `create_app`, `Worker`, `.recover`, `csv_loader.py`, `test_server.py`, `._precheck_status`, `compute_buckets`, `load_csv`, `Progress`, `Database`, `downloader.py`, `server.py`, `split_sections`, `main`, `Step 2.0 — Deferred work recorded, engine gaps filled`, `OllamaInstall`, `run_waiting_to_resume`, `Phase 2 Summary - the Atlas desktop app`, `_Listed`, `.estimate`, `Hardware`?**
+  _High betweenness centrality (0.071) - this node is a cross-community bridge._
 - **Are the 22 inferred relationships involving `Database` (e.g. with `9. Crash recovery` and `Hard rules (never break these)`) actually correct?**
   _`Database` has 22 INFERRED edges - model-reasoned connections that need verification._
 - **Are the 16 inferred relationships involving `Worker` (e.g. with `9. Crash recovery` and `Graph usefulness (this step)`) actually correct?**
