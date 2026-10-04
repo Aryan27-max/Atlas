@@ -11,9 +11,9 @@
  */
 
 import { execFileSync } from 'node:child_process'
-import { existsSync, mkdtempSync, readdirSync, rmSync } from 'node:fs'
+import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { dirname, join } from 'node:path'
+import { basename, dirname, join } from 'node:path'
 import { type ElectronApplication, type Page, _electron as electron, expect, test } from '@playwright/test'
 import { samePath } from '../main/paths'
 import { APP_DIR, waitForWelcome } from './helpers'
@@ -55,6 +55,16 @@ async function orangeShare(app: ElectronApplication, page: Page, target: string)
     async ({ app: electronApp }, path) => (await electronApp.getFileIcon(path, { size: 'normal' })).toDataURL(),
     target,
   )
+  // What the OS showed, kept with the results (a failure says what it was).
+  await test.info().attach(`os-icon-${basename(target)}.png`, {
+    body: Buffer.from(dataUrl.split(',')[1] ?? '', 'base64'),
+    contentType: 'image/png',
+  })
+  return pngOrangeShare(page, dataUrl, target)
+}
+
+/** The share of a PNG's opaque pixels that are the logo's orange-red. */
+async function pngOrangeShare(page: Page, dataUrl: string, what: string): Promise<number> {
   const { opaque, orange } = await page.evaluate(async (url) => {
     const image = new Image()
     image.src = url
@@ -74,12 +84,15 @@ async function orangeShare(app: ElectronApplication, page: Page, target: string)
     }
     return count
   }, dataUrl)
-  expect(opaque, `${target}: the OS shows an icon`).toBeGreaterThan(100)
+  expect(opaque, `${what}: an icon`).toBeGreaterThan(100)
   return orange / opaque
 }
 
-/** macOS: Contents/Resources has the .icns that Info.plist names, and the DMG has a volume icon. */
-function expectMacBundleIcon(binary: string): void {
+/**
+ * macOS: Contents/Resources has the .icns that Info.plist names, it is the logo (not
+ * Electron's), and the DMG has a volume icon.
+ */
+async function expectMacBundleIcon(page: Page, binary: string): Promise<void> {
   const contents = join(dirname(binary), '..')
   const plist = execFileSync('plutil', ['-convert', 'xml1', '-o', '-', join(contents, 'Info.plist')], {
     encoding: 'utf8',
@@ -88,6 +101,12 @@ function expectMacBundleIcon(binary: string): void {
   expect(iconFile, 'Info.plist CFBundleIconFile').not.toBe('')
   const icns = iconFile.endsWith('.icns') ? iconFile : `${iconFile}.icns`
   expect(existsSync(join(contents, 'Resources', icns)), `Contents/Resources/${icns}`).toBe(true)
+  const png = join(mkdtempSync(join(tmpdir(), 'atlas-icns-')), 'icon.png')
+  execFileSync('sips', ['-s', 'format', 'png', '-Z', '64', join(contents, 'Resources', icns), '--out', png])
+  const body = readFileSync(png)
+  await test.info().attach(`bundle-${icns}.png`, { body, contentType: 'image/png' })
+  const share = await pngOrangeShare(page, `data:image/png;base64,${body.toString('base64')}`, icns)
+  expect(share, `Contents/Resources/${icns} is the Atlas logo`).toBeGreaterThanOrEqual(0.3)
   const dmg = builtInstaller()
   if (!dmg) return
   const mount = mkdtempSync(join(tmpdir(), 'atlas-dmg-'))
@@ -136,6 +155,8 @@ test('the packaged app starts its bundled engine and shows Welcome', async () =>
 
     // The app carries Atlas's icon: what the OS shows for the exe (Windows) or the .app
     // bundle (macOS) is the logo, not Electron's default (grey-blue).
+    // The bundle first on macOS: what it contains, then what the OS shows for it.
+    if (process.platform === 'darwin') await expectMacBundleIcon(page, executable as string)
     const shown =
       process.platform === 'darwin' ? join(dirname(executable as string), '..', '..') : (executable as string)
     expect(await orangeShare(app, page, shown), `${shown}: the Atlas icon`).toBeGreaterThanOrEqual(0.3)
@@ -144,7 +165,6 @@ test('the packaged app starts its bundled engine and shows Welcome', async () =>
     // disk image; its volume icon is checked below by mounting it.)
     if (installer && process.platform === 'win32')
       expect(await orangeShare(app, page, installer), `${installer}: the Atlas icon`).toBeGreaterThanOrEqual(0.3)
-    if (process.platform === 'darwin') expectMacBundleIcon(executable as string)
   } finally {
     await app.close()
     rmSync(userData, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 })

@@ -60,6 +60,21 @@ export async function waitForWelcome(page: Page): Promise<void> {
 }
 
 export async function close(launched: Launched, removeData = true): Promise<void> {
+  // If the engine was restarted during the test (a screen the test was on is then remounted),
+  // say so in the log, with the engine's last error output: a failure can't hide it.
+  const restarts = await launched.app
+    .evaluate(() => {
+      const test = (globalThis as { __atlasTest?: { engine: { processGeneration: number; stderrTail: string[] } } })
+        .__atlasTest
+      return test
+        ? { processes: test.engine.processGeneration, stderr: test.engine.stderrTail.join('').slice(-2000) }
+        : null
+    })
+    .catch(() => null)
+  if (restarts && restarts.processes > 1) {
+    console.warn(`[e2e] the engine was started ${restarts.processes} times; its last error output:
+${restarts.stderr}`)
+  }
   // If a screening is still running, closing asks "Close Atlas?" in a native
   // dialog nobody can click; answer it so cleanup can never hang.
   await launched.app
