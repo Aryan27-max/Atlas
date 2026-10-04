@@ -2,6 +2,16 @@
 
 Atlas builds **unsigned** today. It installs and runs, but Windows and macOS warn recruiters first (`docs/INSTALL.md` explains how to get past the warnings). Signing removes those warnings and is the professional way to ship. It costs money and belongs to the firm, so nothing here is bought or configured for you: the build simply signs when the secrets below exist, and doesn't when they don't.
 
+## Before any distribution: replace the logo
+Atlas's logo and app icon are the **Swift logo**, and its start-up screen shows Apple's **"hello"** lettering. Both were supplied for this project, and both are Apple trademarks ([THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md) → *Brand assets*). **Before any distribution outside this project, replace the logo: Apple's trademark guidelines don't allow the Swift logo as a product icon.** Replace the start-up art too.
+
+To swap them:
+1. **The logo.** Put the new logo in `app/renderer/assets/brand/logo.svg`. It must be a square SVG with no scripts, external links or embedded files: `npx vitest run renderer/assets/brand` (from `app/`) checks it.
+2. **The icons.** Re-render them from the repository root with `node packaging/icons/render-icons.mjs`, then commit them together with their `SHA256SUMS`.
+3. **The start-up art.** Replace `app/renderer/assets/brand/hello.svg` the same way. No re-render is needed.
+4. **The notices.** Update [THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md) → *Brand assets* (`packaging/check_licenses.py` checks that every file in `app/renderer/assets/brand/` is listed there).
+5. **Rebuild** with `npm run dist` (from `app/`).
+
 ## What recruiters see without signing
 | | What happens | Way past it |
 |---|---|---|

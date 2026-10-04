@@ -245,6 +245,24 @@ class LicenceCheckTests(unittest.TestCase):
         self.assertEqual(check.problems(python, notices), [])
         self.assertIn("pymupdf", {p.key for p in python if p.key in check.ALLOWED})
 
+    def test_brand_assets_must_be_listed_with_whose_marks_they_are(self) -> None:
+        check = _licence_check()
+        notices = "## Brand assets\n`logo.svg` and `hello.svg` are trademarks of Apple Inc.\n\n## Not shipped\n`other.svg`\n"
+        self.assertEqual(check.brand_problems(["hello.svg", "logo.svg"], notices), [])
+        found = check.brand_problems(["hello.svg", "logo.svg", "other.svg"], notices)
+        self.assertEqual(len(found), 1, found)  # named only outside the section
+        self.assertIn("other.svg", found[0])
+        found = check.brand_problems(["logo.svg"], "## Brand assets\n`logo.svg`\n")
+        self.assertEqual(len(found), 1, found)
+        self.assertIn("trademarks", found[0])
+        self.assertEqual(len(check.brand_problems(["logo.svg"], "`logo.svg` somewhere else")), 1)
+
+    def test_the_shipped_brand_assets_pass_today(self) -> None:
+        check = _licence_check()
+        assets = check.brand_assets()
+        self.assertEqual(assets, ["hello.svg", "logo.svg"])
+        self.assertEqual(check.brand_problems(assets, check.NOTICES.read_text(encoding="utf-8")), [])
+
 
 def _names(path: Path) -> dict[str, str]:
     """Normalised package name → the whole line, for one requirements file (``-r`` lines skipped)."""

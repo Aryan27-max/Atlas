@@ -58,7 +58,14 @@ describe('the brand SVG working copies', () => {
 
   it('the logo is square, and "hello" is static art (the splash does the motion)', () => {
     const logo = copies[0]?.svg ?? ''
-    expect(/viewBox="0 0 256 256"/.test(logo)).toBe(true)
+    // Square at any size, so a replacement logo can be dropped in (docs/SIGNING.md).
+    const [, , w, h] =
+      /viewBox="([^"]+)"/
+        .exec(logo)?.[1]
+        ?.split(/[\s,]+/)
+        .map(Number) ?? []
+    expect(w).toBeGreaterThan(0)
+    expect(w).toBe(h)
     const hello = copies[1]?.svg ?? ''
     expect(/<animate|<set\b|<animateTransform/i.test(hello)).toBe(false)
     expect(/stroke="#000000"/.test(hello)).toBe(true) // dark on off-white

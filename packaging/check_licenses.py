@@ -14,11 +14,15 @@ What "ships":
   package is a devDependency: the bundle, not ``dependencies``, is what ships.
 * **The Electron runtime.** Chromium's and FFmpeg's own components are listed
   by hand in THIRD_PARTY_NOTICES.md.
+* **Brand assets:** the logo and start-up art in ``app/renderer/assets/brand/``
+  (bundled into the app; the app icons are rendered from the logo). They are
+  someone else's trademarks, not code under a licence: each must be named in
+  THIRD_PARTY_NOTICES.md → Brand assets, which says whose marks they are.
 
 The check fails when a shipped package's licence is copyleft, restrictive or
 unknown and the package isn't in ``ALLOWED`` (each entry says why it's there),
-or when THIRD_PARTY_NOTICES.md doesn't name a shipped package. Standard library
-only.
+or when THIRD_PARTY_NOTICES.md doesn't name a shipped package or brand asset.
+Standard library only.
 """
 
 from __future__ import annotations
@@ -36,6 +40,7 @@ APP = ROOT / "app"
 NOTICES = ROOT / "THIRD_PARTY_NOTICES.md"
 REQUIREMENTS = ROOT / "engine" / "requirements.txt"
 APP_SOURCES = ("main", "preload", "renderer", "src")
+BRAND = APP / "renderer" / "assets" / "brand"
 
 # Copyleft, restrictive, or "you need a commercial licence" wording.
 FLAGGED = re.compile(
@@ -198,6 +203,23 @@ def problems(packages: list[Package], notices: str) -> list[str]:
     return found
 
 
+def brand_assets() -> list[str]:
+    """The brand art that ships: the renderer bundles it, and the app icons are rendered from the logo."""
+    return sorted(path.name for path in BRAND.glob("*.svg"))
+
+
+def brand_problems(assets: list[str], notices: str) -> list[str]:
+    """Each shipped brand asset is named in THIRD_PARTY_NOTICES.md → Brand assets, which says whose marks they are."""
+    if "## Brand assets" not in notices:
+        return ["THIRD_PARTY_NOTICES.md has no 'Brand assets' section for the logo and start-up art."]
+    section = notices.split("## Brand assets", 1)[1].split("\n## ", 1)[0]
+    found = [f"brand asset {name} isn't listed in THIRD_PARTY_NOTICES.md → Brand assets."
+             for name in assets if f"`{name}`" not in section]
+    if "trademark" not in section.lower():
+        found.append("THIRD_PARTY_NOTICES.md → Brand assets doesn't say whose trademarks the assets are.")
+    return found
+
+
 def table(packages: list[Package]) -> str:
     lines = ["| Package | Version | Licence |", "|---|---|---|"]
     lines += [f"| `{p.name}` | {p.version} | {p.licence} |" for p in packages]
@@ -218,10 +240,12 @@ def main(argv: list[str] | None = None) -> int:
         print(table(npm))
         return 0
     notices = NOTICES.read_text(encoding="utf-8") if NOTICES.exists() else ""
-    found = problems(python + npm, notices)
+    assets = brand_assets()
+    found = problems(python + npm, notices) + brand_problems(assets, notices)
     accepted = [p for p in python + npm if p.key in ALLOWED]
     print(f"licences: {len(python)} Python and {len(npm)} JavaScript packages ship; "
-          f"{len(accepted)} on the allowlist ({', '.join(p.name for p in accepted) or 'none'})")
+          f"{len(accepted)} on the allowlist ({', '.join(p.name for p in accepted) or 'none'}); "
+          f"{len(assets)} brand assets ({', '.join(assets) or 'none'})")
     for problem in found:
         print(f"licences: FAIL {problem}")
     print("licences: passed" if not found else f"licences: {len(found)} problem(s)")

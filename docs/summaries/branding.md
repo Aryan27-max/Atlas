@@ -164,3 +164,18 @@ The colour is a theme-independent token in `tokens.css`, never themed.
 | ![](branding/screens/splash-light.png) | ![](branding/screens/splash-dark.png) |
 | ![](branding/screens/welcome-light.png) | ![](branding/screens/welcome-dark.png) |
 | ![](branding/screens/about-light.png) | ![](branding/screens/about-dark.png) |
+
+## Step 4: licence and notices
+
+- **`THIRD_PARTY_NOTICES.md` → Brand assets.** What each asset is, where it ships, and the key fact: the assets were supplied by the iOS Development Center, and the Swift logo and the "hello" lettering are **Apple trademarks**, not covered by Atlas's `LICENSE`.
+- **`LICENSE`.** A new clause 6, one sentence, excludes these third-party marks.
+- **`packaging/check_licenses.py`.** It checked shipped *packages*. It now also checks the shipped *brand art*: every file in `app/renderer/assets/brand/` must be named in the Brand assets section, and that section must say whose trademarks they are. It prints "2 brand assets (hello.svg, logo.svg)" and passes. It has 2 new tests in `test_tools.py`.
+- **`docs/SIGNING.md` → Before any distribution: replace the logo.** It gives the reason (Apple's trademark guidelines don't allow the Swift logo as a product icon) and the swap, step by step:
+  1. replace `logo.svg`;
+  2. `node packaging/icons/render-icons.mjs`;
+  3. replace `hello.svg`;
+  4. update the notices;
+  5. `npm run dist`.
+
+  The README's limitations and licence sections point to it.
+- **`brand.test.ts`.** It used to require the logo's exact `viewBox="0 0 256 256"`. It now requires a square viewBox of any size, which is what the test's name says. Otherwise the documented swap would fail on a perfectly good square logo.

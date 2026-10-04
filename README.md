@@ -359,6 +359,7 @@ Details for the firm and its legal team: [docs/DATA_HANDLING.md](docs/DATA_HANDL
 - **No OCR in the shipped app:** scanned résumés go to Needs attention for a person to read.
 - **Scoring quality is proven on fictional data only;** the firm's own labelled set is the next step.
 - **A licensing decision is pending:** the PDF library (PyMuPDF) is AGPL or commercial ([THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)).
+- **The logo is Apple's Swift logo,** supplied for this project. Before any distribution outside this project, replace it: Apple's trademark guidelines don't allow the Swift logo as a product icon ([docs/SIGNING.md](docs/SIGNING.md) says how).
 
 ## Documentation
 | Document | For |
@@ -380,3 +381,5 @@ Details for the firm and its legal team: [docs/DATA_HANDLING.md](docs/DATA_HANDL
 Proprietary. Copyright © 2026 Aryan Gupta. All rights reserved. See [LICENSE](LICENSE).
 
 Atlas includes third-party components under their own licences; see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
+The Swift logo and the "hello" lettering (the app's logo, icon and start-up screen) are trademarks of Apple Inc. and are not covered by the licence ([THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) → *Brand assets*).

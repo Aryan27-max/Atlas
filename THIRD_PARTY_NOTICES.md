@@ -2,7 +2,7 @@
 
 Atlas itself is proprietary (see [LICENSE](LICENSE)). It ships with the third-party components below, which remain under their own licences. This file lists what is **inside the installer**: development tools, test libraries and the build toolchain are not shipped and are not listed, except where a piece of them ends up in the installer (the PyInstaller bootloader, the NSIS installer).
 
-`packaging/check_licenses.py` re-derives the shipped packages from the code and fails CI if a new copyleft, restrictive or unknown licence appears, or if a shipped package is missing from this file.
+`packaging/check_licenses.py` re-derives the shipped packages from the code and fails CI if a new copyleft, restrictive or unknown licence appears, or if a shipped package or brand asset is missing from this file.
 
 *This is a factual inventory, not legal advice.*
 
@@ -96,6 +96,17 @@ The versions below are the ones bundled into the locally built engine (Python 3.
 | Microsoft Visual C++ runtime and Universal CRT (`VCRUNTIME140*.dll`, `MSVCP140.dll`, `ucrtbase.dll`, `api-ms-win-*.dll`) | as shipped with CPython | Microsoft redistributable licence terms |
 | NSIS (the Windows installer and uninstaller) | 3.0.4 | zlib/libpng License (parts under the bzip2 License) |
 | `elevate.exe` (from electron-builder, in `resources/`) | with electron-builder 26.15.3 | MIT |
+
+## Brand assets
+
+Atlas's logo, app icon and start-up screen use two assets supplied by the **iOS Development Center** for this project. The originals are kept unmodified in `Public_assets/`. The app ships sanitised copies with the same art (`docs/summaries/branding.md`).
+
+| Asset | What it is | Shipped as |
+|---|---|---|
+| `logo.svg` (from `swift-svgrepo-com.svg`, an SVG Repo export) | The **Swift logo** | The logo on Welcome, in Settings → About and as the favicon. Every app icon is rendered from it (`packaging/icons/`: `icon.ico`, `icon-mac.png` → the `.icns`, the PNGs) |
+| `hello.svg` (from `Hello (apple).svg`) | Apple's **"hello" lettering** | The start-up screen |
+
+**The Swift logo and the "hello" lettering are trademarks of Apple Inc.** They are not Atlas's, and Atlas's [LICENSE](LICENSE) does not cover them or grant any right in them. **Before any distribution outside this project, replace the logo:** Apple's trademark guidelines don't allow the Swift logo as a product icon. How to swap it: [docs/SIGNING.md](docs/SIGNING.md) → *Before any distribution: replace the logo*.
 
 ## Not shipped, but used by Atlas
 - **Ollama** (MIT) is installed separately by the user; Atlas never bundles or installs it.
