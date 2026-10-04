@@ -21,6 +21,7 @@ import type { AddressInfo } from 'node:net'
 import { join } from 'node:path'
 import { _electron as electron, expect, test } from '@playwright/test'
 import { waitForStatus } from './flow'
+import { waitForWelcome } from './helpers'
 import { REPO, nextOpenDialogReturns, nextSaveDialogReturns, tempDir } from './stubs'
 
 const EXE = process.env.ATLAS_INSTALLED_EXE
@@ -119,7 +120,7 @@ test('installed Atlas: a five-student screening with the real model, then export
   const app = await electron.launch({ executablePath: EXE as string, env })
   try {
     const page = await app.firstWindow()
-    await expect(page.locator('[data-engine="ready"]')).toBeVisible({ timeout: 120_000 })
+    await waitForWelcome(page)
     expect(await app.evaluate(({ app: electronApp }) => electronApp.isPackaged)).toBe(true)
     await expect(page.getByText('Ollama is running', { exact: false })).toBeVisible({ timeout: 30_000 })
 

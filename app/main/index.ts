@@ -22,7 +22,7 @@ import {
 } from 'electron'
 import type { AppInfo, NavigateTarget, Theme } from '@shared/bridge'
 import { Channels } from '@shared/bridge'
-import { iconPath } from './brand'
+import { SPLASH_BACKGROUND, iconPath } from './brand'
 import { EngineProcess, engineCommand } from './engine'
 import { registerIpc } from './ipc'
 import { RunWatcher, type RunStatus } from './runs'
@@ -75,16 +75,37 @@ const watcher = new RunWatcher({
 
 const material = !e2e && (isMac || isWin)
 
+// The renderer's start-up screen (renderer/screens/Splash.tsx) is up until it says it has
+// handed over (Channels.splashDone). Until then the window's own background is the splash's
+// off-white in either theme, so nothing else shows before its first frame or while resizing,
+// and the Windows caption buttons are drawn dark for it. A window with a material keeps its
+// clear background: the material has to show through afterwards, and the splash covers it.
+let splashing = true
+
+function windowBackground(): string {
+  if (material) return '#00000000'
+  if (splashing) return SPLASH_BACKGROUND
+  return nativeTheme.shouldUseDarkColors ? '#1c1c1e' : '#f5f5f7'
+}
+
 function overlayColors(): { color: string; symbolColor: string; height: number } {
-  const dark = nativeTheme.shouldUseDarkColors
-  if (material) return { color: '#00000000', symbolColor: dark ? '#f5f5f7' : '#1d1d1f', height: 52 }
-  return { color: dark ? '#1c1c1e' : '#f5f5f7', symbolColor: dark ? '#f5f5f7' : '#1d1d1f', height: 52 }
+  const dark = nativeTheme.shouldUseDarkColors && !splashing
+  const symbolColor = dark ? '#f5f5f7' : '#1d1d1f'
+  if (material) return { color: '#00000000', symbolColor, height: 52 }
+  return { color: dark ? '#1c1c1e' : '#f5f5f7', symbolColor, height: 52 }
 }
 
 function setTheme(theme: Theme): void {
   nativeTheme.themeSource = theme
   if (isWin && window) window.setTitleBarOverlay(overlayColors())
-  if (!material && window) window.setBackgroundColor(nativeTheme.shouldUseDarkColors ? '#1c1c1e' : '#f5f5f7')
+  if (!material && window) window.setBackgroundColor(windowBackground())
+}
+
+function splashDone(): void {
+  if (!splashing) return
+  splashing = false
+  if (isWin && window) window.setTitleBarOverlay(overlayColors())
+  if (!material && window) window.setBackgroundColor(windowBackground())
 }
 
 function navigate(target: NavigateTarget): void {
@@ -124,7 +145,7 @@ function createWindow(): void {
     show: false,
     title: 'Atlas',
     ...(windowIcon ? { icon: windowIcon } : {}),
-    backgroundColor: material ? '#00000000' : nativeTheme.shouldUseDarkColors ? '#1c1c1e' : '#f5f5f7',
+    backgroundColor: windowBackground(),
     ...(isMac
       ? {
           titleBarStyle: 'hiddenInset' as const,
@@ -141,9 +162,13 @@ function createWindow(): void {
       : {}),
     webPreferences,
   })
-  if (bounds.maximized) window.maximize()
   hardenContents(window.webContents, isAppUrl)
-  window.once('ready-to-show', () => window?.show())
+  // Shown only once the first frame (the start-up screen) is painted. maximize() shows a
+  // window at once, so a maximized window waits for that frame too.
+  window.once('ready-to-show', () => {
+    if (bounds.maximized) window?.maximize()
+    window?.show()
+  })
 
   let saveTimer: NodeJS.Timeout | null = null
   const remember = (): void => {
@@ -303,6 +328,7 @@ if (!app.requestSingleInstanceLock()) {
       setTheme,
       notificationIcon,
       onSettingsChanged: () => void watcher.preferencesChanged(),
+      onSplashDone: splashDone,
     })
     buildMenu()
     engine.on('state', (state) => window?.webContents.send(Channels.engineStateChanged, state))

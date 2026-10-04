@@ -13,7 +13,7 @@ import { execFileSync } from 'node:child_process'
 import { writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { type Page, expect, test } from '@playwright/test'
-import { type Launched, close, launch, waitForEngine } from './helpers'
+import { type Launched, close, launch, waitForWelcome } from './helpers'
 import { PHASE3_SCREENS_DIR, SCREENS_DIR } from './screens'
 import { PYTHON, REPO, tempDir } from './stubs'
 
@@ -93,7 +93,7 @@ test.beforeAll(async () => {
     env: { ...process.env, PYTHONUTF8: '1' },
   })
   launched = await launch({}, userData)
-  await waitForEngine(launched.page)
+  await waitForWelcome(launched.page)
 })
 
 test.afterAll(async () => {

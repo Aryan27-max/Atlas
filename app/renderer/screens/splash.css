@@ -1,0 +1,51 @@
+/*
+ * The start-up screen (Splash.tsx). Off-white in both themes: the page is
+ * marked <html data-splash> from index.html until the splash hands over, so
+ * even the frames before React runs are this colour.
+ */
+
+html[data-splash],
+html[data-splash] body {
+  background: var(--atl-splash-bg);
+}
+
+.splash {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--atl-splash-bg);
+  /* The window can still be moved while it's up (it covers the toolbar). */
+  -webkit-app-region: drag;
+}
+
+.splash[data-phase='leaving'] {
+  pointer-events: none;
+}
+
+/* "hello" stays exactly centred: the note hangs below it without moving it. */
+.splash-art {
+  position: relative;
+}
+
+/* About 40% of the window's width, at most 520 px, and never up to an edge. */
+.splash-hello {
+  display: block;
+  width: min(40vw, 520px);
+  height: auto;
+  max-height: calc(100vh - 2 * var(--space-16));
+  object-fit: contain;
+}
+
+.splash-note {
+  position: absolute;
+  top: calc(100% + var(--space-6));
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  font: var(--text-callout);
+  letter-spacing: var(--tracking-body);
+  color: var(--label-secondary);
+}

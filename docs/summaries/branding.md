@@ -103,3 +103,64 @@ The old placeholder icon and its README note are gone. `packaging/icons/README.m
 On macOS the test also checks:
 - that `Info.plist`'s `CFBundleIconFile` names a `.icns` in `Contents/Resources/`;
 - that the DMG, mounted read-only, has a `.VolumeIcon.icns`.
+
+## Step 3: the start-up screen
+
+![The start-up screen, light](branding/screens/splash-light.png)
+
+**Layout.** "hello" sits on off-white (`--atl-splash-bg`, #F5F5F7), edge to edge, in both light and dark mode:
+- centred;
+- about 40% of the window's width, at most 520 px;
+- never touching an edge.
+
+The colour is a theme-independent token in `tokens.css`, never themed.
+
+| When | What happens |
+|---|---|
+| Atlas opens | The window appears only once its first frame is painted, and that frame is already off-white: `index.html` marks `<html data-splash>`, so the page has the colour before any script runs. "hello" fades in while growing from 98% to 100%, over about 600 ms. It uses the existing `gentle` spring, slowed down: the same curve, no bounce. |
+| The engine is ready, and at least 1.2 s have passed | A 300 ms cross-fade onto Welcome, or its Resume card. The app was already mounted underneath, so it arrives loaded. |
+| The engine fails | The same rule (at least 1.2 s), then a hand-over to the existing "Atlas couldn't start" screen. Its alert is only added as the splash leaves, so a screen reader announces it: an alert added inside an inert region isn't. |
+| 6 s and still starting | "Still starting…" appears under the art. |
+| 15 s | It hands over whatever the engine is doing (the usual "Starting Atlas…" screen with its spinner). It never hangs. |
+| Reduced motion | A plain fade: no scale, no transform at all. |
+| Accessibility | `role="status"` named "Atlas is starting", and the image's alt is "hello". Nothing in it takes focus, and Esc does nothing. The app underneath is `inert` until it leaves. The window can still be dragged by the splash. |
+| Once per launch | Not again after an engine restart, nor on a page reload (`sessionStorage`). |
+
+**Who decides.** Only the renderer decides when the splash leaves (`app/renderer/state/splash.ts`); it then tells main through a new IPC call, `atlas:splash-done`. That is UI chrome only, so rule 16 is unaffected.
+
+**Main's side** (`app/main/index.ts`):
+- **Window background.** A window without a material (the e2e build, Linux) is created with the splash's #F5F5F7 as its own `backgroundColor`, in either theme. It keeps that colour until `splash-done`, even if the theme changes meanwhile.
+- **Caption buttons.** The Windows caption buttons are drawn dark for the off-white until `splash-done`.
+- **Maximized windows.** A maximized window now waits for the first frame too. `maximize()` shows a window at once, so it moved into `ready-to-show`.
+
+**One deliberate difference: windows with a material.** In the packaged app the window has a material (Mica on Windows 11, vibrancy on macOS), and it keeps its clear `#00000000` background:
+- **The material has to show through after the splash.** Switching a window from opaque back to clear at run time isn't documented to work on every OS, and macOS vibrancy can't be checked on this laptop. If the switch failed, a dark-mode app would be stuck with an off-white base.
+- **Nothing else can show first.** The page paints opaque off-white from its first frame, and the window is shown only after that frame.
+
+**Not done: the optional stroke draw-in.** It would need "hello" as inline SVG, and the brand rule is `<img src>` only (step 1).
+
+**Tests:**
+- **Vitest:**
+  - `state/splash.test.tsx` (8): the timings, the 1.2 s minimum, waiting for the engine, "Still starting…" at 6 s, the 15 s cap, the failure hand-over, staying gone, once per launch.
+  - `screens/splash.test.tsx` (8): the token in both themes, what the page and the overlay paint, both arrivals, the status and its focusables, "Still starting…", the app staying inert, the failure hand-over with Esc, the cap handing over to "Starting Atlas…".
+  - `screens/splash-reduced.test.tsx` (1): no transform with reduced motion.
+  - `main/brand.test.ts` (+1): the window's colour equals the token.
+- **Engine:** `test_gated_engine.py` (3).
+- **`e2e/splash.spec.ts` (7):**
+  - Off-white edge to edge: the overlay, the page, and the window's `getBackgroundColor()`. "hello" has loaded (`naturalWidth > 0`), is centred, about 40% wide and clear of the edges. No focus; Esc does nothing.
+  - Dark mode: still off-white, and the window goes dark (#1c1c1e) after the splash.
+  - The real 1.2 s minimum, then Welcome; a reload doesn't show it again.
+  - A slow engine keeps it up, with "Still starting…", until the engine is ready.
+  - Engine failure hands over to "Atlas couldn't start".
+  - Reduced motion: every frame of the fade has no transform. The same sampler sees `scale(0.98…)` with full motion, so the check can catch one.
+  - The logo screenshots.
+
+  The slow engine is `engine/tests/gated_engine.py`. It holds the real server at "starting" until the test creates a gate file, so no test depends on how fast Python starts.
+- **Every other spec** waits past the splash with one helper, `waitForWelcome()`: the splash removed, then the engine ready. `errors.spec` uses the `splashGone()` part.
+- **No test-only timings.** The real 1.2 s minimum is used everywhere.
+
+| Light | Dark |
+|---|---|
+| ![](branding/screens/splash-light.png) | ![](branding/screens/splash-dark.png) |
+| ![](branding/screens/welcome-light.png) | ![](branding/screens/welcome-dark.png) |
+| ![](branding/screens/about-light.png) | ![](branding/screens/about-dark.png) |

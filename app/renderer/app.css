@@ -1,5 +1,10 @@
 /* App-level layout (screens add their own files under screens/). */
 
+/* Holds the screens under the start-up screen (App.tsx); the screens size themselves as before. */
+.app-content {
+  height: 100%;
+}
+
 .gate {
   height: 100%;
   display: flex;

@@ -15,7 +15,7 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { type Page, expect, test } from '@playwright/test'
 import { startScreening, waitForStatus } from './flow'
-import { type Launched, close, launch, waitForEngine } from './helpers'
+import { type Launched, close, launch, waitForWelcome } from './helpers'
 import {
   type Stubs,
   launchWithStubs,
@@ -93,7 +93,7 @@ const opened: Launched[] = []
 async function open(userData?: string): Promise<Launched> {
   const launched = await launchWithStubs(stubs, userData)
   opened.push(launched)
-  await waitForEngine(launched.page)
+  await waitForWelcome(launched.page)
   return launched
 }
 
@@ -252,7 +252,7 @@ test('4 · a file without a résumé link column is refused', async () => {
 test('5 · the theme survives a restart', async () => {
   const userData = tempDir()
   const first = await launch({}, userData)
-  await waitForEngine(first.page)
+  await waitForWelcome(first.page)
   await first.page.getByRole('button', { name: 'Settings' }).click()
   await first.page.getByRole('radiogroup', { name: 'Appearance' }).getByRole('radio', { name: 'Dark' }).click()
   await expect
@@ -262,7 +262,7 @@ test('5 · the theme survives a restart', async () => {
 
   const second = await launch({}, userData)
   opened.push(second)
-  await waitForEngine(second.page)
+  await waitForWelcome(second.page)
   await expect(second.page.locator('html')).toHaveAttribute('data-theme', 'dark')
   expect(await second.app.evaluate(({ nativeTheme }) => nativeTheme.themeSource)).toBe('dark')
 })

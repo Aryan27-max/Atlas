@@ -5,7 +5,7 @@
 
 import { join } from 'node:path'
 import { expect, test } from '@playwright/test'
-import { close, launch } from './helpers'
+import { close, launch, splashGone } from './helpers'
 import { capture, setTheme } from './screens'
 
 test('the engine cannot start: a plain explanation and Restart Atlas', async () => {
@@ -16,6 +16,7 @@ test('the engine cannot start: a plain explanation and Restart Atlas', async () 
     await expect(alert.getByRole('heading', { name: "Atlas couldn't start" })).toBeVisible({ timeout: 30_000 })
     await expect(alert).toContainText("Atlas's engine wasn't found. Reinstall Atlas.")
     await expect(alert.getByRole('button', { name: 'Restart Atlas' })).toBeVisible()
+    await splashGone(page)
     for (const theme of ['light', 'dark'] as const) {
       await setTheme(page, theme)
       await capture(page, 'engine-failed', theme)

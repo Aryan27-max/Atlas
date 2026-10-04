@@ -160,6 +160,7 @@ jobs:
           path: |
             docs/summaries/phase2/screens/
             docs/summaries/phase3/screens/
+            docs/summaries/branding/screens/
           if-no-files-found: warn
           retention-days: 30
 

@@ -5,13 +5,13 @@
  */
 
 import { expect, test } from '@playwright/test'
-import { type Launched, close, launch, waitForEngine } from './helpers'
+import { type Launched, close, launch, waitForWelcome } from './helpers'
 
 let launched: Launched
 
 test.beforeAll(async () => {
   launched = await launch()
-  await waitForEngine(launched.page)
+  await waitForWelcome(launched.page)
 })
 
 test.afterAll(async () => {

@@ -9,7 +9,7 @@
  */
 
 import { expect, test } from '@playwright/test'
-import { type Launched, close } from './helpers'
+import { type Launched, close, waitForWelcome } from './helpers'
 import { PHASE3_SCREENS_DIR, capture, setTheme } from './screens'
 import { type Stubs, launchWithStubs, nextOpenDialogReturns, recordShellOpens, shellOpened, startStubs } from './stubs'
 
@@ -20,7 +20,7 @@ let launched: Launched | null = null
 
 async function open(env: Record<string, string> = {}): Promise<Launched> {
   launched = await launchWithStubs(stubs, undefined, env)
-  await expect(launched.page.locator('[data-engine="ready"]')).toBeVisible({ timeout: 120_000 })
+  await waitForWelcome(launched.page)
   await recordShellOpens(launched.app)
   return launched
 }

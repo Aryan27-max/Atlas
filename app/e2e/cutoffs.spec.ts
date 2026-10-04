@@ -11,7 +11,7 @@
 
 import { execFileSync } from 'node:child_process'
 import { expect, test } from '@playwright/test'
-import { type Launched, close, launch, waitForEngine } from './helpers'
+import { type Launched, close, launch, waitForWelcome } from './helpers'
 import { PYTHON, REPO, tempDir } from './stubs'
 
 test.describe.configure({ mode: 'serial' })
@@ -33,7 +33,7 @@ test.beforeAll(async () => {
     env: { ...process.env, PYTHONUTF8: '1' },
   })
   launched = await launch({}, userData)
-  await waitForEngine(launched.page)
+  await waitForWelcome(launched.page)
   await launched.page.getByRole('button', { name: /Campus drive/ }).click()
   await expect(launched.page.getByRole('listbox', { name: 'Shortlisted candidates' })).toBeVisible()
 })

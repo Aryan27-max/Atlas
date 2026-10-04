@@ -8,7 +8,7 @@
 import { join } from 'node:path'
 import { _electron as electron, expect, test } from '@playwright/test'
 import { waitForStatus } from './flow'
-import { APP_DIR, type Launched, close } from './helpers'
+import { APP_DIR, type Launched, close, waitForWelcome } from './helpers'
 import {
   copiedText,
   menuText,
@@ -66,7 +66,7 @@ test('demo:fast — every screen, from Welcome to the design gallery', async () 
   const bucket = (name: RegExp) => page.getByRole('navigation', { name: 'Buckets' }).getByRole('button', { name })
 
   // Welcome
-  await expect(page.locator('[data-engine="ready"]')).toBeVisible({ timeout: 120_000 })
+  await waitForWelcome(page)
   await expect(page.getByText('Ollama is running', { exact: false })).toBeVisible()
 
   // Students & model → Criteria → Cutoffs → Review

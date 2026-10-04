@@ -4,13 +4,14 @@
  */
 
 import { expect, test } from '@playwright/test'
-import { type Launched, close, launch } from './helpers'
+import { type Launched, close, launch, waitForWelcome } from './helpers'
 import { capture, setTheme } from './screens'
 
 let launched: Launched
 
 test.beforeAll(async () => {
   launched = await launch()
+  await waitForWelcome(launched.page)
 })
 
 test.afterAll(async () => {

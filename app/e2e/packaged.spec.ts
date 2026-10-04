@@ -16,7 +16,7 @@ import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { type ElectronApplication, type Page, _electron as electron, expect, test } from '@playwright/test'
 import { samePath } from '../main/paths'
-import { APP_DIR } from './helpers'
+import { APP_DIR, waitForWelcome } from './helpers'
 
 function packagedExecutable(): string | null {
   const dist = process.env.ATLAS_PACKAGED_DIR ?? join(APP_DIR, 'dist')
@@ -117,7 +117,7 @@ test('the packaged app starts its bundled engine and shows Welcome', async () =>
   })
   try {
     const page = await app.firstWindow()
-    await expect(page.locator('[data-engine="ready"]')).toBeVisible({ timeout: 120_000 })
+    await waitForWelcome(page)
     await expect(page.getByRole('button', { name: 'New screening' })).toBeVisible()
     expect(await app.evaluate(({ app: electronApp }) => electronApp.isPackaged)).toBe(true)
     // The engine answering is the bundled binary: a packaged app never looks for Python.

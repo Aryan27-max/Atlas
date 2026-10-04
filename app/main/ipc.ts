@@ -53,6 +53,8 @@ export interface IpcContext {
   notificationIcon?: string | null
   /** After a successful PUT /settings or DELETE /data. */
   onSettingsChanged?: () => void
+  /** The renderer's start-up screen has handed over. */
+  onSplashDone?: () => void
 }
 
 const TOO_LARGE: ApiResult<never> = {
@@ -209,6 +211,11 @@ export function registerIpc(ctx: IpcContext): void {
 
   handle(Channels.restartEngine, () => {
     ctx.engine.restart()
+    return true
+  })
+
+  handle(Channels.splashDone, () => {
+    ctx.onSplashDone?.()
     return true
   })
 

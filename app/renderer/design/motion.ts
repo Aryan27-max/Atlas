@@ -14,3 +14,12 @@ export const gentle: Transition = { type: 'spring', stiffness: 300, damping: 32,
 
 /** A quick fade for scrims and cross-fades. */
 export const fade: Transition = { type: 'tween', duration: 0.2, ease: [0.22, 1, 0.36, 1] }
+
+// `gentle` stretched in time by SLOW: the same curve (stiffness ÷ SLOW², damping ÷ SLOW).
+const SLOW = 600 / 320
+
+/** The start-up screen arriving: `gentle`, slowed to ~600 ms. */
+export const arrive: Transition = { type: 'spring', stiffness: 300 / (SLOW * SLOW), damping: 32 / SLOW, mass: 1 }
+
+/** The start-up screen handing over to the app: a ~300 ms cross-fade. */
+export const crossfade: Transition = { ...fade, duration: 0.3 }

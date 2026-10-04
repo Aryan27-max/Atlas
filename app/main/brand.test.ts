@@ -1,8 +1,8 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterAll, describe, expect, it } from 'vitest'
-import { iconPath } from './brand'
+import { SPLASH_BACKGROUND, iconPath } from './brand'
 
 const root = mkdtempSync(join(tmpdir(), 'atlas-brand-'))
 afterAll(() => rmSync(root, { recursive: true, force: true }))
@@ -35,5 +35,12 @@ describe('iconPath', () => {
     for (const name of ['icon.ico', 'icon-256.png', 'icon-mac.png'] as const) {
       expect(iconPath(name, here), name).not.toBeNull()
     }
+  })
+})
+
+describe('SPLASH_BACKGROUND', () => {
+  it("is the start-up screen's colour in tokens.css, so the window and the page match", () => {
+    const tokens = readFileSync(join(__dirname, '..', 'renderer', 'design', 'tokens.css'), 'utf8')
+    expect(/--atl-splash-bg:\s*([^;]+);/.exec(tokens)?.[1]).toBe(SPLASH_BACKGROUND)
   })
 })

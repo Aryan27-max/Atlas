@@ -6,6 +6,8 @@ import { APP_DIR } from './helpers'
 export const SCREENS_DIR = join(APP_DIR, '..', 'docs', 'summaries', 'phase2', 'screens')
 /** Screens added or changed in Phase 3. */
 export const PHASE3_SCREENS_DIR = join(APP_DIR, '..', 'docs', 'summaries', 'phase3', 'screens')
+/** The start-up screen and the logo (docs/summaries/branding.md). */
+export const BRANDING_SCREENS_DIR = join(APP_DIR, '..', 'docs', 'summaries', 'branding', 'screens')
 
 export type ThemeName = 'light' | 'dark'
 

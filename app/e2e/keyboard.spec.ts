@@ -5,7 +5,7 @@
  */
 
 import { type Locator, type Page, expect, test } from '@playwright/test'
-import { type Launched, close } from './helpers'
+import { type Launched, close, waitForWelcome } from './helpers'
 import { type Stubs, launchWithStubs, nextOpenDialogReturns, startStubs } from './stubs'
 
 let stubs: Stubs
@@ -28,7 +28,7 @@ async function tabTo(page: Page, target: Locator): Promise<void> {
 test.beforeAll(async () => {
   stubs = await startStubs(0.05)
   launched = await launchWithStubs(stubs)
-  await expect(launched.page.locator('[data-engine="ready"]')).toBeVisible({ timeout: 120_000 })
+  await waitForWelcome(launched.page)
 })
 
 test.afterAll(async () => {

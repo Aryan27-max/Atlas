@@ -6,7 +6,7 @@
 
 import { expect, test } from '@playwright/test'
 import { startScreening, waitForStatus } from './flow'
-import { type Launched, close } from './helpers'
+import { type Launched, close, waitForWelcome } from './helpers'
 import { capture, setTheme } from './screens'
 import { type Stubs, launchWithStubs, startStubs } from './stubs'
 
@@ -16,7 +16,7 @@ let launched: Launched
 test.beforeAll(async () => {
   stubs = await startStubs(0.6)
   launched = await launchWithStubs(stubs)
-  await expect(launched.page.locator('[data-engine="ready"]')).toBeVisible({ timeout: 120_000 })
+  await waitForWelcome(launched.page)
   await startScreening(launched, stubs, { minimum: 15 })
 })
 

@@ -6,7 +6,7 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { expect, test } from '@playwright/test'
-import { APP_DIR, type Launched, close } from './helpers'
+import { APP_DIR, type Launched, close, waitForWelcome } from './helpers'
 import { PHASE3_SCREENS_DIR, capture } from './screens'
 import { type Stubs, launchWithStubs, recordShellOpens, shellOpened, startStubs } from './stubs'
 
@@ -52,7 +52,7 @@ const heading = () => launched.page.getByRole('heading', { name: 'Settings', lev
 test.beforeAll(async () => {
   stubs = await startStubs()
   launched = await launchWithStubs(stubs)
-  await expect(launched.page.locator('[data-engine="ready"]')).toBeVisible({ timeout: 120_000 })
+  await waitForWelcome(launched.page)
   await recordShellOpens(launched.app)
 })
 

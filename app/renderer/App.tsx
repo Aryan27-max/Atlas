@@ -7,10 +7,12 @@ import { Button, Spinner, ToastProvider } from './design'
 import { Gallery } from './design/Gallery'
 import { Progress } from './screens/Progress'
 import { Settings } from './screens/Settings'
+import { Splash } from './screens/Splash'
 import { Results } from './screens/results/Results'
 import { Welcome } from './screens/Welcome'
 import { SetupFlow } from './screens/setup/SetupFlow'
 import { useNav } from './state/nav'
+import { useSplash } from './state/splash'
 import { applyTheme } from './state/theme'
 import './app.css'
 import './screens/screens.css'
@@ -59,19 +61,35 @@ function useEngineState(): EngineState {
 export function App() {
   usePlatform()
   const route = useHashRoute()
+  const engine = useEngineState()
+  const splash = useSplash(engine.state)
   return (
     <MotionConfig reducedMotion="user">
       <QueryClientProvider client={queries}>
-        <ToastProvider>{route.startsWith('#/design') ? <Gallery /> : <Shell />}</ToastProvider>
+        <ToastProvider>
+          {/* The app starts underneath the start-up screen, out of reach until it leaves. */}
+          <div className="app-content" inert={splash.phase === 'showing'}>
+            {route.startsWith('#/design') ? (
+              <Gallery />
+            ) : (
+              <Shell engine={engine} covered={splash.phase === 'showing'} />
+            )}
+          </div>
+          {splash.phase !== 'gone' && <Splash {...splash} />}
+        </ToastProvider>
       </QueryClientProvider>
     </MotionConfig>
   )
 }
 
-/** Engine gate: the screens render only once the engine is ready. */
-function Shell() {
-  const engine = useEngineState()
+/**
+ * Engine gate: the screens render only once the engine is ready. While the
+ * start-up screen still covers it, a failure waits: the alert is added as the
+ * splash leaves, so it is announced (an inert region isn't).
+ */
+function Shell({ engine, covered }: { engine: EngineState; covered: boolean }) {
   if (engine.state === 'failed') {
+    if (covered) return null
     return (
       <main className="gate" role="alert">
         <h1 className="atl-title">Atlas couldn't start</h1>

@@ -4,7 +4,7 @@
  */
 
 import { expect, test } from '@playwright/test'
-import { type Launched, close } from './helpers'
+import { type Launched, close, waitForWelcome } from './helpers'
 import { capture, setTheme } from './screens'
 import { type Stubs, launchWithStubs, nextOpenDialogReturns, startStubs } from './stubs'
 
@@ -15,7 +15,7 @@ test.beforeAll(async () => {
   stubs = await startStubs(1.0) // slow model: the run is still going when the test ends
   launched = await launchWithStubs(stubs)
   const { app, page } = launched
-  await expect(page.locator('[data-engine="ready"]')).toBeVisible({ timeout: 120_000 })
+  await waitForWelcome(page)
   await page.getByRole('button', { name: 'New screening' }).click()
   await nextOpenDialogReturns(app, stubs.files.xlsx)
   await page.getByRole('button', { name: 'Choose file…' }).click()

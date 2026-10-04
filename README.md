@@ -10,13 +10,14 @@ All screenshots use fictional students.
 
 | | Light | Dark |
 |---|---|---|
+| Start-up | ![Start-up screen, light](docs/summaries/branding/screens/splash-light.png) | ![Start-up screen, dark](docs/summaries/branding/screens/splash-dark.png) |
 | Welcome | ![Welcome, light](docs/summaries/phase2/screens/welcome-light.png) | ![Welcome, dark](docs/summaries/phase2/screens/welcome-dark.png) |
 | Cutoffs | ![Cutoffs, light](docs/summaries/phase2/screens/cutoffs-light.png) | ![Cutoffs, dark](docs/summaries/phase2/screens/cutoffs-dark.png) |
 | Progress | ![Progress, light](docs/summaries/phase2/screens/progress-light.png) | ![Progress, dark](docs/summaries/phase2/screens/progress-dark.png) |
 | Results | ![Results, light](docs/summaries/phase3/screens/results-light.png) | ![Results, dark](docs/summaries/phase3/screens/results-dark.png) |
 | Candidate detail | ![Candidate detail, light](docs/summaries/phase3/screens/candidate-light.png) | ![Candidate detail, dark](docs/summaries/phase3/screens/candidate-dark.png) |
 
-More, for every screen and both themes: [`docs/summaries/phase2/screens/`](docs/summaries/phase2/screens/) and [`docs/summaries/phase3/screens/`](docs/summaries/phase3/screens/).
+More, for every screen and both themes: [`docs/summaries/phase2/screens/`](docs/summaries/phase2/screens/), [`docs/summaries/phase3/screens/`](docs/summaries/phase3/screens/) and [`docs/summaries/branding/screens/`](docs/summaries/branding/screens/).
 
 ## Key features
 - **CSV or Excel in, with a pre-flight report.** Atlas reads the Google Forms export (`.csv` or `.xlsx`), recognises its columns, and lists every problem before anything is saved: missing or duplicate RA numbers, missing links, links shared by several students.

@@ -8,7 +8,7 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { expect, test } from '@playwright/test'
 import { startScreening, waitForStatus } from './flow'
-import { type Launched, close } from './helpers'
+import { type Launched, close, waitForWelcome } from './helpers'
 import { PHASE3_SCREENS_DIR, capture, setTheme } from './screens'
 import {
   type Stubs,
@@ -35,7 +35,7 @@ const bucket = (name: RegExp | string) =>
 test.beforeAll(async () => {
   stubs = await startStubs(0.05)
   launched = await launchWithStubs(stubs)
-  await expect(launched.page.locator('[data-engine="ready"]')).toBeVisible({ timeout: 120_000 })
+  await waitForWelcome(launched.page)
   await startScreening(launched, stubs, { minimum: 15 })
   await waitForStatus(launched.page, 'completed', 180_000)
   await launched.page.getByRole('button', { name: 'View results' }).click()

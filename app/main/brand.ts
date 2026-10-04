@@ -1,5 +1,6 @@
 /**
- * Atlas's icon at run time. The icons are rendered from the logo by
+ * Atlas's brand in main: the start-up screen's colour, and the icon at run
+ * time. The icons are rendered from the logo by
  * packaging/icons/render-icons.mjs. Packaged, electron-builder also puts the
  * window and notification icons in <resources>/icons/ (the exe and the .app
  * bundle carry the app icon themselves); in development and in the e2e build
@@ -8,6 +9,9 @@
 
 import { existsSync } from 'node:fs'
 import { dirname, join } from 'node:path'
+
+/** The start-up screen's off-white, for the window behind it: `--atl-splash-bg` in tokens.css. */
+export const SPLASH_BACKGROUND = '#f5f5f7'
 
 export type IconName = 'icon.ico' | 'icon-256.png' | 'icon-mac.png'
 

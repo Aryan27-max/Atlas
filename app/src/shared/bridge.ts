@@ -109,6 +109,8 @@ export interface AtlasBridge {
     onEngineState(listener: (state: EngineState) => void): () => void
     onNavigate(listener: (target: NavigateTarget) => void): () => void
     restartEngine(): Promise<void>
+    /** The start-up screen has handed over: main gives the window the theme's background again. */
+    splashDone(): Promise<void>
     /** Opens https://ollama.com/download in the browser (the URL is fixed in main). */
     openOllamaDownload(): Promise<void>
   }
@@ -137,6 +139,7 @@ export const Channels = {
   engineStateChanged: 'atlas:engine-state-changed',
   navigate: 'atlas:navigate',
   restartEngine: 'atlas:restart-engine',
+  splashDone: 'atlas:splash-done',
   openOllamaDownload: 'atlas:open-ollama-download',
   notify: 'atlas:notify',
   rowMenu: 'atlas:row-menu',

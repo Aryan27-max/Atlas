@@ -4,7 +4,7 @@
  */
 
 import { expect, test } from '@playwright/test'
-import { type Launched, close } from './helpers'
+import { type Launched, close, waitForWelcome } from './helpers'
 import { capture, setTheme } from './screens'
 import { type Stubs, launchWithStubs, nextOpenDialogReturns, startStubs } from './stubs'
 
@@ -14,7 +14,7 @@ let launched: Launched
 test.beforeAll(async () => {
   stubs = await startStubs()
   launched = await launchWithStubs(stubs)
-  await expect(launched.page.locator('[data-engine="ready"]')).toBeVisible({ timeout: 120_000 })
+  await waitForWelcome(launched.page)
 })
 
 test.afterAll(async () => {
