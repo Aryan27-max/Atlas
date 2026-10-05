@@ -50,16 +50,17 @@ function builtInstaller(): string | null {
  * colour seen, Explorer's yellow folder, is 0.14. At least 0.3 leaves room for macOS drawing
  * an older-style icon smaller, on a grey plate. 'normal' (32 px) is the size every OS supports.
  */
-async function orangeShare(app: ElectronApplication, page: Page, target: string): Promise<number> {
+async function orangeShare(app: ElectronApplication, page: Page, target: string, keep = true): Promise<number> {
   const dataUrl = await app.evaluate(
     async ({ app: electronApp }, path) => (await electronApp.getFileIcon(path, { size: 'normal' })).toDataURL(),
     target,
   )
   // What the OS showed, kept with the results (a failure says what it was).
-  await test.info().attach(`os-icon-${basename(target)}.png`, {
-    body: Buffer.from(dataUrl.split(',')[1] ?? '', 'base64'),
-    contentType: 'image/png',
-  })
+  if (keep)
+    await test.info().attach(`os-icon-${basename(target)}.png`, {
+      body: Buffer.from(dataUrl.split(',')[1] ?? '', 'base64'),
+      contentType: 'image/png',
+    })
   return pngOrangeShare(page, dataUrl, target)
 }
 
@@ -118,6 +119,23 @@ async function expectMacBundleIcon(page: Page, binary: string): Promise<void> {
   }
 }
 
+/**
+ * macOS renders a bundle's icon asynchronously: until it has, it answers with a blank
+ * placeholder (CI saw that for a freshly built app). Wait for the real one, and if the
+ * bundle is still unknown to LaunchServices after a while, register it, as copying an app
+ * into Applications does. The check after this is unchanged.
+ */
+async function macShowsTheIcon(app: ElectronApplication, page: Page, bundle: string): Promise<void> {
+  const rendered = async (): Promise<boolean> => (await orangeShare(app, page, bundle, false)) >= 0.3
+  const deadline = Date.now() + 20_000
+  while (Date.now() < deadline) if (await rendered()) return
+  const lsregister =
+    '/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister'
+  execFileSync(lsregister, ['-f', bundle])
+  console.warn('[packaged] macOS showed a placeholder for 20 s; registered the bundle with LaunchServices')
+  await expect.poll(rendered, { timeout: 30_000, message: `${bundle}: macOS shows the Atlas icon` }).toBe(true)
+}
+
 test.skip(!executable, 'No packaged app yet: run `npm run dist` first (or set ATLAS_PACKAGED_DIR).')
 
 test('the packaged app starts its bundled engine and shows Welcome', async () => {
@@ -159,6 +177,7 @@ test('the packaged app starts its bundled engine and shows Welcome', async () =>
     if (process.platform === 'darwin') await expectMacBundleIcon(page, executable as string)
     const shown =
       process.platform === 'darwin' ? join(dirname(executable as string), '..', '..') : (executable as string)
+    if (process.platform === 'darwin') await macShowsTheIcon(app, page, shown)
     expect(await orangeShare(app, page, shown), `${shown}: the Atlas icon`).toBeGreaterThanOrEqual(0.3)
     const installer = builtInstaller()
     // The Windows installer shows the icon too. (A .dmg file's own icon is the system's
