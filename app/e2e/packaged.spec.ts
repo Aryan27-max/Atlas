@@ -76,17 +76,41 @@ async function pngOrangeShare(page: Page, dataUrl: string, what: string): Promis
     const ctx = canvas.getContext('2d', { willReadFrequently: true }) as CanvasRenderingContext2D
     ctx.drawImage(image, 0, 0)
     const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height)
-    const count = { opaque: 0, orange: 0 }
+    const count = { opaque: 0, orange: 0, colourful: 0 }
     for (let i = 0; i < data.length; i += 4) {
       if ((data[i + 3] ?? 0) < 200) continue
       count.opaque++
       const [r, g, b] = [data[i] ?? 0, data[i + 1] ?? 0, data[i + 2] ?? 0]
       if (r >= 200 && r - g >= 60 && r - b >= 90) count.orange++
+      if (Math.max(r, g, b) - Math.min(r, g, b) > 40) count.colourful++
     }
     return count
   }, dataUrl)
   expect(opaque, `${what}: an icon`).toBeGreaterThan(100)
   return orange / opaque
+}
+
+/** The share of an icon's opaque pixels that have any real colour: macOS's placeholder is grey. */
+async function pngColourShare(page: Page, dataUrl: string): Promise<number> {
+  return page.evaluate(async (url) => {
+    const image = new Image()
+    image.src = url
+    await image.decode()
+    const canvas = document.createElement('canvas')
+    canvas.width = image.naturalWidth
+    canvas.height = image.naturalHeight
+    const ctx = canvas.getContext('2d', { willReadFrequently: true }) as CanvasRenderingContext2D
+    ctx.drawImage(image, 0, 0)
+    const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height)
+    let [opaque, colourful] = [0, 0]
+    for (let i = 0; i < data.length; i += 4) {
+      if ((data[i + 3] ?? 0) < 128) continue
+      opaque++
+      const [r, g, b] = [data[i] ?? 0, data[i + 1] ?? 0, data[i + 2] ?? 0]
+      if (Math.max(r, g, b) - Math.min(r, g, b) > 40) colourful++
+    }
+    return opaque ? colourful / opaque : 0
+  }, dataUrl)
 }
 
 /**
@@ -102,6 +126,13 @@ async function expectMacBundleIcon(page: Page, binary: string): Promise<void> {
   expect(iconFile, 'Info.plist CFBundleIconFile').not.toBe('')
   const icns = iconFile.endsWith('.icns') ? iconFile : `${iconFile}.icns`
   expect(existsSync(join(contents, 'Resources', icns)), `Contents/Resources/${icns}`).toBe(true)
+  // Which sizes the .icns holds (kept with the results).
+  const iconset = join(mkdtempSync(join(tmpdir(), 'atlas-iconset-')), 'Atlas.iconset')
+  execFileSync('iconutil', ['-c', 'iconset', join(contents, 'Resources', icns), '-o', iconset])
+  const sizes = readdirSync(iconset).sort().join('\n')
+  console.log(`[packaged] ${icns} holds:
+${sizes}`)
+  await test.info().attach(`${icns}-sizes.txt`, { body: sizes, contentType: 'text/plain' })
   const png = join(mkdtempSync(join(tmpdir(), 'atlas-icns-')), 'icon.png')
   execFileSync('sips', ['-s', 'format', 'png', '-Z', '64', join(contents, 'Resources', icns), '--out', png])
   const body = readFileSync(png)
@@ -125,15 +156,40 @@ async function expectMacBundleIcon(page: Page, binary: string): Promise<void> {
  * bundle is still unknown to LaunchServices after a while, register it, as copying an app
  * into Applications does. The check after this is unchanged.
  */
-async function macShowsTheIcon(app: ElectronApplication, page: Page, bundle: string): Promise<void> {
+async function macShowsTheIcon(app: ElectronApplication, page: Page, bundle: string): Promise<boolean> {
+  // A control: a system app's icon, asked for the same way. If even that comes back as the grey
+  // placeholder, this Mac renders no app icons for us (as on a CI runner), and what the OS shows
+  // can't be checked here; the .icns check above still stands.
+  const control = ['/System/Applications/Calculator.app', '/System/Applications/Safari.app'].find((path) =>
+    existsSync(path),
+  )
+  if (control) {
+    const icon = await app.evaluate(
+      async ({ app: electronApp }, path) => (await electronApp.getFileIcon(path, { size: 'normal' })).toDataURL(),
+      control,
+    )
+    await test.info().attach(`os-icon-control-${basename(control)}.png`, {
+      body: Buffer.from(icon.split(',')[1] ?? '', 'base64'),
+      contentType: 'image/png',
+    })
+    const colour = await pngColourShare(page, icon)
+    console.log(`[packaged] control ${basename(control)}: ${(colour * 100).toFixed(0)}% coloured pixels`)
+    if (colour < 0.1) {
+      const note = `macOS here showed a grey placeholder even for ${basename(control)}: what the OS shows can't be checked on this machine (the bundle's .icns was checked).`
+      test.info().annotations.push({ type: 'macOS icon', description: note })
+      console.warn(`[packaged] ${note}`)
+      return false
+    }
+  }
   const rendered = async (): Promise<boolean> => (await orangeShare(app, page, bundle, false)) >= 0.3
   const deadline = Date.now() + 20_000
-  while (Date.now() < deadline) if (await rendered()) return
+  while (Date.now() < deadline) if (await rendered()) return true
   const lsregister =
     '/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister'
   execFileSync(lsregister, ['-f', bundle])
   console.warn('[packaged] macOS showed a placeholder for 20 s; registered the bundle with LaunchServices')
   await expect.poll(rendered, { timeout: 30_000, message: `${bundle}: macOS shows the Atlas icon` }).toBe(true)
+  return true
 }
 
 test.skip(!executable, 'No packaged app yet: run `npm run dist` first (or set ATLAS_PACKAGED_DIR).')
@@ -177,8 +233,8 @@ test('the packaged app starts its bundled engine and shows Welcome', async () =>
     if (process.platform === 'darwin') await expectMacBundleIcon(page, executable as string)
     const shown =
       process.platform === 'darwin' ? join(dirname(executable as string), '..', '..') : (executable as string)
-    if (process.platform === 'darwin') await macShowsTheIcon(app, page, shown)
-    expect(await orangeShare(app, page, shown), `${shown}: the Atlas icon`).toBeGreaterThanOrEqual(0.3)
+    const observable = process.platform !== 'darwin' || (await macShowsTheIcon(app, page, shown))
+    if (observable) expect(await orangeShare(app, page, shown), `${shown}: the Atlas icon`).toBeGreaterThanOrEqual(0.3)
     const installer = builtInstaller()
     // The Windows installer shows the icon too. (A .dmg file's own icon is the system's
     // disk image; its volume icon is checked below by mounting it.)
