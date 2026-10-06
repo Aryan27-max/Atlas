@@ -45,8 +45,9 @@ async function engineState(app: ElectronApplication): Promise<string> {
   )
 }
 
-/** "hello" has finished arriving: fully opaque, at its full size. */
+/** "hello" has finished arriving: drawn in, fully opaque, at its full size. */
 async function arrived(hello: Locator): Promise<void> {
+  await expect.poll(() => hello.evaluate((img) => img.closest('.splash')?.getAttribute('data-drawn'))).toBe('true')
   await expect.poll(() => hello.evaluate((img) => getComputedStyle(img).opacity)).toBe('1')
   await expect
     .poll(() => hello.evaluate((img) => getComputedStyle(img).transform))
@@ -95,6 +96,11 @@ test('it opens off-white edge to edge, with the window behind it, and "hello" ce
     await expect
       .poll(() => hello.evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth))
       .toBeGreaterThan(0)
+    // The lettering is drawn in: caught while drawing, it differs from the finished drawing.
+    const drawing = (): Promise<string | null | undefined> => splash.getAttribute('data-drawn')
+    const before = await drawing()
+    const midway = await hello.screenshot()
+    const caughtMidway = before === 'false' && (await drawing()) === 'false'
 
     // Off-white from edge to edge: the splash covers the window, the page behind it is the
     // same colour, and so is the window's own background (no other colour before the first frame).
@@ -106,6 +112,11 @@ test('it opens off-white edge to edge, with the window behind it, and "hello" ce
 
     // "hello": centred, about 40% of the window's width (at most 520 px), clear of every edge.
     await arrived(hello)
+    if (caughtMidway) expect((await hello.screenshot()).equals(midway), 'drawn in, not shown all at once').toBe(false)
+    else
+      test
+        .info()
+        .annotations.push({ type: 'hello', description: 'this machine was too slow to catch the drawing midway' })
     const art = (await hello.boundingBox()) as { x: number; y: number; width: number; height: number }
     expect(Math.abs(art.width - Math.min(0.4 * viewport.width, 520))).toBeLessThan(1)
     expect(Math.abs(art.x + art.width / 2 - viewport.width / 2)).toBeLessThan(1)
@@ -171,12 +182,12 @@ test('dark mode: still off-white, and the window takes the dark background after
   }
 })
 
-test('with the real 1.2 s minimum it hands over to Welcome once the engine is ready, once per launch', async () => {
+test('with the real 3.2 s minimum (the drawing) it hands over to Welcome once the engine is ready, once per launch', async () => {
   const launched = await launch()
   try {
     const { page } = launched
     const left = await handover(page)
-    expect(left.left - left.shown).toBeGreaterThanOrEqual(1200)
+    expect(left.left - left.shown).toBeGreaterThanOrEqual(3200)
     expect(left.engineReady).toBe(true)
     await splashGone(page)
     await expect(page.getByRole('button', { name: 'New screening' })).toBeVisible()
@@ -222,7 +233,7 @@ test('when the engine fails it hands over to "Atlas couldn\'t start"', async () 
   try {
     const { page } = launched
     const left = await handover(page)
-    expect(left.left - left.shown).toBeGreaterThanOrEqual(1200)
+    expect(left.left - left.shown).toBeGreaterThanOrEqual(3200)
     expect(left.engineReady).toBe(false)
     await splashGone(page)
     await expect(page.getByRole('alert').getByRole('heading', { name: "Atlas couldn't start" })).toBeVisible()
@@ -262,6 +273,10 @@ test('reduced motion: "hello" only fades in, never transformed', async () => {
         }),
     )
     expect(transforms).toEqual(['none'])
+    // The finished lettering, not the drawing, and the shorter minimum.
+    expect(await splashOf(page).getByRole('img', { name: 'hello' }).getAttribute('src')).not.toMatch(
+      /hello-drawn|%3canimate/,
+    )
   } finally {
     engine.open()
     await close(launched)

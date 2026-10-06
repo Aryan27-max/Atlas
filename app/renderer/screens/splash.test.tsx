@@ -71,12 +71,12 @@ describe('how "hello" arrives', () => {
 
 describe('Splash', () => {
   it('is a status named "Atlas is starting" with the hello art, and nothing to focus', () => {
-    const { container } = render(<Splash phase="showing" slow={false} shownAt={12.3} leftAt={null} />)
+    const { container } = render(<Splash phase="showing" slow={false} drawn={false} shownAt={12.3} leftAt={null} />)
     const status = screen.getByRole('status', { name: 'Atlas is starting' })
     const hello = screen.getByRole('img', { name: 'hello' })
     expect(status.contains(hello)).toBe(true)
-    // The file, or (small enough for Vite to inline it) the same SVG as a data: URL; img-src allows both.
-    expect(hello.getAttribute('src')).toMatch(/hello\.svg$|^data:image\/svg\+xml,.*viewBox='89%20189%20326%20120'/)
+    // Drawn in: hello-drawn.svg, as a file or (small enough for Vite to inline) a data: URL with its <animate>s.
+    expect(hello.getAttribute('src')).toMatch(/hello-drawn\.svg$|^data:image\/svg\+xml,.*%3canimate/)
     expect(status.dataset).toMatchObject({ theme: 'light', phase: 'showing', shownAt: '12' })
     expect(container.querySelectorAll('a, button, input, select, textarea, [tabindex]')).toHaveLength(0)
     expect(screen.queryByText('Still starting…')).toBeNull()
@@ -85,7 +85,7 @@ describe('Splash', () => {
   })
 
   it('says "Still starting…" when the engine is slow', () => {
-    render(<Splash phase="showing" slow shownAt={0} leftAt={null} />)
+    render(<Splash phase="showing" slow drawn={false} shownAt={0} leftAt={null} />)
     expect(screen.getByRole('status').textContent).toContain('Still starting…')
   })
 })
@@ -136,7 +136,7 @@ describe('the app under the start-up screen', () => {
     // Esc does nothing.
     fireEvent.keyDown(window, { key: 'Escape' })
     fireEvent.keyDown(document.body, { key: 'Escape' })
-    await advance(1199)
+    await advance(3199) // with motion, it stays until "hello" is drawn
     expect(screen.getByRole('status', { name: 'Atlas is starting' }).dataset.phase).toBe('showing')
     expect(screen.queryByRole('alert')).toBeNull()
     expect(splashDone).not.toHaveBeenCalled()

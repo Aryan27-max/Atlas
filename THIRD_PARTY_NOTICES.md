@@ -104,7 +104,7 @@ Atlas's logo, app icon and start-up screen use two assets supplied by the **iOS 
 | Asset | What it is | Shipped as |
 |---|---|---|
 | `logo.svg` (from `swift-svgrepo-com.svg`, an SVG Repo export) | The **Swift logo** | The logo on Welcome, in Settings → About and as the favicon. Every app icon is rendered from it (`packaging/icons/`: `icon.ico`, `icon-mac.png` → the `.icns`, the PNGs) |
-| `hello.svg` (from `Hello (apple).svg`) | Apple's **"hello" lettering** | The start-up screen |
+| `hello-drawn.svg` and `hello.svg` (from `Hello (apple).svg`) | Apple's **"hello" lettering**: its draw-in animation (played once) and the finished lettering | The start-up screen (the finished lettering with reduced motion) |
 
 **The Swift logo and the "hello" lettering are trademarks of Apple Inc.** They are not Atlas's, and Atlas's [LICENSE](LICENSE) does not cover them or grant any right in them. **Before any distribution outside this project, replace the logo:** Apple's trademark guidelines don't allow the Swift logo as a product icon. How to swap it: [docs/SIGNING.md](docs/SIGNING.md) → *Before any distribution: replace the logo*.
 

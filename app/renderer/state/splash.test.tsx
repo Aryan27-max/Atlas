@@ -2,7 +2,7 @@
 import { act, cleanup, renderHook } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { EngineStateName } from '@shared/bridge'
-import { SPLASH_TIMING, useSplash } from './splash'
+import { REDUCED_SPLASH_TIMING, SPLASH_TIMING, type SplashTiming, useSplash } from './splash'
 
 const splashDone = vi.fn(async () => undefined)
 
@@ -19,9 +19,11 @@ afterEach(() => {
   vi.useRealTimers()
 })
 
-function start(engine: EngineStateName = 'starting') {
-  return renderHook(({ engine: state }) => useSplash(state), { initialProps: { engine } })
+function start(engine: EngineStateName = 'starting', timing: SplashTiming = SPLASH_TIMING) {
+  return renderHook(({ engine: state }) => useSplash(state, timing), { initialProps: { engine } })
 }
+
+const MIN = SPLASH_TIMING.minMs
 
 function wait(ms: number): void {
   act(() => {
@@ -30,18 +32,24 @@ function wait(ms: number): void {
 }
 
 describe('the start-up screen', () => {
-  it('uses the agreed timings', () => {
-    expect(SPLASH_TIMING).toEqual({ minMs: 1200, slowMs: 6000, maxMs: 15_000, fadeMs: 300 })
+  it('uses the agreed timings: 3.2 s while "hello" is drawn in, 1.2 s with reduced motion', () => {
+    expect(SPLASH_TIMING).toEqual({ minMs: 3200, slowMs: 6000, maxMs: 15_000, fadeMs: 300 })
+    expect(REDUCED_SPLASH_TIMING).toEqual({ minMs: 1200, slowMs: 6000, maxMs: 15_000, fadeMs: 300 })
   })
 
-  it('shows for at least 1.2 s, even when the engine is ready at once', () => {
-    const { result } = start('ready')
-    wait(1199)
+  it.each([
+    ['3.2 s (the drawing)', SPLASH_TIMING],
+    ['1.2 s (reduced motion)', REDUCED_SPLASH_TIMING],
+  ])('shows for at least %s, even when the engine is ready at once', (_label, timing) => {
+    const { result } = start('ready', timing)
+    wait(timing.minMs - 1)
     expect(result.current.phase).toBe('showing')
+    expect(result.current.drawn).toBe(false)
     expect(document.documentElement.dataset.splash).toBe('')
     expect(splashDone).not.toHaveBeenCalled()
     wait(1)
     expect(result.current.phase).toBe('leaving')
+    expect(result.current.drawn).toBe(true)
     // Handing over: the page and the window take the app's colours at the start of the fade.
     expect(document.documentElement.dataset.splash).toBeUndefined()
     expect(splashDone).toHaveBeenCalledTimes(1)
@@ -88,7 +96,7 @@ describe('the start-up screen', () => {
 
   it('hands over to the error screen when the engine fails, after the minimum', () => {
     const early = start('failed')
-    wait(1199)
+    wait(MIN - 1)
     expect(early.result.current.phase).toBe('showing')
     wait(1)
     expect(early.result.current.phase).toBe('leaving')
@@ -96,14 +104,14 @@ describe('the start-up screen', () => {
 
     sessionStorage.clear()
     const late = start('starting')
-    wait(3000)
+    wait(MIN + 1000)
     late.rerender({ engine: 'failed' })
     expect(late.result.current.phase).toBe('leaving')
   })
 
   it('stays gone: an engine restart later never brings it back', () => {
     const { result, rerender } = start('ready')
-    wait(1200) // React runs effects between act() calls, so the fade starts here
+    wait(MIN) // React runs effects between act() calls, so the fade starts here
     wait(300)
     expect(result.current.phase).toBe('gone')
     rerender({ engine: 'restarting' })
@@ -115,7 +123,7 @@ describe('the start-up screen', () => {
 
   it('shows once per launch: a reload in the same session skips it', () => {
     start('ready')
-    wait(1200)
+    wait(MIN)
     wait(300)
     cleanup()
     document.documentElement.dataset.splash = ''

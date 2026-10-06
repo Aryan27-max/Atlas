@@ -260,7 +260,7 @@ class LicenceCheckTests(unittest.TestCase):
     def test_the_shipped_brand_assets_pass_today(self) -> None:
         check = _licence_check()
         assets = check.brand_assets()
-        self.assertEqual(assets, ["hello.svg", "logo.svg"])
+        self.assertEqual(assets, ["hello-drawn.svg", "hello.svg", "logo.svg"])
         self.assertEqual(check.brand_problems(assets, check.NOTICES.read_text(encoding="utf-8")), [])
 
 

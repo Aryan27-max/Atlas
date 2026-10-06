@@ -1,6 +1,7 @@
 /**
  * The brand SVGs are untrusted input (supplied files): the app ships sanitised
- * working copies of them (logo.svg, hello.svg) and shows them only as images.
+ * working copies of them (logo.svg, hello.svg, and hello-drawn.svg: hello's
+ * draw-in from the original, played once) and shows them only as images.
  * This fails if a working copy gains anything active or external, or if the
  * renderer starts putting SVG markup into the page as HTML.
  */
@@ -8,10 +9,13 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { SPLASH_TIMING } from '../../state/splash'
 
 const BRAND = __dirname
 const RENDERER = join(__dirname, '..', '..')
 const SVG_NAMESPACE = 'http://www.w3.org/2000/svg'
+/** What an animation may change: how the line is drawn. (Animating an href is an attack.) */
+const DRAWING = new Set(['d', 'stroke-dasharray', 'stroke-dashoffset', 'stroke-width'])
 
 /** What makes an SVG unsafe or untidy as an app asset; empty when it's clean. */
 export function svgProblems(svg: string): string[] {
@@ -30,10 +34,18 @@ export function svgProblems(svg: string): string[] {
   }
   if (/<\?xml|<!--|<metadata\b|<!DOCTYPE/i.test(svg)) problems.push('metadata, a comment or a prolog')
   if (/@import|<image\b|@font-face/i.test(svg)) problems.push('an embedded image, font or import')
+  if (/<(?:set|animateMotion|animateTransform|discard)\b/i.test(svg)) problems.push('an animation other than <animate>')
+  for (const match of svg.matchAll(/<animate\b[^>]*>/gi)) {
+    const attribute = /\battributeName\s*=\s*["']([^"']*)["']/i.exec(match[0])?.[1] ?? ''
+    if (!DRAWING.has(attribute)) problems.push(`an animated "${attribute}"`)
+  }
   return problems
 }
 
-const copies = ['logo.svg', 'hello.svg'].map((name) => ({ name, svg: readFileSync(join(BRAND, name), 'utf8') }))
+const copies = ['logo.svg', 'hello.svg', 'hello-drawn.svg'].map((name) => ({
+  name,
+  svg: readFileSync(join(BRAND, name), 'utf8'),
+}))
 
 describe('the brand SVG working copies', () => {
   it.each(copies)('$name has nothing active, external or extra', ({ svg }) => {
@@ -70,6 +82,29 @@ describe('the brand SVG working copies', () => {
     expect(/<animate|<set\b|<animateTransform/i.test(hello)).toBe(false)
     expect(/stroke="#000000"/.test(hello)).toBe(true) // dark on off-white
   })
+
+  it('"hello-drawn" draws the lettering once, ends on the static art, and within the splash minimum', () => {
+    const [, hello = '', drawn = ''] = copies.map((c) => c.svg)
+    const animations = [...drawn.matchAll(/<animate\b[^>]*>/gi)].map((m) => m[0])
+    expect(animations.length).toBeGreaterThan(0)
+    for (const animation of animations) {
+      expect(animation).not.toMatch(/repeatCount|repeatDur/) // once, never looping (the original erased itself)
+      expect(animation).toMatch(/\bfill="freeze"/) // and stays drawn
+      expect(animation).toMatch(/\bbegin="0s"/)
+      const seconds = Number(/\bdur="([\d.]+)s"/.exec(animation)?.[1])
+      expect(seconds * 1000).toBeLessThanOrEqual(SPLASH_TIMING.minMs) // the splash never leaves mid-drawing
+    }
+    // The same frame and framing as the static art, and its last frame is that art.
+    expect(/<svg\b[^>]*>/.exec(drawn)?.[0]).toBe(/<svg\b[^>]*>/.exec(hello)?.[0])
+    const last = (name: string): string | undefined => {
+      const animation = animations.find((a) => a.includes(`attributeName="${name}"`)) ?? ''
+      return /\bvalues="([^"]*)"/.exec(animation)?.[1]?.split(';').at(-1)?.trim()
+    }
+    expect(last('d')).toBe(/<path d="([^"]+)"/.exec(hello)?.[1])
+    expect(last('stroke-dasharray')).toBe('99 1')
+    expect(last('stroke-dashoffset')).toBe('-1')
+    expect(last('stroke-width')).toBe('9')
+  })
 })
 
 describe('svgProblems', () => {
@@ -83,6 +118,9 @@ describe('svgProblems', () => {
     ['<?xml version="1.0"?><svg></svg>', 'metadata, a comment or a prolog'],
     ['<svg><!-- generator --></svg>', 'metadata, a comment or a prolog'],
     ['<svg><image href="#x"/></svg>', 'an embedded image, font or import'],
+    ['<svg><a><animate attributeName="href" values="javascript:alert(1)"/></a></svg>', 'an animated "href"'],
+    ['<svg><set attributeName="d" to="M0 0"/></svg>', 'an animation other than <animate>'],
+    ['<svg><path><animateTransform attributeName="transform"/></path></svg>', 'an animation other than <animate>'],
   ])('catches %s', (svg, problem) => {
     expect(svgProblems(svg)).toContain(problem)
   })

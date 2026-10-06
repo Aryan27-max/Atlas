@@ -106,6 +106,8 @@ On macOS the test also checks:
 
 ## Step 3: the start-up screen
 
+*Updated after step 6: "hello" is now drawn in, as in the supplied animation, so the minimum is 3.2 s (1.2 s with reduced motion). See "The 'hello' drawing" below.*
+
 ![The start-up screen, light](branding/screens/splash-light.png)
 
 **Layout.** "hello" sits on off-white (`--atl-splash-bg`, #F5F5F7), edge to edge, in both light and dark mode:
@@ -183,7 +185,7 @@ The colour is a theme-independent token in `tokens.css`, never themed.
 ## Step 6: everything locally, and the packaged app
 
 **Suites:**
-- engine 427 + 3 (`test_gated_engine`) + 2 (licence check) tests, including both kill tests;
+- engine 429 tests (with the 3 gated-engine and 2 brand-licence tests), including both kill tests;
 - Vitest 245;
 - typecheck, lint and format clean;
 - the full e2e suite: 69 passed, 2 skipped (the two that need a packaged build);
@@ -222,3 +224,29 @@ This would have shown a blank icon in the taskbar, Explorer and the Start menu.
 **Screenshots.** The splash was captured from the installed, packaged build (`packaged-splash-windows.png`): off-white, centred, nothing cut off. I didn't keep a taskbar screenshot. Finding the Atlas button automatically was unreliable, and a full capture shows the owner's other open apps. The taskbar uses the exe's icon, which is checked above at taskbar sizes.
 
 ![The packaged build's start-up screen on Windows](branding/screens/packaged-splash-windows.png)
+
+## The "hello" drawing (after review)
+
+**Why it changed.** You asked for the start-up screen to show "hello" as the supplied SVG does: drawn in, not as a still image. In step 1 I had made it static, for two reasons:
+- the original loops forever and erases itself;
+- an `<img>` can't follow "reduce motion".
+
+Both are solved without dropping the animation.
+
+**The drawing.**
+- **`hello-drawn.svg` (new)** is the original's own draw-in: its first 3.108 s, with the same key times, splines and values, played **once** and **frozen** on the finished frame. Nothing was redrawn by hand. It loads as an `<img>`, like the other brand art.
+- **Proof.** Rendered in Electron's Chromium beside the original, paused at the same moments (0, 0.3, 0.6, 1, 1.5, 2, 2.5, 2.8 and 3.05 s): **0 pixels differ** at every one. From 3.2 s on (at 3.2, 5 and 30 s) it is pixel-identical to the static `hello.svg`.
+- **Reduced motion.** The finished lettering (`hello.svg`) still shows, with a plain fade.
+
+**Timing.** The splash now stays until the drawing is done: a **3.2 s** minimum (`SPLASH_TIMING`), or 1.2 s with reduced motion (`REDUCED_SPLASH_TIMING`). It still waits for the engine, says "Still starting…" at 6 s, and hands over at 15 s.
+
+**Safety.** Allowing animation opens one known SVG attack: animating an `href` to a `javascript:` URL. `brand.test.ts` closes it:
+- **Allowed animation:** only `<animate>`, and only of the four drawing attributes (`d`, `stroke-dasharray`, `stroke-dashoffset`, `stroke-width`). `<set>`, `animateTransform` and `animateMotion` are refused.
+- **`hello-drawn.svg`:** it must play once (no repeat), freeze, and end exactly on the static art. Its duration must fit inside the splash minimum, so the splash never leaves mid-drawing.
+
+**Tests.**
+- **Vitest:** 252 (was 245).
+- **`e2e/splash.spec.ts`:**
+  - it captures "hello" mid-drawing and again when drawn, and the two differ, so the animation really plays in the app;
+  - the minimum checks use the real 3.2 s;
+  - with reduced motion, the static art is shown.

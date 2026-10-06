@@ -29,7 +29,15 @@ export interface SplashTiming {
   fadeMs: number
 }
 
-export const SPLASH_TIMING: SplashTiming = { minMs: 1200, slowMs: 6000, maxMs: 15_000, fadeMs: 300 }
+/**
+ * With motion: "hello" is drawn in (assets/brand/hello-drawn.svg, 3.11 s, the
+ * supplied animation's own pace), so it stays at least until the drawing is
+ * finished. brand.test.ts checks the drawing fits.
+ */
+export const SPLASH_TIMING: SplashTiming = { minMs: 3200, slowMs: 6000, maxMs: 15_000, fadeMs: 300 }
+
+/** With reduced motion: the finished lettering, which needs no time to arrive. */
+export const REDUCED_SPLASH_TIMING: SplashTiming = { ...SPLASH_TIMING, minMs: 1200 }
 
 /** `showing` → `leaving` (fading out; the app underneath is live) → `gone` (removed). */
 export type SplashPhase = 'showing' | 'leaving' | 'gone'
@@ -38,6 +46,8 @@ export interface SplashState {
   phase: SplashPhase
   /** Past `slowMs` and still showing. */
   slow: boolean
+  /** Past `minMs`: "hello" is fully drawn. */
+  drawn: boolean
   /** performance.now() when it first showed, and when it started to leave (data-* attributes for the tests). */
   shownAt: number
   leftAt: number | null
@@ -112,5 +122,5 @@ export function useSplash(engine: EngineStateName, timing: SplashTiming = SPLASH
     return () => clearTimeout(timer)
   }, [phase, timing.fadeMs])
 
-  return { phase, slow, shownAt, leftAt }
+  return { phase, slow, drawn: minPassed, shownAt, leftAt }
 }

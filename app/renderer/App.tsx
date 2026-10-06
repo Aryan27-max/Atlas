@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query'
-import { MotionConfig } from 'motion/react'
+import { MotionConfig, useReducedMotion } from 'motion/react'
 import { useEffect, useState } from 'react'
 import type { EngineState } from '@shared/bridge'
 import { api } from './api/client'
@@ -12,7 +12,7 @@ import { Results } from './screens/results/Results'
 import { Welcome } from './screens/Welcome'
 import { SetupFlow } from './screens/setup/SetupFlow'
 import { useNav } from './state/nav'
-import { useSplash } from './state/splash'
+import { REDUCED_SPLASH_TIMING, SPLASH_TIMING, useSplash } from './state/splash'
 import { applyTheme } from './state/theme'
 import './app.css'
 import './screens/screens.css'
@@ -62,7 +62,8 @@ export function App() {
   usePlatform()
   const route = useHashRoute()
   const engine = useEngineState()
-  const splash = useSplash(engine.state)
+  const reduced = useReducedMotion() ?? false
+  const splash = useSplash(engine.state, reduced ? REDUCED_SPLASH_TIMING : SPLASH_TIMING)
   return (
     <MotionConfig reducedMotion="user">
       <QueryClientProvider client={queries}>
