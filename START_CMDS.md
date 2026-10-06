@@ -6,6 +6,38 @@ In Windows PowerShell, `curl` is a different command: always type **`curl.exe`**
 
 ---
 
+## Quick start (Windows PowerShell)
+
+**Just want to use Atlas?** Install it from the [v0.2.0 release](https://github.com/Aryan27-max/Atlas-iOS_Dev_center/releases/tag/v0.2.0) and follow its `INSTALL.md`. The steps below are for running it from the source.
+
+1. **Install the tools once:** Python 3.12, Node.js 20+, Git, and [Ollama](https://ollama.com/download). Then get the model (about 5 GB):
+   ```powershell
+   ollama pull qwen3:8b
+   ```
+2. **Set up the project once:**
+   ```powershell
+   py -3.12 -m venv .venv
+   .\.venv\Scripts\python.exe -m pip install -r engine/requirements-dev.txt -c engine/constraints.txt
+   cd app; npm ci; cd ..
+   ```
+3. **Start Ollama:** open it from the Start menu (it sits in the tray). Check it: `curl.exe http://127.0.0.1:11434/api/tags`.
+4. **Run Atlas:**
+   ```powershell
+   cd app; npm run dev
+   ```
+   This one command starts everything. The app builds, Electron opens, and Electron starts the Python engine itself. "hello" appears, then **Welcome**. Close the window to stop it all.
+5. **Try it with fictional students** (no Ollama or internet needed): `cd app; npm run demo:fast`.
+6. **Check everything works:**
+   ```powershell
+   .\.venv\Scripts\python.exe -m unittest discover -s engine/tests -t .
+   cd app; npm test; npm run e2e
+   ```
+7. **Build the installer:** section 9.
+
+On a Mac it's the same, with `python3.12`, `.venv/bin/python` and `&&` in place of `;`. Details and fixes for every step are in the sections below.
+
+---
+
 ## 1. Prerequisites
 **What for:** the tools Atlas is built with, and Ollama with the model it screens with.
 
@@ -210,7 +242,7 @@ build/venv-engine/bin/python -m pip install -r packaging/requirements-build.txt 
 build/venv-engine/bin/python packaging/build_engine.py
 cd app && npm run dist -- -c.mac.identity=- -c.mac.hardenedRuntime=false     # unsigned: ad-hoc signed
 ```
-**You should see** `smoke: passed`, then `app/dist/Atlas-Setup-0.2.0-x64.exe` (about 125 MB) and `app/dist/win-unpacked/` (macOS: `app/dist/Atlas-0.2.0-arm64.dmg` and `app/dist/mac-arm64/`).
+**You should see** `smoke: passed`, then `app/dist/Atlas-Setup-0.2.0-x64.exe` (about 127 MB) and `app/dist/win-unpacked/` (macOS: `app/dist/Atlas-0.2.0-arm64.dmg` and `app/dist/mac-arm64/`).
 
 **Common errors**
 - `No engine build at …` → run `build_engine.py` first.

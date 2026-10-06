@@ -33,3 +33,6 @@ app/playwright-report/
 graphify-out/cache/
 graphify-out/*
 !graphify-out/GRAPH_REPORT.md
+
+# The owner's local notes for making a release by hand (not part of the repository)
+binaryDeploy.md
