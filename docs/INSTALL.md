@@ -18,6 +18,8 @@ You install two things: **Ollama** (the free program that runs the AI model) and
 You don't need to type anything into Ollama: Atlas talks to it.
 
 ## 2. Install Atlas
+Download the installer for your computer from the Atlas release page you were sent: **Atlas-Setup-…-x64.exe** for Windows, or the **.dmg** for your Mac (below). `SHA256SUMS.txt` on the same page lets IT check the files.
+
 Until Atlas is code-signed (the firm's decision: see [SIGNING.md](SIGNING.md)), your computer will warn you that it doesn't recognise the app. That's expected. Here is how to get past it.
 
 ### Windows
@@ -36,7 +38,7 @@ If Windows says **"Smart App Control blocked an app that may be unsafe"** and of
 You only do this once.
 
 ## 3. The first run
-Atlas opens on **Welcome**. The **This computer** card says what Ollama is doing and offers one button:
+Atlas first writes **"hello"** on an off-white screen (off-white even in dark mode) while it gets ready, which takes a few seconds. If that takes long, it says **Still starting…**; that's normal on a slow or busy computer. Then it opens on **Welcome**. The **This computer** card says what Ollama is doing and offers one button:
 
 | What the card says | Press |
 |---|---|

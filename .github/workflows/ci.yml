@@ -9,8 +9,10 @@
 #        then `npm run dist` for Windows x64, macOS arm64 and macOS x64, and
 #        the packaged-app test. Installers are uploaded as artifacts.
 #        Unsigned unless the signing secrets exist (docs/SIGNING.md).
-#
-# Nothing is published or released from here.
+# release  only for a pushed tag v<version> (the app's version): the three
+#        installers from this run's build jobs, with SHA256SUMS.txt and INSTALL.md, as a
+#        DRAFT GitHub Release (notes: docs/RELEASE_NOTES.md). A person checks
+#        and publishes it; nothing is published automatically.
 #
 # Versions are pinned so a run changes only when this repository does
 # (docs/summaries/ci-audit.md): runner images by name (windows-2025, macos-26,
@@ -23,6 +25,7 @@ name: CI
 on:
   push:
     branches: [main]
+    tags: ['v*']
   pull_request:
   workflow_dispatch:
 
@@ -284,3 +287,44 @@ jobs:
           path: app/test-results/
           if-no-files-found: ignore
           retention-days: 14
+
+  release:
+    name: release (draft)
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    # The only job that may write: it creates the draft release.
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: The tag is the app's version
+        shell: bash
+        run: |
+          version=$(node -p "require('./app/package.json').version")
+          if [ "$GITHUB_REF_NAME" != "v$version" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME doesn't match app/package.json version $version (expected v$version)."
+            exit 1
+          fi
+
+      - name: The installers from this run, with checksums
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p release
+          gh run download "$GITHUB_RUN_ID" --repo "$GITHUB_REPOSITORY" --pattern 'atlas-*' --dir artifacts
+          find artifacts -type f \( -name '*.exe' -o -name '*.dmg' \) -exec mv {} release/ \;
+          count=$(ls release | wc -l)
+          if [ "$count" -ne 3 ]; then echo "::error::Expected 3 installers, found $count: $(ls release)"; exit 1; fi
+          (cd release && sha256sum * > SHA256SUMS.txt && cat SHA256SUMS.txt)
+
+      - name: Draft release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" release/* docs/INSTALL.md --repo "$GITHUB_REPOSITORY" --draft --title "Atlas ${GITHUB_REF_NAME#v}" --notes-file docs/RELEASE_NOTES.md

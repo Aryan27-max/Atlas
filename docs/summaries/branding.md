@@ -250,3 +250,19 @@ Both are solved without dropping the animation.
   - it captures "hello" mid-drawing and again when drawn, and the two differ, so the animation really plays in the app;
   - the minimum checks use the real 3.2 s;
   - with reduced motion, the static art is shown.
+
+## The release pipeline
+
+**How it works.** A new `release` job in `.github/workflows/ci.yml` runs only when a tag `v<version>` is pushed. It runs after the test and build jobs on the same commit, and does this:
+1. It checks that the tag matches `app/package.json`'s version. A `v0.2.1` tag on a 0.2.0 app fails.
+2. It takes the three installers from that run's own build jobs (`gh run download`). It fails unless exactly three are there.
+3. It writes `SHA256SUMS.txt`.
+4. It creates a **draft** GitHub Release with the installers, the checksums and `INSTALL.md`, with `docs/RELEASE_NOTES.md` as its text.
+
+A person checks the draft and publishes it; nothing is published automatically.
+
+**Permissions.** It is the only job with write access (`contents: write`). Every other job stays read-only.
+
+**Docs.**
+- **`docs/RELEASE_NOTES.md`:** for the firm. Which file is for which computer, the first-launch steps for unsigned builds, what's in 0.2.0, and the known limitations.
+- **`docs/INSTALL.md`:** says where the files come from, and that Atlas writes "hello" while it starts.
