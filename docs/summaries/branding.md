@@ -106,7 +106,7 @@ On macOS the test also checks:
 
 ## Step 3: the start-up screen
 
-*Updated after step 6: "hello" is now drawn in, as in the supplied animation, so the minimum is 3.2 s (1.2 s with reduced motion). See "The 'hello' drawing" below.*
+*Updated after step 6: "hello" is now drawn in, as in the supplied animation, and held a moment, so the minimum is 3.8 s (1.2 s with reduced motion). See "The 'hello' drawing" below.*
 
 ![The start-up screen, light](branding/screens/splash-light.png)
 
@@ -238,17 +238,19 @@ Both are solved without dropping the animation.
 - **Proof.** Rendered in Electron's Chromium beside the original, paused at the same moments (0, 0.3, 0.6, 1, 1.5, 2, 2.5, 2.8 and 3.05 s): **0 pixels differ** at every one. From 3.2 s on (at 3.2, 5 and 30 s) it is pixel-identical to the static `hello.svg`.
 - **Reduced motion.** The finished lettering (`hello.svg`) still shows, with a plain fade.
 
-**Timing.** The splash now stays until the drawing is done: a **3.2 s** minimum (`SPLASH_TIMING`), or 1.2 s with reduced motion (`REDUCED_SPLASH_TIMING`). It still waits for the engine, says "Still starting…" at 6 s, and hands over at 15 s.
+**Timing.** The splash now stays until the word is drawn (by 3.2 s, `drawMs`) **and has been held for 0.6 s**: a **3.8 s** minimum (`SPLASH_TIMING`). With reduced motion it's 1.2 s (`REDUCED_SPLASH_TIMING`). It still waits for the engine, says "Still starting…" at 6 s, and hands over at 15 s.
+
+The hold was added after the first packaged run. The installed app's engine is ready almost at once, so the splash began to fade the instant the word was finished, and the finished "hello" got about 0.1 s. That felt rushed: the supplied animation itself holds the finished word for about a second.
 
 **Safety.** Allowing animation opens one known SVG attack: animating an `href` to a `javascript:` URL. `brand.test.ts` closes it:
 - **Allowed animation:** only `<animate>`, and only of the four drawing attributes (`d`, `stroke-dasharray`, `stroke-dashoffset`, `stroke-width`). `<set>`, `animateTransform` and `animateMotion` are refused.
-- **`hello-drawn.svg`:** it must play once (no repeat), freeze, and end exactly on the static art. Its duration must fit inside the splash minimum, so the splash never leaves mid-drawing.
+- **`hello-drawn.svg`:** it must play once (no repeat), freeze, and end exactly on the static art. It must be drawn by `drawMs`, and the minimum must hold the finished word for at least 0.5 s more, so the splash never leaves mid-drawing.
 
 **Tests.**
-- **Vitest:** 252 (was 245).
+- **Vitest:** 253 (was 245).
 - **`e2e/splash.spec.ts`:**
   - it captures "hello" mid-drawing and again when drawn, and the two differ, so the animation really plays in the app;
-  - the minimum checks use the real 3.2 s;
+  - the minimum checks use the real 3.8 s;
   - with reduced motion, the static art is shown.
 
 ## The release pipeline

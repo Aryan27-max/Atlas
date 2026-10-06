@@ -136,7 +136,7 @@ describe('the app under the start-up screen', () => {
     // Esc does nothing.
     fireEvent.keyDown(window, { key: 'Escape' })
     fireEvent.keyDown(document.body, { key: 'Escape' })
-    await advance(3199) // with motion, it stays until "hello" is drawn
+    await advance(3799) // with motion, it stays until "hello" is drawn, and a moment after
     expect(screen.getByRole('status', { name: 'Atlas is starting' }).dataset.phase).toBe('showing')
     expect(screen.queryByRole('alert')).toBeNull()
     expect(splashDone).not.toHaveBeenCalled()

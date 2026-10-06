@@ -32,19 +32,31 @@ function wait(ms: number): void {
 }
 
 describe('the start-up screen', () => {
-  it('uses the agreed timings: 3.2 s while "hello" is drawn in, 1.2 s with reduced motion', () => {
-    expect(SPLASH_TIMING).toEqual({ minMs: 3200, slowMs: 6000, maxMs: 15_000, fadeMs: 300 })
-    expect(REDUCED_SPLASH_TIMING).toEqual({ minMs: 1200, slowMs: 6000, maxMs: 15_000, fadeMs: 300 })
+  it('uses the agreed timings: drawn by 3.2 s and held to 3.8 s; 1.2 s with reduced motion', () => {
+    expect(SPLASH_TIMING).toEqual({ drawMs: 3200, minMs: 3800, slowMs: 6000, maxMs: 15_000, fadeMs: 300 })
+    expect(REDUCED_SPLASH_TIMING).toEqual({ drawMs: 0, minMs: 1200, slowMs: 6000, maxMs: 15_000, fadeMs: 300 })
+  })
+
+  it('says "hello" is drawn at 3.2 s, and holds the finished word before it may leave', () => {
+    const { result } = start('ready')
+    wait(3199)
+    expect(result.current.drawn).toBe(false)
+    wait(1)
+    expect(result.current.drawn).toBe(true)
+    expect(result.current.phase).toBe('showing')
+    wait(599)
+    expect(result.current.phase).toBe('showing')
+    wait(1)
+    expect(result.current.phase).toBe('leaving')
   })
 
   it.each([
-    ['3.2 s (the drawing)', SPLASH_TIMING],
+    ['3.8 s (the drawing, then a moment)', SPLASH_TIMING],
     ['1.2 s (reduced motion)', REDUCED_SPLASH_TIMING],
   ])('shows for at least %s, even when the engine is ready at once', (_label, timing) => {
     const { result } = start('ready', timing)
     wait(timing.minMs - 1)
     expect(result.current.phase).toBe('showing')
-    expect(result.current.drawn).toBe(false)
     expect(document.documentElement.dataset.splash).toBe('')
     expect(splashDone).not.toHaveBeenCalled()
     wait(1)

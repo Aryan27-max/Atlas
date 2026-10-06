@@ -182,12 +182,12 @@ test('dark mode: still off-white, and the window takes the dark background after
   }
 })
 
-test('with the real 3.2 s minimum (the drawing) it hands over to Welcome once the engine is ready, once per launch', async () => {
+test('with the real 3.8 s minimum (the drawing, then a moment) it hands over to Welcome once the engine is ready, once per launch', async () => {
   const launched = await launch()
   try {
     const { page } = launched
     const left = await handover(page)
-    expect(left.left - left.shown).toBeGreaterThanOrEqual(3200)
+    expect(left.left - left.shown).toBeGreaterThanOrEqual(3800)
     expect(left.engineReady).toBe(true)
     await splashGone(page)
     await expect(page.getByRole('button', { name: 'New screening' })).toBeVisible()
@@ -233,7 +233,7 @@ test('when the engine fails it hands over to "Atlas couldn\'t start"', async () 
   try {
     const { page } = launched
     const left = await handover(page)
-    expect(left.left - left.shown).toBeGreaterThanOrEqual(3200)
+    expect(left.left - left.shown).toBeGreaterThanOrEqual(3800)
     expect(left.engineReady).toBe(false)
     await splashGone(page)
     await expect(page.getByRole('alert').getByRole('heading', { name: "Atlas couldn't start" })).toBeVisible()

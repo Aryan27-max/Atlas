@@ -83,7 +83,7 @@ describe('the brand SVG working copies', () => {
     expect(/stroke="#000000"/.test(hello)).toBe(true) // dark on off-white
   })
 
-  it('"hello-drawn" draws the lettering once, ends on the static art, and within the splash minimum', () => {
+  it('"hello-drawn" draws the lettering once, ends on the static art, and is done before the splash may leave', () => {
     const [, hello = '', drawn = ''] = copies.map((c) => c.svg)
     const animations = [...drawn.matchAll(/<animate\b[^>]*>/gi)].map((m) => m[0])
     expect(animations.length).toBeGreaterThan(0)
@@ -92,8 +92,10 @@ describe('the brand SVG working copies', () => {
       expect(animation).toMatch(/\bfill="freeze"/) // and stays drawn
       expect(animation).toMatch(/\bbegin="0s"/)
       const seconds = Number(/\bdur="([\d.]+)s"/.exec(animation)?.[1])
-      expect(seconds * 1000).toBeLessThanOrEqual(SPLASH_TIMING.minMs) // the splash never leaves mid-drawing
+      expect(seconds * 1000).toBeLessThanOrEqual(SPLASH_TIMING.drawMs) // drawn by the time the app says so
     }
+    // The finished word is held a moment before the splash may leave.
+    expect(SPLASH_TIMING.minMs - SPLASH_TIMING.drawMs).toBeGreaterThanOrEqual(500)
     // The same frame and framing as the static art, and its last frame is that art.
     expect(/<svg\b[^>]*>/.exec(drawn)?.[0]).toBe(/<svg\b[^>]*>/.exec(hello)?.[0])
     const last = (name: string): string | undefined => {

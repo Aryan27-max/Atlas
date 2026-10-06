@@ -19,7 +19,9 @@ import { useEffect, useRef, useState } from 'react'
 import type { EngineStateName } from '@shared/bridge'
 
 export interface SplashTiming {
-  /** Shown at least this long, however fast the engine is. */
+  /** "hello" is fully drawn by then. */
+  drawMs: number
+  /** Shown at least this long, however fast the engine is: the drawing, then a moment to read it. */
   minMs: number
   /** From here, "Still starting…" under the art. */
   slowMs: number
@@ -31,13 +33,13 @@ export interface SplashTiming {
 
 /**
  * With motion: "hello" is drawn in (assets/brand/hello-drawn.svg, 3.11 s, the
- * supplied animation's own pace), so it stays at least until the drawing is
- * finished. brand.test.ts checks the drawing fits.
+ * supplied animation's own pace), then the finished word holds for 0.6 s
+ * before the splash may leave. brand.test.ts checks the drawing fits.
  */
-export const SPLASH_TIMING: SplashTiming = { minMs: 3200, slowMs: 6000, maxMs: 15_000, fadeMs: 300 }
+export const SPLASH_TIMING: SplashTiming = { drawMs: 3200, minMs: 3800, slowMs: 6000, maxMs: 15_000, fadeMs: 300 }
 
 /** With reduced motion: the finished lettering, which needs no time to arrive. */
-export const REDUCED_SPLASH_TIMING: SplashTiming = { ...SPLASH_TIMING, minMs: 1200 }
+export const REDUCED_SPLASH_TIMING: SplashTiming = { ...SPLASH_TIMING, drawMs: 0, minMs: 1200 }
 
 /** `showing` → `leaving` (fading out; the app underneath is live) → `gone` (removed). */
 export type SplashPhase = 'showing' | 'leaving' | 'gone'
@@ -46,7 +48,7 @@ export interface SplashState {
   phase: SplashPhase
   /** Past `slowMs` and still showing. */
   slow: boolean
-  /** Past `minMs`: "hello" is fully drawn. */
+  /** Past `drawMs`: "hello" is fully drawn. */
   drawn: boolean
   /** performance.now() when it first showed, and when it started to leave (data-* attributes for the tests). */
   shownAt: number
@@ -81,6 +83,7 @@ export function useSplash(engine: EngineStateName, timing: SplashTiming = SPLASH
   const [phase, setPhase] = useState<SplashPhase>(() => (shownThisLaunch() ? 'gone' : 'showing'))
   const [shownAt] = useState(() => performance.now())
   const [leftAt, setLeftAt] = useState<number | null>(null)
+  const [drawn, setDrawn] = useState(false)
   const [minPassed, setMinPassed] = useState(false)
   const [slow, setSlow] = useState(false)
   const [capped, setCapped] = useState(false)
@@ -91,6 +94,7 @@ export function useSplash(engine: EngineStateName, timing: SplashTiming = SPLASH
   useEffect(() => {
     if (!showing) return
     const timers = [
+      setTimeout(() => setDrawn(true), timing.drawMs),
       setTimeout(() => setMinPassed(true), timing.minMs),
       setTimeout(() => setSlow(true), timing.slowMs),
       setTimeout(() => setCapped(true), timing.maxMs),
@@ -122,5 +126,5 @@ export function useSplash(engine: EngineStateName, timing: SplashTiming = SPLASH
     return () => clearTimeout(timer)
   }, [phase, timing.fadeMs])
 
-  return { phase, slow, drawn: minPassed, shownAt, leftAt }
+  return { phase, slow, drawn, shownAt, leftAt }
 }
