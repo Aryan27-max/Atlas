@@ -343,9 +343,9 @@ Details for the firm and its legal team: [docs/DATA_HANDLING.md](docs/DATA_HANDL
 ## Testing
 | Suite | Count | Command |
 |---|---|---|
-| Engine (unittest) | 409 (1 skipped: OCR, which the shipped app doesn't include) | `python -m unittest discover -s engine/tests -t .` |
-| App unit tests (Vitest) | 188 | `cd app; npm test` |
-| End to end (Playwright, the real app against local stubs) | 60, plus 2 that need a packaged build or an install | `cd app; npm run e2e` |
+| Engine (unittest) | 429 (1 skipped: OCR, which the shipped app doesn't include) | `python -m unittest discover -s engine/tests -t .` |
+| App unit tests (Vitest) | 253 | `cd app; npm test` |
+| End to end (Playwright, the real app against local stubs) | 69, plus 2 that need a packaged build or an install | `cd app; npm run e2e` |
 
 - **Both kill tests** run in every engine suite: `test_kill` kills a database writer 20 times and `test_worker_kill` kills the real worker 20 times; both check the database's integrity and that no work is lost or duplicated.
 - **The eval harness** measures scoring quality on a labelled set: `python -m engine.eval run --set engine/eval/sets/fictional --model qwen3:8b` (fictional set: Spearman 0.99, bucket agreement 88%). See [docs/EVAL.md](docs/EVAL.md).
