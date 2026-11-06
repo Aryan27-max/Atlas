@@ -37,16 +37,16 @@ export function Requirements() {
           </div>
           <div className={styles.spec}>
             <dt>Internet</dt>
-            <dd>To download the model once, and each résumé during a screening.</dd>
+            <dd>To download the model once, and each resume during a screening.</dd>
           </div>
           <div className={styles.spec}>
             <dt>Student list</dt>
-            <dd>An Excel (.xlsx) or CSV file, such as a Google Forms export, with a résumé link for each student.</dd>
+            <dd>An Excel (.xlsx) or CSV file, such as a Google Forms export, with a resume link for each student.</dd>
           </div>
           <div className={styles.spec}>
             <dt>Time</dt>
             <dd>
-              About 2 to 3 minutes per résumé on a laptop without a suitable graphics chip, so 200 students is an
+              About 2 to 3 minutes per resume on a laptop without a suitable graphics chip, so 200 students is an
               overnight job.
             </dd>
           </div>

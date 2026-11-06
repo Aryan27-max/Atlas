@@ -2,9 +2,9 @@
 
 export const site = {
   name: "Atlas",
-  title: "Atlas: private résumé screening for campus hiring",
+  title: "Atlas: private resume screening for campus hiring",
   description:
-    "Atlas scores student résumés against your criteria with an AI model that runs on your own computer, then sorts them into Shortlisted, Cutoff and Rejected. No résumé goes to an online AI service.",
+    "Atlas scores student resumes against your criteria with an AI model that runs on your own computer, then sorts them into Shortlisted, Cutoff and Rejected. No resume goes to an online AI service.",
   copyrightHolder: "Aryan Gupta",
   copyrightYear: 2026,
   ollamaDownloadUrl: "https://ollama.com/download",

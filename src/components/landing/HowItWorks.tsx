@@ -7,11 +7,11 @@ const STEPS = [
   },
   {
     title: "Say who you’re looking for.",
-    body: "Describe the role in plain words, choose a model, and set your score lines. The first time you use a model, Atlas tests it on a sample résumé.",
+    body: "Describe the role in plain words, choose a model, and set your score lines. The first time you use a model, Atlas tests it on a sample resume.",
   },
   {
     title: "Let Atlas read.",
-    body: "Atlas downloads each résumé from its link, reads it and scores it, all on your computer. You see a time estimate before it starts.",
+    body: "Atlas downloads each resume from its link, reads it and scores it, all on your computer. You see a time estimate before it starts.",
   },
   {
     title: "Review and export.",

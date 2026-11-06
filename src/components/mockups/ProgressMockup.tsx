@@ -73,7 +73,7 @@ export function ProgressMockup() {
             <span>02:14</span>Paused: No internet connection
           </li>
           <li>
-            <span>02:13</span>Scored résumé #142
+            <span>02:13</span>Scored resume #142
           </li>
           <li>
             <span>22:01</span>Screening started
