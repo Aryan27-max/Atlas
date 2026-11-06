@@ -1,0 +1,119 @@
+.form {
+  display: grid;
+  width: 100%;
+}
+
+/* Two fields joined into one rounded group, the way system sign-in sheets do it. */
+.fields {
+  overflow: hidden;
+  border-radius: var(--radius-m);
+  background: var(--paper);
+  box-shadow: inset 0 0 0 1px var(--hairline);
+  transition: box-shadow 200ms var(--ease);
+}
+
+.fields[data-invalid] {
+  box-shadow: inset 0 0 0 1px #e30000;
+}
+
+@media (prefers-color-scheme: dark) {
+  .fields {
+    background: var(--mist);
+  }
+  .fields[data-invalid] {
+    box-shadow: inset 0 0 0 1px #ff453a;
+  }
+}
+
+.field {
+  position: relative;
+}
+
+.field + .field {
+  box-shadow: inset 0 1px 0 var(--hairline);
+}
+
+.input {
+  display: block;
+  width: 100%;
+  height: 56px;
+  padding: 22px 16px 6px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  font-size: 17px;
+  line-height: 1.23536;
+  letter-spacing: -0.022em;
+  outline: none;
+}
+
+/* The label sits in the field like a placeholder, then floats up when the field has focus or text. */
+.label {
+  position: absolute;
+  top: 17px;
+  left: 16px;
+  color: var(--graphite);
+  font-size: 17px;
+  line-height: 1.23536;
+  letter-spacing: -0.022em;
+  pointer-events: none;
+  transform-origin: 0 0;
+  transition: transform 180ms var(--ease), color 180ms var(--ease);
+}
+
+.input:focus + .label,
+.input:not(:placeholder-shown) + .label {
+  transform: translateY(-10px) scale(0.705);
+}
+
+/* Separate rules: a browser that doesn't know one of these selectors would
+   otherwise drop the whole list. */
+.input:autofill + .label {
+  transform: translateY(-10px) scale(0.705);
+}
+
+.input:-webkit-autofill + .label {
+  transform: translateY(-10px) scale(0.705);
+}
+
+.input::placeholder {
+  color: transparent;
+}
+
+/* Focus: a ring around the field that has it, inside the group. */
+.field:focus-within {
+  z-index: 1;
+  border-radius: var(--radius-m);
+  box-shadow: 0 0 0 3px var(--focus) inset;
+}
+
+.field + .field:focus-within {
+  box-shadow: 0 0 0 3px var(--focus) inset;
+}
+
+.input:-webkit-autofill {
+  -webkit-text-fill-color: var(--ink);
+  transition: background-color 600000s 0s;
+}
+
+.error {
+  min-height: 20px;
+  margin: 14px 2px 0;
+  color: #d70015;
+  font-size: 14px;
+  line-height: 1.42859;
+  letter-spacing: -0.016em;
+}
+
+@media (prefers-color-scheme: dark) {
+  .error {
+    color: #ff6961;
+  }
+}
+
+.submit {
+  width: 100%;
+  margin-top: 12px;
+  min-height: 48px;
+  border-radius: var(--radius-m);
+}

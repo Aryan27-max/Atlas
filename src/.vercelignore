@@ -1,0 +1,6 @@
+# What `vercel deploy` must never upload from this folder. (Git-based deploys
+# only see committed files, and .gitignore already keeps these out of git.)
+.env*
+!.env.example
+node_modules
+.next
