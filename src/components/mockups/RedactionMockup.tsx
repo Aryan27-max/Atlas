@@ -1,7 +1,7 @@
 import styles from "./mockups.module.css";
 
 /**
- * The same résumé twice: as the student wrote it, and as the model on the
+ * The same resume twice: as the student wrote it, and as the model on the
  * recruiter's computer receives it, with identity removed and the form's
  * details added as claims to check.
  */
@@ -10,10 +10,10 @@ export function RedactionMockup() {
     <div
       className={styles.redaction}
       role="img"
-      aria-label="Two copies of a résumé. In the copy the model sees, the photo, name and contact details are removed; the projects, experience and skills stay, along with CGPA, department and the skills the student claimed on the form, marked as claims to check."
+      aria-label="Two copies of a resume. In the copy the model sees, the photo, name and contact details are removed; the projects, experience and skills stay, along with CGPA, department and the skills the student claimed on the form, marked as claims to check."
     >
       <div className={styles.doc} aria-hidden="true">
-        <p className={styles.docCaption}>The résumé</p>
+        <p className={styles.docCaption}>The resume</p>
         <div className={styles.docHeader}>
           <span className={styles.photo} />
           <span className={styles.idLines}>

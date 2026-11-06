@@ -46,7 +46,7 @@ export default function HomePage() {
           <>
             <ol>
               <li id="fn-time">
-                Time per résumé depends on the computer. On a laptop without a suitable graphics chip, expect about 2 to 3
+                Time per resume depends on the computer. On a laptop without a suitable graphics chip, expect about 2 to 3
                 minutes each. Atlas measures the real pace as it goes and updates its estimate.
               </li>
               <li id="fn-ollama">

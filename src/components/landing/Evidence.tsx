@@ -14,12 +14,12 @@ export function Evidence() {
             Every score shows its working.
           </h2>
           <p className="type-body">
-            The model scores six parts of each résumé against a fixed rubric. Atlas, not the model, combines them into
+            The model scores six parts of each resume against a fixed rubric. Atlas, not the model, combines them into
             one score and decides the group, and your cutoffs are never shown to the model.
           </p>
           <p className="type-body">
-            Open any student to see the reasons, the quotes from the résumé that back them up, and any skill claimed on
-            the form that the résumé doesn’t show.
+            Open any student to see the reasons, the quotes from the resume that back them up, and any skill claimed on
+            the form that the resume doesn’t show.
           </p>
           <p className="type-body">
             Disagree? Move one student or several to another group, with a note. Every move is recorded, and yours always
@@ -29,7 +29,7 @@ export function Evidence() {
         <Reveal>
           <Visual
             shot={screenshots.candidate}
-            alt="A student's detail in Atlas: the overall score, six part scores, the reasons, and quotes from the résumé."
+            alt="A student's detail in Atlas: the overall score, six part scores, the reasons, and quotes from the resume."
           >
             <CandidateMockup />
           </Visual>

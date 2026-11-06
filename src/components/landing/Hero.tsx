@@ -13,7 +13,7 @@ export function Hero() {
     <section className={`${styles.hero} ${styles.dark}`} aria-labelledby="hero-title">
       <div className="container">
         <h1 id="hero-title" className={`type-hero ${styles.heroTitle}`}>
-          <span>Every résumé read.</span> <span>None sent away.</span>
+          <span>Every resume read.</span> <span>None sent away.</span>
         </h1>
 
         {/* The gap the artwork's glowing logo sits in. The artwork is centred on
@@ -35,7 +35,7 @@ export function Hero() {
         </div>
 
         <p className={`type-intro ${styles.heroIntro}`}>
-          Atlas scores each student’s résumé against your criteria with an AI model that runs on your own computer,
+          Atlas scores each student’s resume against your criteria with an AI model that runs on your own computer,
           then sorts everyone into Shortlisted, Cutoff and Rejected.
         </p>
         <div className={styles.heroActions}>

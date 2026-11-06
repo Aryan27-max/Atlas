@@ -6,11 +6,11 @@ import styles from "./landing.module.css";
 const FACTS = [
   {
     title: "What the model never sees",
-    body: "Name, email, phone, RA number, class section and photos. Atlas removes them even where they appear inside the résumé: its header, email addresses and profile handles.",
+    body: "Name, email, phone, RA number, class section and photos. Atlas removes them even where they appear inside the resume: its header, email addresses and profile handles.",
   },
   {
     title: "What goes online",
-    body: "Only the résumé links in your list, a connection check that sends no data when a download fails, and model downloads you ask for. No telemetry, no accounts, no update checks.",
+    body: "Only the resume links in your list, a connection check that sends no data when a download fails, and model downloads you ask for. No telemetry, no accounts, no update checks.",
   },
   {
     title: "Where everything lives",
@@ -24,11 +24,11 @@ export function Privacy() {
       <div className="container">
         <div className={styles.head}>
           <h2 id="privacy-title" className="type-headline">
-            Résumés stay on your computer.
+            Resumes stay on your computer.
           </h2>
           <p className={`type-intro ${styles.intro}`}>
-            The AI model runs on your own computer, through Ollama. No résumé text, name, email or phone number is ever
-            sent to an online AI service. And the model scores what a résumé shows, not who wrote it.
+            The AI model runs on your own computer, through Ollama. No resume text, name, email or phone number is ever
+            sent to an online AI service. And the model scores what a resume shows, not who wrote it.
           </p>
         </div>
         <Reveal className={styles.privacyVisual}>

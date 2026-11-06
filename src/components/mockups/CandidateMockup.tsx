@@ -18,7 +18,7 @@ export function CandidateMockup() {
     <div
       className={styles.frame}
       role="img"
-      aria-label="A student's detail in Atlas: 88 out of 100, rank 2, with six part scores, the reasons for the score, a quote from the résumé as evidence, and a skill claimed on the form that the résumé doesn't show."
+      aria-label="A student's detail in Atlas: 88 out of 100, rank 2, with six part scores, the reasons for the score, a quote from the resume as evidence, and a skill claimed on the form that the resume doesn't show."
     >
       <div className={`${styles.window} ${styles.sheet}`} aria-hidden="true">
         <p className={styles.sheetName}>Ishaan Verma</p>
@@ -54,13 +54,13 @@ export function CandidateMockup() {
           <li>An internship with a hardware team, with measured results.</li>
         </ul>
 
-        <p className={styles.sheetHeading}>Evidence from the résumé</p>
+        <p className={styles.sheetHeading}>Evidence from the resume</p>
         <p className={styles.quoteLabel}>Relevant project</p>
         <p className={styles.quote}>“Designed a low-power sensor board and wrote its firmware in C”</p>
 
-        <p className={styles.sheetHeading}>Listed in form but not found in résumé</p>
+        <p className={styles.sheetHeading}>Listed in form but not found in resume</p>
         <ul className={styles.bullets}>
-          <li>Claims Rust; not in the résumé</li>
+          <li>Claims Rust; not in the resume</li>
         </ul>
       </div>
     </div>
