@@ -1,0 +1,346 @@
+.demo {
+  --track: var(--hairline);
+  padding: 40px 48px 32px;
+  border-radius: var(--radius-xl);
+  background: var(--mist);
+}
+
+/* ── Counts ─────────────────────────────────────────────────────────────── */
+
+.counts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 24px;
+  margin: 0 0 28px;
+}
+
+.count {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 4px;
+}
+
+.count[data-group="shortlisted"] {
+  --tone: var(--short-fill);
+  --tone-text: var(--short-text);
+}
+
+.count[data-group="cutoff"] {
+  --tone: var(--band-fill);
+  --tone-text: var(--band-text);
+}
+
+.count[data-group="rejected"] {
+  --tone: var(--reject-fill);
+  --tone-text: var(--reject-text);
+}
+
+.countValue {
+  margin: 0;
+  color: var(--tone-text);
+  font-size: 56px;
+  line-height: 1;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.countLabel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ink);
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--tone);
+}
+
+/* ── Plot ───────────────────────────────────────────────────────────────── */
+
+.plot {
+  width: 100%;
+}
+
+.svg {
+  display: block;
+  overflow: visible;
+  font-family: var(--font);
+}
+
+.regionBand,
+.regionShort {
+  transition: transform 160ms var(--ease);
+}
+
+.regionBand {
+  fill: var(--band-tint);
+}
+
+.regionShort {
+  fill: var(--short-tint);
+}
+
+.axis {
+  stroke: var(--hairline);
+  stroke-width: 1;
+}
+
+.tick {
+  fill: var(--graphite);
+  font-size: 12px;
+  letter-spacing: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.dot {
+  fill: var(--reject-fill);
+  stroke: transparent;
+  stroke-width: 0;
+  transition: fill 320ms var(--ease), stroke 320ms var(--ease), stroke-width 320ms var(--ease);
+}
+
+.dot[data-group="shortlisted"] {
+  fill: var(--short-fill);
+}
+
+.dot[data-group="cutoff"] {
+  fill: var(--band-fill);
+}
+
+.dot[data-group="shortlisted"][data-filled="true"] {
+  fill: var(--paper);
+  stroke: var(--short-fill);
+  stroke-width: 2.5;
+}
+
+.threshold {
+  transition: transform 160ms var(--ease);
+}
+
+.threshold line {
+  stroke-width: 1.5;
+}
+
+.threshold text {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+}
+
+.threshold[data-group="shortlisted"] line {
+  stroke: var(--short-text);
+}
+
+.threshold[data-group="shortlisted"] text {
+  fill: var(--short-text);
+}
+
+.threshold[data-group="cutoff"] line {
+  stroke: var(--band-text);
+}
+
+.threshold[data-group="cutoff"] text {
+  fill: var(--band-text);
+}
+
+/* ── Controls ───────────────────────────────────────────────────────────── */
+
+.controls {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px 40px;
+  margin-top: 28px;
+  padding-top: 28px;
+  border-top: 1px solid var(--hairline-soft);
+}
+
+.control {
+  display: grid;
+  gap: 6px;
+}
+
+.controlHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 14px;
+  line-height: 1.42859;
+  letter-spacing: -0.016em;
+}
+
+.controlHead label {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.controlValue {
+  color: var(--graphite);
+  font-variant-numeric: tabular-nums;
+}
+
+.range {
+  --tone: var(--graphite);
+  width: 100%;
+  height: 28px;
+  margin: 0;
+  background: transparent;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+/* Shortlist and band apply from the thumb upwards, so their colour sits to the
+   right of the thumb. The minimum is an amount, so it fills from the left. */
+.range[data-tone="short"] {
+  --tone: var(--short-fill);
+  --fill: linear-gradient(to right, var(--track) var(--pct), var(--tone) var(--pct));
+}
+
+.range[data-tone="band"] {
+  --tone: var(--band-fill);
+  --fill: linear-gradient(to right, var(--track) var(--pct), var(--tone) var(--pct));
+}
+
+.range[data-tone="count"] {
+  --fill: linear-gradient(to right, var(--tone) var(--pct), var(--track) var(--pct));
+}
+
+.range::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--fill);
+}
+
+.range::-moz-range-track {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--fill);
+}
+
+.range::-webkit-slider-thumb {
+  width: 28px;
+  height: 28px;
+  margin-top: -12px;
+  border: 0;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0.5px 4px rgba(0, 0, 0, 0.12), 0 6px 13px rgba(0, 0, 0, 0.12), 0 0 0 0.5px rgba(0, 0, 0, 0.06);
+  -webkit-appearance: none;
+  appearance: none;
+  transition: transform 160ms var(--ease);
+}
+
+.range::-moz-range-thumb {
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0.5px 4px rgba(0, 0, 0, 0.12), 0 6px 13px rgba(0, 0, 0, 0.12), 0 0 0 0.5px rgba(0, 0, 0, 0.06);
+}
+
+.range:active::-webkit-slider-thumb {
+  transform: scale(1.08);
+}
+
+.range:focus-visible {
+  outline: none;
+}
+
+.range:focus-visible::-webkit-slider-thumb {
+  box-shadow: 0 0 0 4px var(--focus), 0 6px 13px rgba(0, 0, 0, 0.12);
+}
+
+.range:focus-visible::-moz-range-thumb {
+  box-shadow: 0 0 0 4px var(--focus), 0 6px 13px rgba(0, 0, 0, 0.12);
+}
+
+/* ── Footer ─────────────────────────────────────────────────────────────── */
+
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 32px;
+  margin-top: 20px;
+}
+
+.note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--graphite);
+  font-size: 14px;
+  line-height: 1.42859;
+  letter-spacing: -0.016em;
+}
+
+.ring {
+  flex: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 2.5px var(--short-fill);
+}
+
+.reset {
+  flex: none;
+  min-height: 32px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 980px;
+  background: var(--mist);
+  color: var(--link);
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.reset:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 1068px) {
+  .demo {
+    padding: 32px 32px 28px;
+  }
+  .countValue {
+    font-size: 48px;
+  }
+}
+
+@media (max-width: 734px) {
+  .demo {
+    padding: 24px 20px 20px;
+    border-radius: var(--radius-l);
+  }
+  .counts {
+    gap: 12px;
+  }
+  .countValue {
+    font-size: 36px;
+  }
+  .countLabel {
+    font-size: 14px;
+    gap: 6px;
+  }
+  .swatch {
+    width: 8px;
+    height: 8px;
+  }
+  .controls {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  .footer {
+    align-items: flex-start;
+  }
+}

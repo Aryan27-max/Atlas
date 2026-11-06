@@ -1,0 +1,9 @@
+.mark {
+  display: block;
+  flex: none;
+}
+
+/* A warm halo for the large, standalone marks. */
+.glow {
+  filter: drop-shadow(0 12px 28px rgba(240, 81, 56, 0.35)) drop-shadow(0 2px 6px rgba(239, 62, 49, 0.25));
+}

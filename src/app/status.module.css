@@ -1,0 +1,38 @@
+.main {
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 0;
+  min-height: calc(100vh - var(--nav-h));
+  min-height: calc(100dvh - var(--nav-h));
+  padding: 64px var(--gutter);
+  text-align: center;
+}
+
+.title {
+  font-size: 48px;
+  line-height: 1.08349;
+  font-weight: 600;
+  letter-spacing: -0.003em;
+}
+
+.body {
+  max-width: 480px;
+  margin: 16px 0 32px;
+  color: var(--graphite);
+  font-size: 21px;
+  line-height: 1.381;
+  letter-spacing: 0.011em;
+}
+
+@media (max-width: 734px) {
+  .title {
+    font-size: 32px;
+    line-height: 1.125;
+  }
+  .body {
+    font-size: 17px;
+    line-height: 1.47059;
+    letter-spacing: -0.022em;
+  }
+}

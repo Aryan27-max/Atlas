@@ -1,0 +1,467 @@
+/* ──────────────────────────────────────────────────────────────────────────
+   Atlas website: design tokens and the few global rules.
+   Components style themselves with CSS Modules next to them.
+
+   Palette: Ink, Paper, Mist and Graphite for everything; the Swift orange
+   of the logo for every action; and the three group colours from the app
+   itself (Shortlisted, Cutoff, Rejected). The drawn app windows keep the
+   app's own blue, so they look like the real thing.
+   ────────────────────────────────────────────────────────────────────────── */
+
+:root {
+  color-scheme: light dark;
+
+  --font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", "Segoe UI Variable Display",
+    "Segoe UI", sans-serif;
+
+  --ink: #1d1d1f;
+  --paper: #ffffff;
+  --mist: #f5f5f7;
+  --graphite: #6e6e73;
+  --hairline: #d2d2d7;
+  --hairline-soft: rgba(0, 0, 0, 0.08);
+
+  /* Brand: the Swift logo's gradient. Filled buttons use its deeper stop
+     (#d33929), which keeps white text at 4.8:1 (WCAG AA); links use #c7381c
+     (5.2:1 on Paper, 4.8:1 on Mist). */
+  --brand-light: #faae42;
+  --brand: #f05138;
+  --brand-gradient: linear-gradient(180deg, #faae42 0%, #ef3e31 100%);
+  --action: #d33929;
+  --action-hover: #c9361c;
+  --action-press: #b5301a;
+  --action-tint: rgba(240, 81, 56, 0.12);
+  --link: #c7381c;
+  --focus: rgba(240, 81, 56, 0.75);
+
+  /* The app's own accent, used only inside the drawn app windows. */
+  --app-accent: #007aff;
+  --app-accent-strong: #0071e3;
+  --app-link: #0066cc;
+  --app-tint: rgba(0, 122, 255, 0.12);
+
+  /* The three groups. *-text passes WCAG AA on Paper and Mist. */
+  --short-text: #1d7a35;
+  --short-fill: #34c759;
+  --short-tint: rgba(52, 199, 89, 0.14);
+  --band-text: #a64b00;
+  --band-fill: #ff9f0a;
+  --band-tint: rgba(255, 159, 10, 0.16);
+  --reject-text: #6e6e73;
+  --reject-fill: #c7c7cc;
+  --reject-tint: rgba(142, 142, 147, 0.12);
+
+  /* App windows in the mockups. */
+  --window: #ffffff;
+  --window-side: #ececf0;
+  --window-bar: #f5f5f7;
+  --window-line: rgba(0, 0, 0, 0.07);
+  --window-select: rgba(0, 0, 0, 0.07);
+  --window-ink: #1d1d1f;
+  --window-muted: #6e6e73;
+  --window-dot: #d2d2d7;
+  --window-shadow: 0 50px 100px -30px rgba(0, 0, 0, 0.3), 0 30px 60px -40px rgba(0, 0, 0, 0.25),
+    0 0 0 0.5px rgba(0, 0, 0, 0.14);
+
+  --nav-bg: rgba(255, 255, 255, 0.72);
+  --nav-h: 52px;
+
+  --content: 980px;
+  --wide: 1200px;
+  --gutter: 22px;
+
+  --radius-s: 8px;
+  --radius-m: 12px;
+  --radius-l: 18px;
+  --radius-xl: 28px;
+
+  --ease: cubic-bezier(0.28, 0.11, 0.32, 1);
+  --spring: cubic-bezier(0.34, 1.36, 0.64, 1);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ink: #f5f5f7;
+    --paper: #000000;
+    --mist: #161617;
+    --graphite: #a1a1a6;
+    --hairline: #424245;
+    --hairline-soft: rgba(255, 255, 255, 0.1);
+
+    --action-tint: rgba(255, 133, 82, 0.18);
+    --link: #ff8552;
+
+    --app-accent: #0a84ff;
+    --app-accent-strong: #0a6fe0;
+    --app-link: #4aa3ff;
+    --app-tint: rgba(10, 132, 255, 0.2);
+
+    --short-text: #30d158;
+    --short-fill: #30d158;
+    --short-tint: rgba(48, 209, 88, 0.18);
+    --band-text: #ffb340;
+    --band-fill: #ff9f0a;
+    --band-tint: rgba(255, 159, 10, 0.18);
+    --reject-text: #a1a1a6;
+    --reject-fill: #636366;
+    --reject-tint: rgba(142, 142, 147, 0.18);
+
+    --window: #2c2c2e;
+    --window-side: #232325;
+    --window-bar: #1c1c1e;
+    --window-line: rgba(255, 255, 255, 0.08);
+    --window-select: rgba(255, 255, 255, 0.1);
+    --window-ink: #f5f5f7;
+    --window-muted: #a1a1a6;
+    --window-dot: #48484a;
+    --window-shadow: 0 50px 100px -30px rgba(0, 0, 0, 0.8), 0 0 0 0.5px rgba(255, 255, 255, 0.16);
+
+    --nav-bg: rgba(22, 22, 23, 0.72);
+  }
+}
+
+/* ── Reset ──────────────────────────────────────────────────────────────── */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  scroll-padding-top: calc(var(--nav-h) + 16px);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: 17px;
+  line-height: 1.47059;
+  font-weight: 400;
+  letter-spacing: -0.022em;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-synthesis: none;
+}
+
+h1,
+h2,
+h3,
+h4,
+p,
+ul,
+ol,
+dl,
+dd,
+figure,
+blockquote {
+  margin: 0;
+}
+
+ul,
+ol {
+  padding: 0;
+}
+
+img,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
+button,
+input {
+  font: inherit;
+  letter-spacing: inherit;
+  color: inherit;
+}
+
+a {
+  color: var(--link);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+::selection {
+  background: rgba(240, 81, 56, 0.25);
+}
+
+:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ── Layout ─────────────────────────────────────────────────────────────── */
+
+.container {
+  width: min(var(--content), 100% - 2 * var(--gutter));
+  margin-inline: auto;
+}
+
+.container-wide {
+  width: min(var(--wide), 100% - 2 * var(--gutter));
+  margin-inline: auto;
+}
+
+.visually-hidden {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.skip-link {
+  position: fixed;
+  top: 8px;
+  left: 8px;
+  z-index: 100;
+  padding: 10px 16px;
+  border-radius: 980px;
+  background: var(--action);
+  color: #fff;
+  font-size: 14px;
+  transform: translateY(-200%);
+}
+
+.skip-link:focus-visible {
+  transform: none;
+  text-decoration: none;
+}
+
+/* ── Type scale ─────────────────────────────────────────────────────────── */
+/* Large ≥ 1069px, medium 735–1068px, small ≤ 734px. */
+
+.type-hero,
+.type-headline {
+  text-wrap: balance;
+}
+
+p,
+li,
+dd {
+  text-wrap: pretty;
+}
+
+.type-hero {
+  font-size: 80px;
+  line-height: 1.05;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+}
+
+.type-headline {
+  font-size: 56px;
+  line-height: 1.07143;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+}
+
+.type-title {
+  font-size: 28px;
+  line-height: 1.14286;
+  font-weight: 600;
+  letter-spacing: 0.007em;
+}
+
+.type-intro {
+  font-size: 21px;
+  line-height: 1.381;
+  font-weight: 400;
+  letter-spacing: 0.011em;
+}
+
+.type-body {
+  font-size: 17px;
+  line-height: 1.47059;
+  letter-spacing: -0.022em;
+}
+
+.type-caption {
+  font-size: 14px;
+  line-height: 1.42859;
+  letter-spacing: -0.016em;
+}
+
+.type-footnote {
+  font-size: 12px;
+  line-height: 1.33337;
+  letter-spacing: -0.01em;
+}
+
+.muted {
+  color: var(--graphite);
+}
+
+@media (max-width: 1068px) {
+  .type-hero {
+    font-size: 64px;
+    line-height: 1.0625;
+  }
+  .type-headline {
+    font-size: 48px;
+    line-height: 1.08349;
+  }
+  .type-intro {
+    font-size: 19px;
+    line-height: 1.4211;
+    letter-spacing: 0.012em;
+  }
+}
+
+@media (max-width: 734px) {
+  :root {
+    --gutter: 20px;
+  }
+  .type-hero {
+    font-size: 44px;
+    line-height: 1.09;
+    letter-spacing: -0.01em;
+  }
+  .type-headline {
+    font-size: 34px;
+    line-height: 1.11;
+    letter-spacing: 0.002em;
+  }
+  .type-title {
+    font-size: 24px;
+    line-height: 1.16667;
+  }
+  .type-intro {
+    font-size: 17px;
+    line-height: 1.47059;
+    letter-spacing: -0.022em;
+  }
+}
+
+/* ── Buttons ────────────────────────────────────────────────────────────── */
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 22px;
+  border: 0;
+  border-radius: 980px;
+  background: var(--action);
+  color: #fff;
+  font-size: 17px;
+  line-height: 1;
+  font-weight: 400;
+  letter-spacing: -0.022em;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 160ms var(--ease), transform 160ms var(--ease);
+}
+
+.button:hover {
+  background: var(--action-hover);
+  text-decoration: none;
+}
+
+.button:active {
+  background: var(--action-press);
+  transform: scale(0.98);
+}
+
+.button[aria-disabled="true"],
+.button:disabled {
+  opacity: 0.42;
+  cursor: default;
+  pointer-events: none;
+}
+
+.button-quiet {
+  background: transparent;
+  color: var(--link);
+  box-shadow: inset 0 0 0 1px currentColor;
+}
+
+.button-quiet:hover {
+  background: var(--action);
+  box-shadow: inset 0 0 0 1px var(--action);
+  color: #fff;
+}
+
+.button-small {
+  min-height: 28px;
+  padding: 0 12px;
+  font-size: 12px;
+  letter-spacing: -0.01em;
+}
+
+/* ── Motion ─────────────────────────────────────────────────────────────── */
+/* One page-load sequence (the hero) and a quiet reveal for the large visuals.
+   Reveal only hides things the script has confirmed are below the fold, so
+   the page is complete without JavaScript. */
+
+[data-reveal="hidden"] {
+  opacity: 0;
+  transform: translate3d(0, 40px, 0) scale(0.985);
+}
+
+[data-reveal="shown"] {
+  opacity: 1;
+  transform: none;
+  transition: opacity 900ms var(--ease), transform 1100ms var(--ease);
+  transition-delay: var(--reveal-delay, 0ms);
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 24px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes rise-window {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 64px, 0) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    transition-delay: 0ms !important;
+    scroll-behavior: auto !important;
+  }
+  [data-reveal] {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
