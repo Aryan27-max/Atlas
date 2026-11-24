@@ -8,7 +8,8 @@ import type { PlatformId } from "@/lib/platforms";
 // card. Never decisive: every card stays available, and when the guess is
 // unsure (Safari and Firefox don't reveal a Mac's chip) nothing is marked.
 
-export type Detection = { platform: PlatformId | null; mobile: boolean };
+/** mobile: a phone or tablet. other: a computer that isn't a Mac or a Windows PC (Linux, ChromeOS). */
+export type Detection = { platform: PlatformId | null; mobile: boolean; other?: boolean };
 
 type UAData = { getHighEntropyValues?: (hints: string[]) => Promise<{ architecture?: string }> };
 
@@ -19,6 +20,7 @@ function detect(): Promise<Detection> {
   const iPadAsMac = /Macintosh/.test(ua) && navigator.maxTouchPoints > 1;
   if (/iPhone|iPad|iPod|Android/i.test(ua) || iPadAsMac) return Promise.resolve({ platform: null, mobile: true });
   if (/Windows NT/i.test(ua)) return Promise.resolve({ platform: "win-x64", mobile: false });
+  if (/CrOS|Linux|X11/i.test(ua)) return Promise.resolve({ platform: null, mobile: false, other: true });
 
   if (/Macintosh|Mac OS X/.test(ua)) {
     const data = (navigator as Navigator & { userAgentData?: UAData }).userAgentData;

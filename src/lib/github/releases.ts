@@ -40,7 +40,7 @@ export async function getReleaseSummary(): Promise<Result<ReleaseSummary>> {
   return client.getSummary();
 }
 
-/** A signed, short-lived GitHub URL for this platform's installer. */
+/** The GitHub download link (browser_download_url) for this platform's installer. */
 export async function getDownloadUrl(platform: PlatformId): Promise<Result<{ url: string; fileName: string }>> {
   const client = getClient();
   if (!client) return { ok: false, code: "not-configured" };

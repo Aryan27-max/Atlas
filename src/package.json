@@ -2,7 +2,7 @@
   "name": "atlas-website",
   "version": "1.0.0",
   "private": true,
-  "description": "The Atlas website: product overview, sign-in and installer downloads from private GitHub releases.",
+  "description": "The Atlas website: product overview, sign-in and installer downloads from public GitHub releases.",
   "engines": {
     "node": ">=22.18.0 <25"
   },

@@ -7,46 +7,51 @@
 //   GITHUB_API_URL=http://127.0.0.1:4010
 //   GITHUB_OWNER=demo
 //   GITHUB_REPO=atlas
-//   GITHUB_TOKEN=anything
+//   (GITHUB_TOKEN is optional, as with the real public repository)
 //
 // It serves one published release with the three installers, named the way
-// Atlas's build names them, and answers a download with a redirect to
-// example.com (a reserved domain), the way GitHub answers with a signed URL.
+// Atlas's build names them. Each asset's browser_download_url points back at
+// this server, which answers it with a redirect to example.com (a reserved
+// domain), the way github.com redirects to its file storage.
 
 import http from "node:http";
 
 const PORT = Number(process.env.MOCK_GITHUB_PORT ?? 4010);
 const VERSION = process.env.MOCK_VERSION ?? "0.2.0";
 
+const BASE = `http://127.0.0.1:${PORT}`;
+const asset = (id, name, size, digest) => ({
+  id,
+  name,
+  size,
+  ...(digest ? { digest: `sha256:${digest.repeat(32)}` } : {}),
+  url: `${BASE}/repos/demo/atlas/releases/assets/${id}`,
+  browser_download_url: `${BASE}/demo/atlas/releases/download/v${VERSION}/${name}`,
+});
+
 const release = {
   tag_name: `v${VERSION}`,
   published_at: new Date().toISOString(),
   assets: [
-    { id: 1, name: `Atlas-${VERSION}-arm64.dmg`, size: 151_234_567, digest: `sha256:${"3f".repeat(32)}` },
-    { id: 2, name: `Atlas-${VERSION}-x64.dmg`, size: 156_700_000, digest: `sha256:${"a7".repeat(32)}` },
-    { id: 3, name: `Atlas-Setup-${VERSION}-x64.exe`, size: 121_900_000, digest: `sha256:${"0c".repeat(32)}` },
-    { id: 4, name: "SHA256SUMS.txt", size: 300 },
+    asset(1, `Atlas-${VERSION}-arm64.dmg`, 151_234_567, "3f"),
+    asset(2, `Atlas-${VERSION}-x64.dmg`, 156_700_000, "a7"),
+    asset(3, `Atlas-Setup-${VERSION}-x64.exe`, 121_900_000, "0c"),
+    asset(4, "SHA256SUMS.txt", 300),
   ],
 };
 
 http
   .createServer((req, res) => {
     const log = (status) => console.log(`${req.method} ${req.url} → ${status}`);
-    if (!req.headers.authorization?.startsWith("Bearer ")) {
-      log(401);
-      res.writeHead(401, { "content-type": "application/json" }).end('{"message":"Bad credentials"}');
-      return;
-    }
     if (/^\/repos\/[^/]+\/[^/]+\/releases\/latest$/.test(req.url ?? "")) {
       log(200);
       res.writeHead(200, { "content-type": "application/json" }).end(JSON.stringify(release));
       return;
     }
-    const match = (req.url ?? "").match(/^\/repos\/[^/]+\/[^/]+\/releases\/assets\/(\d+)$/);
-    const asset = match && release.assets.find((a) => a.id === Number(match[1]));
-    if (asset && req.headers.accept === "application/octet-stream") {
+    const file = release.assets.find((a) => a.browser_download_url === `${BASE}${req.url}`);
+    if (file) {
       log(302);
-      res.writeHead(302, { location: `https://example.com/atlas-mock-download/${asset.name}?signature=mock` }).end();
+      res.writeHead(302, { location: `https://example.com/atlas-mock-download/${file.name}` }).end();
       return;
     }
     log(404);

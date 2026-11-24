@@ -5,7 +5,8 @@ import { PLATFORMS, PLATFORM_IDS, type PlatformId } from "@/lib/platforms";
 import type { GitHubSettings } from "./client";
 
 // GitHub settings, read from the environment at request time. GITHUB_TOKEN is
-// only ever read here, on the server.
+// optional (the releases are public; a token only raises the API rate limit)
+// and is only ever read here, on the server.
 
 const NAME_RX = /^[A-Za-z0-9][A-Za-z0-9._-]{0,99}$/;
 const DEFAULT_API_URL = "https://api.github.com";
@@ -14,13 +15,13 @@ const DEFAULT_CACHE_SECONDS = 300;
 export type GitHubConfig = { ok: true; settings: GitHubSettings } | { ok: false; problems: string[] };
 
 export function readGitHubConfig(): GitHubConfig {
-  const token = process.env.GITHUB_TOKEN?.trim() ?? "";
+  const rawToken = process.env.GITHUB_TOKEN?.trim() ?? "";
+  // The .env.example placeholder counts as "no token", not as a broken setting.
+  const token = rawToken && rawToken !== "github_pat_replace_me" ? rawToken : null;
   const owner = process.env.GITHUB_OWNER?.trim() ?? "";
   const repo = process.env.GITHUB_REPO?.trim() ?? "";
   const problems: string[] = [];
 
-  if (!token) problems.push("GITHUB_TOKEN is not set");
-  else if (token === "github_pat_replace_me") problems.push("GITHUB_TOKEN is still the example value from .env.example");
   if (!owner) problems.push("GITHUB_OWNER is not set");
   else if (!NAME_RX.test(owner)) problems.push("GITHUB_OWNER isn't a valid GitHub user or organisation name");
   if (!repo) problems.push("GITHUB_REPO is not set");
