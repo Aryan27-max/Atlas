@@ -10,14 +10,15 @@ import { PLATFORMS, isPlatformId } from "@/lib/platforms";
 //
 // 1. No valid session → 401 (signed-out requests never reach GitHub).
 // 2. More than 30 clicks from one address in 10 minutes → "too many downloads".
-// 3. Find the latest release and this platform's installer (cached for a few minutes).
-// 4. Ask GitHub for the file with redirect: "manual"; GitHub answers with a
-//    signed URL that lasts an hour, and the browser is sent straight there.
-//    That URL is reused for a minute (lib/github/client.ts), so a burst of
-//    clicks costs GitHub one request per installer.
+// 3. Find the latest release and this platform's installer (cached for a few
+//    minutes, so clicks don't each cost a GitHub API request).
+// 4. Redirect the browser to that installer's browser_download_url on
+//    github.com, which serves the file itself. Never the API asset URL, which
+//    answers a browser with JSON metadata instead of the file.
 //
-// The GitHub token is only used server-side in step 4 and never appears in any
-// response. Responses are never cached by browsers or proxies.
+// The optional GitHub token is only used server-side for the release lookup
+// and never appears in any response. Responses are never cached by browsers
+// or proxies.
 
 export const dynamic = "force-dynamic";
 

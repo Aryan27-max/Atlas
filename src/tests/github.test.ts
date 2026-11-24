@@ -4,10 +4,10 @@ import { describe, it } from "node:test";
 import {
   FAILURE_CACHE_MS,
   MISSING_ASSET_REFRESH_MS,
-  SIGNED_URL_REUSE_MS,
+  checkDownloadUrl,
   createReleaseClient,
+  downloadOriginFor,
   parseRelease,
-  signedUrlRemainingMs,
   type GitHubSettings,
 } from "../lib/github/client.ts";
 import { findAsset, globToRegExp } from "../lib/github/patterns.ts";
@@ -29,15 +29,27 @@ const SETTINGS: GitHubSettings = {
   cacheTtlMs: 300_000,
 };
 
+const DL = "https://github.test/acme/atlas/releases/download/v0.2.0";
+
+/** Shaped like GitHub's real answer, including the API `url` that must never be used for a download. */
+const asset = (id: number, name: string, size: number, extra: Record<string, unknown> = {}) => ({
+  id,
+  name,
+  size,
+  url: `https://api.github.test/repos/acme/atlas/releases/assets/${id}`,
+  browser_download_url: `${DL}/${name}`,
+  ...extra,
+});
+
 const RELEASE = {
   tag_name: "v0.2.0",
   published_at: "2026-11-06T10:00:00Z",
   assets: [
-    { id: 1, name: "Atlas-0.2.0-arm64.dmg", size: 150_000_000, digest: `sha256:${DIGEST}` },
-    { id: 2, name: "Atlas-0.2.0-x64.dmg", size: 155_000_000 },
-    { id: 3, name: "Atlas-Setup-0.2.0-x64.exe", size: 120_000_000 },
-    { id: 4, name: "SHA256SUMS.txt", size: 300 },
-    { id: 5, name: "INSTALL.md", size: 9000 },
+    asset(1, "Atlas-0.2.0-arm64.dmg", 150_000_000, { digest: `sha256:${DIGEST}` }),
+    asset(2, "Atlas-0.2.0-x64.dmg", 155_000_000),
+    asset(3, "Atlas-Setup-0.2.0-x64.exe", 120_000_000),
+    asset(4, "SHA256SUMS.txt", 300),
+    asset(5, "INSTALL.md", 9000),
   ],
 };
 
@@ -61,16 +73,13 @@ function fakeGitHub(routes: Record<string, (call: Call) => Response | Promise<Re
   return { fetch, calls };
 }
 
-function setup(routes: Parameters<typeof fakeGitHub>[0], start = 0) {
+function setup(routes: Parameters<typeof fakeGitHub>[0], start = 0, settings: GitHubSettings = SETTINGS) {
   let now = start;
   const logs: string[] = [];
   const gh = fakeGitHub(routes);
-  const client = createReleaseClient(SETTINGS, { fetch: gh.fetch, now: () => now, log: (m) => logs.push(m) });
+  const client = createReleaseClient(settings, { fetch: gh.fetch, now: () => now, log: (m) => logs.push(m) });
   return { client, calls: gh.calls, logs, advance: (ms: number) => (now += ms) };
 }
-
-const signed = (id: number) => () =>
-  new Response(null, { status: 302, headers: { location: `https://release-assets.githubusercontent.test/${id}?sig=abc` } });
 
 describe("asset patterns", () => {
   it("match the names Atlas's build produces, and nothing else", () => {
@@ -103,7 +112,9 @@ describe("parseRelease", () => {
     assert.equal(r.tag, "v0.2.0");
     assert.equal(r.assets.length, 6);
     assert.equal(r.assets[0]?.digest, DIGEST);
+    assert.equal(r.assets[0]?.downloadUrl, `${DL}/Atlas-0.2.0-arm64.dmg`);
     assert.equal(r.assets[5]?.digest, null);
+    assert.equal(r.assets[5]?.downloadUrl, null);
   });
 
   it("rejects things that aren't releases", () => {
@@ -123,7 +134,7 @@ describe("release client", () => {
     assert.deepEqual(s.value.assets["mac-arm64"], { name: "Atlas-0.2.0-arm64.dmg", size: 150_000_000, digest: DIGEST });
     assert.equal(s.value.assets["win-x64"]?.name, "Atlas-Setup-0.2.0-x64.exe");
     // The summary never carries ids or URLs.
-    assert.equal(JSON.stringify(s.value).includes("githubusercontent"), false);
+    assert.equal(JSON.stringify(s.value).includes("http"), false);
 
     const call = calls[0]!;
     assert.equal(call.url, "https://api.github.test/repos/acme/atlas/releases/latest");
@@ -159,16 +170,57 @@ describe("release client", () => {
     assert.ok(results.every((r) => r.ok));
   });
 
-  it("returns GitHub's signed URL, asking with octet-stream and manual redirects", async () => {
-    const { client, calls } = setup({ "/releases/latest": () => json(RELEASE), "/releases/assets/1": signed(1) });
-    const r = await client.getDownloadUrl("mac-arm64");
-    assert.deepEqual(r, {
-      ok: true,
-      value: { url: "https://release-assets.githubusercontent.test/1?sig=abc", fileName: "Atlas-0.2.0-arm64.dmg" },
+  it("returns the installer's browser_download_url, never the API asset URL, with one GitHub request", async () => {
+    const { client, calls } = setup({ "/releases/latest": () => json(RELEASE) });
+    const expected = {
+      "mac-arm64": `${DL}/Atlas-0.2.0-arm64.dmg`,
+      "mac-x64": `${DL}/Atlas-0.2.0-x64.dmg`,
+      "win-x64": `${DL}/Atlas-Setup-0.2.0-x64.exe`,
+    } as const;
+    for (const [platform, url] of Object.entries(expected) as [keyof typeof expected, string][]) {
+      const r = await client.getDownloadUrl(platform);
+      assert.ok(r.ok, platform);
+      assert.equal(r.value.url, url);
+      assert.equal(r.value.url.includes("api.github"), false);
+    }
+    assert.equal(calls.length, 1, "only the cached release lookup; no request per download");
+  });
+
+  it("works without a token, and then sends no Authorization header", async () => {
+    const { client, calls } = setup({ "/releases/latest": () => json(RELEASE) }, 0, { ...SETTINGS, token: null });
+    const r = await client.getDownloadUrl("win-x64");
+    assert.ok(r.ok);
+    const headers = calls[0]!.init.headers as Record<string, string>;
+    assert.equal("Authorization" in headers, false);
+  });
+
+  it("follows GitHub's redirect for a renamed repository, and tells the owner to update the settings", async () => {
+    const renamed = "https://github.test/acme/atlas-new/releases/download/v0.2.0/Atlas-0.2.0-arm64.dmg";
+    const { client, calls, logs } = setup({
+      "/releases/latest": () => json({ ...RELEASE, assets: [asset(1, "Atlas-0.2.0-arm64.dmg", 1, { browser_download_url: renamed })] }),
     });
-    const assetCall = calls.find((c) => c.url.endsWith("/releases/assets/1"))!;
-    assert.equal(assetCall.init.redirect, "manual");
-    assert.equal((assetCall.init.headers as Record<string, string>).Accept, "application/octet-stream");
+    const r = await client.getDownloadUrl("mac-arm64");
+    assert.deepEqual(r, { ok: true, value: { url: renamed, fileName: "Atlas-0.2.0-arm64.dmg" } });
+    assert.equal(calls[0]!.init.redirect, "follow");
+    assert.ok(logs.some((l) => l.includes("renamed") && l.includes("acme/atlas-new")));
+  });
+
+  it("refuses a download link that isn't a release file on GitHub", async () => {
+    const bad = [
+      null,
+      "not a url",
+      "http://github.test/acme/atlas/releases/download/v0.2.0/Atlas-0.2.0-arm64.dmg",
+      "https://evil.test/acme/atlas/releases/download/v0.2.0/Atlas-0.2.0-arm64.dmg",
+      "https://api.github.test/repos/acme/atlas/releases/assets/1",
+      "https://github.test/acme/atlas/archive/main.zip",
+      "https://user:pw@github.test/acme/atlas/releases/download/v0.2.0/x.dmg",
+    ];
+    for (const link of bad) {
+      const { client } = setup({
+        "/releases/latest": () => json({ ...RELEASE, assets: [asset(1, "Atlas-0.2.0-arm64.dmg", 1, { browser_download_url: link })] }),
+      });
+      assert.deepEqual(await client.getDownloadUrl("mac-arm64"), { ok: false, code: "unavailable" }, String(link));
+    }
   });
 
   it("maps GitHub failures to calm codes", async () => {
@@ -209,7 +261,6 @@ describe("release client", () => {
     const { client, calls, advance } = setup({
       "/releases/latest": () =>
         json(tag === "old" ? { ...RELEASE, assets: RELEASE.assets.filter((a) => a.id !== 3) } : RELEASE),
-      "/releases/assets/3": signed(3),
     });
     await client.getSummary(); // cache the old release
     tag = "new";
@@ -235,32 +286,6 @@ describe("release client", () => {
     assert.ok(logs.some((l) => l.includes("mac-x64")));
   });
 
-  it("refreshes when GitHub says a cached asset is gone", async () => {
-    let n = 0;
-    const { client } = setup({
-      "/releases/latest": () => json(RELEASE),
-      "/releases/assets/2": () => (n++ === 0 ? new Response("", { status: 404 }) : signed(2)()),
-    });
-    const r = await client.getDownloadUrl("mac-x64");
-    assert.equal(r.ok, true);
-  });
-
-  it("refuses a redirect that isn't https", async () => {
-    const { client } = setup({
-      "/releases/latest": () => json(RELEASE),
-      "/releases/assets/1": () => new Response(null, { status: 302, headers: { location: "http://insecure.test/x" } }),
-    });
-    assert.deepEqual(await client.getDownloadUrl("mac-arm64"), { ok: false, code: "unavailable" });
-  });
-
-  it("never relays the file itself", async () => {
-    const { client } = setup({
-      "/releases/latest": () => json(RELEASE),
-      "/releases/assets/1": () => new Response("binary", { status: 200 }),
-    });
-    assert.deepEqual(await client.getDownloadUrl("mac-arm64"), { ok: false, code: "unavailable" });
-  });
-
   it("never writes the token to the log", async () => {
     const { client, logs } = setup({
       "/releases/latest": () => new Response("", { status: 401 }),
@@ -272,61 +297,16 @@ describe("release client", () => {
   });
 });
 
-/** A signed link the way GitHub sends them now: a JWT and a storage signature, both with an expiry. */
-function githubLink(id: number, nowMs: number, lifetimeS: number) {
-  const exp = Math.floor(nowMs / 1000) + lifetimeS;
-  const jwt = ["e30", Buffer.from(JSON.stringify({ exp, nbf: exp - lifetimeS })).toString("base64url"), "sig"].join(".");
-  const se = new Date(exp * 1000).toISOString().replace(/\.\d{3}Z$/, "Z");
-  return `https://release-assets.githubusercontent.test/${id}?se=${encodeURIComponent(se)}&sig=abc&jwt=${jwt}`;
-}
-
-describe("signed download links", () => {
-  it("reads how long a link has left, from jwt, se or X-Amz-*", () => {
-    const now = Date.UTC(2026, 10, 7, 12, 0, 0);
-    assert.equal(signedUrlRemainingMs(githubLink(1, now, 3600), now), 3_600_000);
-    assert.equal(signedUrlRemainingMs("https://x.test/f?X-Amz-Date=20261107T120000Z&X-Amz-Expires=300", now), 300_000);
-    assert.equal(signedUrlRemainingMs("https://x.test/f?sig=abc", now), null);
-    assert.equal(signedUrlRemainingMs("not a url", now), null);
+describe("download links", () => {
+  it("come from github.com for api.github.com, and from the API host otherwise", () => {
+    assert.equal(downloadOriginFor("https://api.github.com"), "https://github.com");
+    assert.equal(downloadOriginFor("https://ghe.example.test/api/v3"), "https://ghe.example.test");
+    assert.equal(downloadOriginFor("http://127.0.0.1:4010"), "http://127.0.0.1:4010");
   });
 
-  it("reuses a link for a minute, so a burst of clicks costs GitHub one request", async () => {
-    const start = Date.UTC(2026, 10, 7, 12, 0, 0);
-    let n = 0;
-    const { client, calls, advance } = setup(
-      {
-        "/releases/latest": () => json(RELEASE),
-        "/releases/assets/1": () => new Response(null, { status: 302, headers: { location: githubLink(1, start + n++ * 1000, 3600) } }),
-      },
-      start,
-    );
-    const first = await client.getDownloadUrl("mac-arm64");
-    for (let i = 0; i < 50; i++) assert.deepEqual(await client.getDownloadUrl("mac-arm64"), first);
-    assert.equal(calls.filter((c) => c.url.endsWith("/releases/assets/1")).length, 1);
-
-    advance(SIGNED_URL_REUSE_MS);
-    const second = await client.getDownloadUrl("mac-arm64");
-    assert.notDeepEqual(second, first, "after a minute a fresh link is fetched");
-    assert.equal(calls.filter((c) => c.url.endsWith("/releases/assets/1")).length, 2);
-  });
-
-  it("never reuses a link that is close to expiring", async () => {
-    const start = Date.UTC(2026, 10, 7, 12, 0, 0);
-    const { client, calls } = setup(
-      {
-        "/releases/latest": () => json(RELEASE),
-        "/releases/assets/1": () => new Response(null, { status: 302, headers: { location: githubLink(1, start, 300) } }),
-      },
-      start,
-    );
-    await client.getDownloadUrl("mac-arm64");
-    await client.getDownloadUrl("mac-arm64");
-    assert.equal(calls.filter((c) => c.url.endsWith("/releases/assets/1")).length, 2);
-  });
-
-  it("keeps each installer's link separate", async () => {
-    const { client } = setup({ "/releases/latest": () => json(RELEASE), "/releases/assets/1": signed(1), "/releases/assets/2": signed(2) });
-    const a = await client.getDownloadUrl("mac-arm64");
-    const b = await client.getDownloadUrl("mac-x64");
-    assert.ok(a.ok && b.ok && a.value.url !== b.value.url && b.value.url.includes("/2?"));
+  it("match the real v0.2.0 release links", () => {
+    const real = "https://github.com/Aryan27-max/Atlas/releases/download/v0.2.0/Atlas-Setup-0.2.0-x64.exe";
+    assert.equal(checkDownloadUrl(real, "https://github.com")?.toString(), real);
+    assert.equal(checkDownloadUrl("https://api.github.com/repos/Aryan27-max/Atlas/releases/assets/699735390", "https://github.com"), null);
   });
 });

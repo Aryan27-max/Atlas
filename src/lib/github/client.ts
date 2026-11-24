@@ -1,18 +1,24 @@
-// Talks to the GitHub REST API for one private repository: finds the latest
-// release, picks the installer for a platform, and asks GitHub for a
-// short-lived signed download URL.
+// Talks to the GitHub REST API for one public repository: finds the latest
+// release, picks the installer for a platform, and returns that installer's
+// browser_download_url (https://github.com/<owner>/<repo>/releases/download/…),
+// which the browser follows to the file itself.
+//
+// Never the asset's API `url` (https://api.github.com/…/releases/assets/<id>):
+// opened in a browser, that answers with the asset's JSON metadata, not the file.
 //
 // Everything it needs is passed in (settings, fetch, clock, logger), so it can
 // be tested without the network. lib/github/releases.ts wires it to the real
-// environment. The token only ever goes into the Authorization header of
-// requests to the GitHub API; it is never logged or returned.
+// environment. The token is optional (it only raises GitHub's API rate limit),
+// only ever goes into the Authorization header of requests to the GitHub API,
+// and is never logged or returned.
 
 import { PLATFORM_IDS, type PlatformId } from "../platforms.ts";
 import type { DownloadErrorCode } from "./messages.ts";
 import { findAsset } from "./patterns.ts";
 
 export type GitHubSettings = {
-  token: string;
+  /** Optional. Without one, GitHub allows 60 API requests an hour per server address. */
+  token: string | null;
   owner: string;
   repo: string;
   /** e.g. https://api.github.com, without a trailing slash. */
@@ -22,7 +28,14 @@ export type GitHubSettings = {
   cacheTtlMs: number;
 };
 
-export type ReleaseAsset = { id: number; name: string; size: number; digest: string | null };
+export type ReleaseAsset = {
+  id: number;
+  name: string;
+  size: number;
+  digest: string | null;
+  /** The file itself (browser_download_url); null when GitHub's answer didn't have a usable one. */
+  downloadUrl: string | null;
+};
 
 export type LatestRelease = {
   tag: string;
@@ -48,8 +61,6 @@ export type ClientDeps = {
   timeoutMs?: number;
 };
 
-const REDIRECT_STATUSES = new Set([301, 302, 303, 307, 308]);
-
 /**
  * When an installer is missing from the cached release, look again only if the
  * cached lookup is at least this old. A new release is picked up quickly, and
@@ -60,39 +71,32 @@ export const MISSING_ASSET_REFRESH_MS = 30_000;
 /** A failed lookup is remembered this long, so an outage or a bad token can't be hammered. */
 export const FAILURE_CACHE_MS = 15_000;
 
-/**
- * GitHub's signed download links last an hour. Each one is reused for this
- * long, for everyone, so clicks don't each cost a GitHub API request: at most
- * one request per installer per minute, however busy the site is.
- */
-export const SIGNED_URL_REUSE_MS = 60_000;
-
-/** A link is never reused if it has less than this left before it expires. */
-export const SIGNED_URL_MIN_REMAINING_MS = 10 * 60_000;
-
 export function createReleaseClient(settings: GitHubSettings, deps: ClientDeps) {
   const now = deps.now ?? Date.now;
   const log = deps.log ?? ((message: string) => console.error(`[atlas-site] ${message}`));
   const timeoutMs = deps.timeoutMs ?? 10_000;
   const repoLabel = `${settings.owner}/${settings.repo}`;
   const repoUrl = `${settings.apiUrl}/repos/${encodeURIComponent(settings.owner)}/${encodeURIComponent(settings.repo)}`;
+  const downloadOrigin = downloadOriginFor(settings.apiUrl);
 
   let cache: { value: LatestRelease; fetchedAt: number; expiresAt: number } | null = null;
   let inflight: Promise<Result<LatestRelease>> | null = null;
   let failure: { code: DownloadErrorCode; until: number } | null = null;
-  const signedUrls = new Map<number, { url: string; reuseUntil: number }>();
+  let warnedRenamed = false;
 
-  async function request(url: string, accept: string, redirect: RequestRedirect, context: string) {
+  async function request(url: string, context: string) {
+    const headers: Record<string, string> = {
+      Accept: "application/vnd.github+json",
+      "X-GitHub-Api-Version": "2022-11-28",
+      "User-Agent": "atlas-website",
+    };
+    if (settings.token) headers.Authorization = `Bearer ${settings.token}`;
     try {
+      // Redirects are followed: GitHub answers 301 for a renamed repository.
       return await deps.fetch(url, {
         method: "GET",
-        headers: {
-          Accept: accept,
-          Authorization: `Bearer ${settings.token}`,
-          "X-GitHub-Api-Version": "2022-11-28",
-          "User-Agent": "atlas-website",
-        },
-        redirect,
+        headers,
+        redirect: "follow",
         cache: "no-store",
         signal: AbortSignal.timeout(timeoutMs),
       });
@@ -111,11 +115,14 @@ export function createReleaseClient(settings: GitHubSettings, deps: ClientDeps) 
       return "access-denied";
     }
     if (status === 429 || (status === 403 && (res.headers.get("x-ratelimit-remaining") === "0" || res.headers.has("retry-after")))) {
-      log(`${context}: GitHub rate limit reached (${status}). Downloads resume when the limit resets.`);
+      log(
+        `${context}: GitHub rate limit reached (${status}). Downloads resume when the limit resets.` +
+          (settings.token ? "" : " Setting GITHUB_TOKEN raises the limit from 60 to 5,000 requests an hour."),
+      );
       return "rate-limited";
     }
     if (status === 403) {
-      log(`${context}: GitHub refused access (403). Check that the token has Contents: Read-only on ${repoLabel}.`);
+      log(`${context}: GitHub refused access (403). Check that ${repoLabel} is public and that GITHUB_TOKEN, if set, is valid.`);
       return "access-denied";
     }
     log(`${context}: GitHub answered ${status}.`);
@@ -130,14 +137,14 @@ export function createReleaseClient(settings: GitHubSettings, deps: ClientDeps) 
 
   async function lookUpLatest(): Promise<Result<LatestRelease>> {
     const context = "Latest release lookup";
-    const res = await request(`${repoUrl}/releases/latest`, "application/vnd.github+json", "follow", context);
+    const res = await request(`${repoUrl}/releases/latest`, context);
     if (!res) return { ok: false, code: "unavailable" };
 
     if (res.status === 404) {
       await res.body?.cancel();
       log(
         `${context}: no published release found for ${repoLabel} (404). Drafts and pre-releases don't count; ` +
-          "publish the release. If one is published, check GITHUB_OWNER, GITHUB_REPO and the token's repository access.",
+          "publish the release. If one is published, check GITHUB_OWNER and GITHUB_REPO, and that the repository is public.",
       );
       return { ok: false, code: "no-release" };
     }
@@ -204,10 +211,10 @@ export function createReleaseClient(settings: GitHubSettings, deps: ClientDeps) 
   }
 
   /**
-   * Asks GitHub for a signed, short-lived URL for this platform's installer.
-   * If the cached release turns out to be stale, it looks again once: always
-   * when GitHub says the asset is gone, and when the installer is missing only
-   * if the cached lookup is older than MISSING_ASSET_REFRESH_MS.
+   * The download link for this platform's installer: the asset's
+   * browser_download_url, checked to be a release download on GitHub itself.
+   * If the cached release lacks the installer and the lookup is older than
+   * MISSING_ASSET_REFRESH_MS, it looks again once, so a new release is found.
    */
   async function getDownloadUrl(platform: PlatformId): Promise<Result<{ url: string; fileName: string }>> {
     for (let attempt = 0; attempt < 2; attempt += 1) {
@@ -222,90 +229,56 @@ export function createReleaseClient(settings: GitHubSettings, deps: ClientDeps) 
         return { ok: false, code: "asset-missing" };
       }
 
-      const reused = signedUrls.get(asset.id);
-      if (reused && reused.reuseUntil > now()) return { ok: true, value: { url: reused.url, fileName: asset.name } };
-
-      const context = `Download of ${asset.name}`;
-      const res = await request(`${repoUrl}/releases/assets/${asset.id}`, "application/octet-stream", "manual", context);
-      if (!res) return { ok: false, code: "unavailable" };
-      await res.body?.cancel();
-
-      if (REDIRECT_STATUSES.has(res.status)) {
-        const location = res.headers.get("location");
-        if (location && isHttpsUrl(location)) {
-          rememberSignedUrl(asset.id, location);
-          return { ok: true, value: { url: location, fileName: asset.name } };
-        }
-        log(`${context}: GitHub's redirect had no usable https location.`);
+      const link = checkDownloadUrl(asset.downloadUrl, downloadOrigin);
+      if (!link) {
+        log(`${asset.name} in ${latest.value.tag} has no usable download link (expected a ${downloadOrigin}/…/releases/download/… URL).`);
         return { ok: false, code: "unavailable" };
       }
-      if (res.status === 404) {
-        if (attempt === 0) continue;
-        log(`${context}: GitHub says the file no longer exists (404).`);
-        return { ok: false, code: "asset-missing" };
+      if (!warnedRenamed && !sameRepo(link, settings.owner, settings.repo)) {
+        warnedRenamed = true;
+        log(
+          `GitHub serves this release from ${link.pathname.split("/").slice(1, 3).join("/")}, not ${repoLabel}: ` +
+            "the repository was renamed or moved. Update GITHUB_OWNER and GITHUB_REPO to match.",
+        );
       }
-      if (res.ok) {
-        log(`${context}: GitHub sent the file itself instead of a redirect, which this site doesn't relay.`);
-        return { ok: false, code: "unavailable" };
-      }
-      return { ok: false, code: classify(res, context) };
+      return { ok: true, value: { url: link.toString(), fileName: asset.name } };
     }
     return { ok: false, code: "asset-missing" };
-  }
-
-  function rememberSignedUrl(assetId: number, url: string) {
-    const t = now();
-    for (const [id, entry] of signedUrls) if (entry.reuseUntil <= t) signedUrls.delete(id);
-    const remaining = signedUrlRemainingMs(url, t);
-    if (remaining !== null && remaining < SIGNED_URL_MIN_REMAINING_MS) return;
-    signedUrls.set(assetId, { url, reuseUntil: t + SIGNED_URL_REUSE_MS });
   }
 
   return { getLatestRelease, getSummary, getDownloadUrl };
 }
 
 /**
- * How long a GitHub signed link has left, from what it says about itself: the
- * `jwt` expiry and the storage signature's `se` (current links), or
- * X-Amz-Date + X-Amz-Expires (older links). The earliest wins; null if unknown.
+ * Where release files are served from: github.com for api.github.com,
+ * otherwise the API's own host (GitHub Enterprise Server, or a local stand-in).
  */
-export function signedUrlRemainingMs(url: string, nowMs: number): number | null {
-  let u: URL;
+export function downloadOriginFor(apiUrl: string): string {
+  const url = new URL(apiUrl);
+  if (url.hostname.startsWith("api.")) url.hostname = url.hostname.slice(4);
+  return url.origin;
+}
+
+/** The link, if it's a release download on the expected host; null otherwise. */
+export function checkDownloadUrl(value: string | null, expectedOrigin: string): URL | null {
+  if (!value) return null;
+  let url: URL;
   try {
-    u = new URL(url);
+    url = new URL(value);
   } catch {
     return null;
   }
-  const ends: number[] = [];
-  const jwt = u.searchParams.get("jwt");
-  if (jwt) {
-    try {
-      const exp = JSON.parse(Buffer.from(jwt.split(".")[1] ?? "", "base64url").toString("utf8")).exp;
-      if (typeof exp === "number") ends.push(exp * 1000);
-    } catch {
-      // Not a readable token: ignore it.
-    }
-  }
-  const se = Date.parse(u.searchParams.get("se") ?? "");
-  if (!Number.isNaN(se)) ends.push(se);
-  const amzDate = u.searchParams.get("X-Amz-Date")?.match(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z$/);
-  const amzExpires = Number(u.searchParams.get("X-Amz-Expires"));
-  if (amzDate && Number.isFinite(amzExpires)) {
-    const [, y, mo, d, h, mi, sec] = amzDate.map(Number) as number[];
-    ends.push(Date.UTC(y!, mo! - 1, d!, h!, mi!, sec!) + amzExpires * 1000);
-  }
-  return ends.length > 0 ? Math.min(...ends) - nowMs : null;
+  if (url.origin !== expectedOrigin || url.username || url.password) return null;
+  if (!/^\/[^/]+\/[^/]+\/releases\/download\/[^/]+\/[^/]+$/.test(url.pathname)) return null;
+  return url;
+}
+
+function sameRepo(link: URL, owner: string, repo: string): boolean {
+  const [, linkOwner = "", linkRepo = ""] = link.pathname.split("/");
+  return linkOwner.toLowerCase() === owner.toLowerCase() && linkRepo.toLowerCase() === repo.toLowerCase();
 }
 
 export type ReleaseClient = ReturnType<typeof createReleaseClient>;
-
-function isHttpsUrl(value: string): boolean {
-  try {
-    return new URL(value).protocol === "https:";
-  } catch {
-    return false;
-  }
-}
 
 /** Keeps only the fields this site uses, and checks their types. */
 export function parseRelease(json: unknown): LatestRelease | null {
@@ -319,7 +292,8 @@ export function parseRelease(json: unknown): LatestRelease | null {
     const a = item as Record<string, unknown>;
     if (typeof a.id !== "number" || typeof a.name !== "string" || typeof a.size !== "number") continue;
     const digest = typeof a.digest === "string" && /^sha256:[0-9a-f]{64}$/i.test(a.digest) ? a.digest.slice(7).toLowerCase() : null;
-    assets.push({ id: a.id, name: a.name, size: a.size, digest });
+    const downloadUrl = typeof a.browser_download_url === "string" ? a.browser_download_url : null;
+    assets.push({ id: a.id, name: a.name, size: a.size, digest, downloadUrl });
   }
 
   return {
