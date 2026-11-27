@@ -57,6 +57,43 @@ LABELS = {
     "resume_link": "Résumé link",
 }
 
+# What each column is for, in the recruiter's words: shown in the app's
+# "Input fields" box before a file is added (``input_columns``).
+COLUMN_HELP = {
+    "ra_number": "Each student's register number. Must be unique in the file.",
+    "resume_link": "A Google Drive link to the résumé PDF, shared with \u201cAnyone with the link\u201d.",
+    "name": "The student's name. Two columns, First name and Last name, also work.",
+    "email": "Never sent to the model.",
+    "phone": "Never sent to the model.",
+    "cgpa": "Out of 10. Used by the Minimum CGPA filter.",
+    "department": "Used by the department filter.",
+    "section": "Never sent to the model.",
+    "skills": "What the student says they know. Checked against the résumé.",
+    "hackathons": "Hackathons the student says they took part in. Checked against the résumé.",
+}
+
+# The file types a student list can be (an old .xls is refused with XLS_MESSAGE).
+ACCEPTED_FILE_TYPES = (".csv", ".xlsx")
+
+# Order of the "Input fields" box: required columns first.
+_HELP_ORDER = ("ra_number", "resume_link", "name", "cgpa", "department", "skills", "hackathons",
+               "email", "phone", "section")
+
+
+def input_columns() -> list[tuple[str, bool, str, tuple[str, ...]]]:
+    """``(label, required, help, other accepted headers)`` for every column, required first.
+
+    Comes from the same tables the loader matches headers with, so what the
+    app shows can't drift from what it accepts.
+    """
+    out = []
+    for field in _HELP_ORDER:
+        label = LABELS[field]
+        others = tuple(a for a in _ALIASES[field] if _norm_header(a) != _norm_header(label))
+        out.append((label, field in REQUIRED, COLUMN_HELP[field], others))
+    return out
+
+
 # Header aliases, written the way people type them. They are normalised with
 # ``_norm_header`` before comparing, so case, spaces, punctuation and accents
 # don't matter ("Reg. No" == "reg no" == "REGNO").

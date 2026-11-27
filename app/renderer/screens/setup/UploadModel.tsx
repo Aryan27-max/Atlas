@@ -4,7 +4,7 @@ import { type DragEvent, useEffect, useState } from 'react'
 import type { PreflightOut } from '@shared/api-types'
 import type { ApiResult, UploadSource } from '@shared/bridge'
 import { ApiFailure, api, messageOf } from '../../api/client'
-import { Banner, Button, Card, Spinner, TextField } from '../../design'
+import { Badge, Banner, Button, Card, Spinner, TextField } from '../../design'
 import { useSetup } from '../../state/setup'
 import { ModelPicker } from './ModelPicker'
 import { Preflight } from './Preflight'
@@ -121,6 +121,8 @@ export function UploadModel() {
             )}
           </Card>
 
+          <InputFields />
+
           <Card title="Model" subtitle="Runs on this computer. Nothing is sent anywhere." labelledBy="model-title">
             <ModelPicker
               data={models.data}
@@ -148,6 +150,50 @@ export function UploadModel() {
         }
       />
     </>
+  )
+}
+
+/** The columns a student list must have, as the engine reads them (GET /input-format). */
+function InputFields() {
+  const format = useQuery({
+    queryKey: ['input-format'],
+    queryFn: () => api('GET /input-format'),
+    staleTime: Infinity,
+  })
+  return (
+    <Card
+      title="Input fields"
+      subtitle="The columns Atlas reads from the student list. Column order doesn’t matter, and neither do capitals, spaces or dots in the names. Other columns aren’t used."
+      labelledBy="input-fields-title"
+    >
+      {format.isLoading ? (
+        <Spinner size={20} label="Loading the input fields" />
+      ) : format.data ? (
+        <>
+          <p className="atl-footnote atl-secondary">
+            File types: {format.data.file_types.join(', ')}. Save an old .xls file as .xlsx first.
+          </p>
+          <ul className="input-fields" aria-label="Input fields">
+            {format.data.columns.map((column) => (
+              <li key={column.label} className="input-field">
+                <div className="input-field-head">
+                  <span className="atl-headline">{column.label}</span>
+                  {column.required ? <Badge tone="accent">Required</Badge> : <Badge>Optional</Badge>}
+                </div>
+                <span className="atl-footnote atl-secondary">{column.help}</span>
+                {column.also_accepted.length > 0 && (
+                  <span className="atl-caption atl-tertiary">Also accepted: {column.also_accepted.join(', ')}</span>
+                )}
+              </li>
+            ))}
+          </ul>
+        </>
+      ) : (
+        <Banner tone="error" title="The input fields couldn’t be loaded">
+          {messageOf(format.error)}
+        </Banner>
+      )}
+    </Card>
   )
 }
 

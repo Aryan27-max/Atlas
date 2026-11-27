@@ -10,7 +10,11 @@ from pathlib import Path
 from engine import db as db_module
 from engine.db import Database
 from engine.ingest.csv_loader import (
+    ACCEPTED_FILE_TYPES,
     FIELDS,
+    LABELS,
+    REQUIRED,
+    input_columns,
     load_csv,
     normalise_cgpa,
     normalise_phone,
@@ -59,6 +63,28 @@ class HeaderTests(CsvTestCase):
         self.assertEqual(row["hackathons"], "SIH 2025")
         self.assertEqual(row["resume_link"], drive(1))
         self.assertEqual(report.warnings, [])
+
+    def test_input_fields_box_matches_what_the_loader_accepts(self) -> None:
+        # The app's "Input fields" box comes from input_columns(); every name it lists must load.
+        columns = input_columns()
+        self.assertEqual({c[0] for c in columns}, set(LABELS.values()))
+        self.assertEqual([c[0] for c in columns if c[1]], [LABELS[f] for f in REQUIRED])
+        self.assertEqual([c[1] for c in columns], sorted((c[1] for c in columns), reverse=True), "required first")
+        self.assertTrue(all(c[2] for c in columns), "every column says what it is for")
+        self.assertEqual(ACCEPTED_FILE_TYPES, (".csv", ".xlsx"))
+        by_label = {label: field for field, label in LABELS.items()}
+        for label, _required, _help, others in columns:
+            for header in (label, *others):
+                with self.subTest(header=header):
+                    if by_label[label] == "ra_number":
+                        content = f'"{header}",Resume Link\nRA1,{drive(1)}\n'
+                    elif by_label[label] == "resume_link":
+                        content = f'RA Number,"{header}"\nRA1,{drive(1)}\n'
+                    else:
+                        content = f'RA Number,Resume Link,"{header}"\nRA1,{drive(1)},x\n'
+                    report = load_csv(self.write(content))
+                    self.assertTrue(report.ok, report.errors)
+                    self.assertIn(by_label[label], report.columns)
 
     def test_longer_header_matches_by_prefix(self) -> None:
         path = self.write(

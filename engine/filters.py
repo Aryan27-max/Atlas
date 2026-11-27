@@ -83,3 +83,18 @@ def department_counts(rows: Iterable[Mapping[str, Any]]) -> list[tuple[str, int]
         spellings.setdefault(key, Counter())[name] += 1
     return [(spellings[key].most_common(1)[0][0], n)
             for key, n in sorted(counts.items(), key=lambda item: (-item[1], item[0]))]
+
+
+def match_department(name: str, rows: Iterable[Mapping[str, Any]]) -> tuple[str, int] | None:
+    """The file's department that ``name`` means, with its student count, or ``None``.
+
+    Same matching as the filter ("cse" finds "C.S.E."), so a department the
+    recruiter adds is exactly one the filter will keep.
+    """
+    key = department_key(name)
+    if not key:
+        return None
+    for department, count in department_counts(rows):
+        if department_key(department) == key:
+            return department, count
+    return None

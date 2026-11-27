@@ -8,7 +8,7 @@ import unittest
 from pathlib import Path
 
 from engine.db import Database, NotFoundError, RunLockedError, ValidationError
-from engine.filters import department_counts, department_key, filter_reason, preview
+from engine.filters import department_counts, department_key, filter_reason, match_department, preview
 from engine.ingest.csv_loader import Issue, PreflightReport, issue_groups
 from engine.ingest.links import link_kind
 from engine.llm.client import OllamaClient
@@ -80,6 +80,16 @@ class FilterTests(unittest.TestCase):
     def test_department_counts_merge_spellings(self) -> None:
         rows = [{"department": d} for d in ("CSE", "C.S.E.", "CSE", "ECE", "", "Mech")]
         self.assertEqual(department_counts(rows), [("CSE", 3), ("ECE", 1), ("Mech", 1)])
+
+
+    def test_match_department_uses_the_filters_matching(self) -> None:
+        rows = [{"department": d} for d in ("CSE", "C.S.E.", "CSE", "ECE", "", "Mech")]
+        self.assertEqual(match_department("cse", rows), ("CSE", 3))
+        self.assertEqual(match_department(" c.s.e ", rows), ("CSE", 3))
+        self.assertEqual(match_department("MECH", rows), ("Mech", 1))
+        self.assertIsNone(match_department("Civil", rows))
+        self.assertIsNone(match_department("...", rows), "nothing to match")
+        self.assertIsNone(match_department("CSE", []), "no file, no departments")
 
 
 class LinkKindTests(unittest.TestCase):

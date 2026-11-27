@@ -63,10 +63,10 @@ from engine.estimate import TIMING_SETTING, estimate
 from engine.export import ExportError, export_csv
 from engine.extract.ocr import EasyOcrEngine
 from engine.extract.pdf import PdfExtractor
-from engine.filters import department_counts
+from engine.filters import department_counts, match_department
 from engine.filters import preview as filter_preview
 from engine.health import HealthProbe
-from engine.ingest.csv_loader import PreflightReport, issue_groups, load_table
+from engine.ingest.csv_loader import ACCEPTED_FILE_TYPES, PreflightReport, input_columns, issue_groups, load_table
 from engine.ingest.downloader import Downloader
 from engine.ingest.links import link_kind
 from engine.llm.client import DEFAULT_URL, OllamaClient, local_only
@@ -80,7 +80,7 @@ from engine.worker import WORKING_STATES, Worker, WorkerBusyError, run_waiting_t
 
 log = logging.getLogger("atlas.server")
 
-ENGINE_VERSION = "0.2.0"
+ENGINE_VERSION = "0.3.0"
 PRECHECK_SETTING = "model_prechecks"          # shared with the CLI
 PREFERENCES_SETTING = "preferences"
 MAX_UPLOAD_BYTES = 20 * 1024 * 1024
@@ -508,6 +508,13 @@ class Engine:
         p = filter_preview(self._preview_rows(run_id), cgpa_min=cgpa_min, departments=departments or None)
         return m.FilterPreviewOut(total=p.total, removed=p.removed, removed_by_cgpa=p.removed_by_cgpa,
                                   removed_by_department=p.removed_by_department, remaining=p.remaining)
+
+    def department_match(self, run_id: int, name: str) -> m.DepartmentMatchOut:
+        self.db.get_run(run_id)
+        found = match_department(name, self._preview_rows(run_id))
+        if found:
+            return m.DepartmentMatchOut(name=found[0], count=found[1])
+        return m.DepartmentMatchOut(name=None, count=0, message=Api.unknown_department(" ".join(name.split())))
 
     # ---- lifecycle -------------------------------------------------------- #
 
@@ -1097,6 +1104,14 @@ def create_app(engine: Engine | None = None, *, token: str = "", port: int = 0) 
     def system() -> m.SystemOut:
         return eng().system()
 
+    @app.get("/input-format", response_model=m.InputFormatOut)
+    def input_format() -> m.InputFormatOut:
+        return m.InputFormatOut(
+            file_types=list(ACCEPTED_FILE_TYPES),
+            columns=[m.InputColumnOut(label=label, required=required, help=help_, also_accepted=list(others))
+                     for label, required, help_, others in input_columns()],
+        )
+
     @app.post("/ollama/start", response_model=m.OllamaStartOut)
     def ollama_start() -> m.OllamaStartOut:
         return eng().start_ollama()
@@ -1178,6 +1193,10 @@ def create_app(engine: Engine | None = None, *, token: str = "", port: int = 0) 
     def run_filters_preview(run_id: int, cgpa_min: float | None = Query(default=None, ge=0, le=10),
                             departments: list[str] | None = Query(default=None)) -> m.FilterPreviewOut:
         return eng().filters_preview(run_id, cgpa_min, departments)
+
+    @app.get("/runs/{run_id}/departments/match", response_model=m.DepartmentMatchOut)
+    def run_department_match(run_id: int, name: str = Query(min_length=1, max_length=200)) -> m.DepartmentMatchOut:
+        return eng().department_match(run_id, name)
 
     @app.post("/runs/{run_id}/filters/clear", response_model=m.ClearFiltersOut)
     def run_filters_clear(run_id: int) -> m.ClearFiltersOut:

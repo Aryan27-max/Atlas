@@ -1,8 +1,8 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Info } from 'lucide-react'
+import { Info, X } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { api, messageOf } from '../../api/client'
-import { Banner, Button, Card, Chip, ScoreBand, Stepper, Toggle } from '../../design'
+import { Banner, Button, Card, Chip, ScoreBand, Stepper, TextField, Toggle } from '../../design'
 import { plural } from '../../format'
 import { useSetup } from '../../state/setup'
 import { SetupBar, useFlow } from './SetupFlow'
@@ -50,8 +50,37 @@ export function Cutoffs() {
     placeholderData: keepPreviousData,
   })
 
-  const toggleDepartment = (name: string): void =>
-    setDepartments((all) => (all.includes(name) ? all.filter((d) => d !== name) : [...all, name]))
+  const removeDepartment = (name: string): void => setDepartments((all) => all.filter((d) => d !== name))
+
+  // The recruiter types a department; the engine says whether the student list has it
+  // (same matching as the filter: "cse" finds "C.S.E."). Only departments in the file can be added.
+  const [typed, setTyped] = useState('')
+  const [typedError, setTypedError] = useState<string | undefined>()
+  const addDepartment = useMutation({
+    mutationFn: (name: string) =>
+      api('GET /runs/{run_id}/departments/match', { params: { run_id: run.id }, query: { name } }),
+    onSuccess: (match) => {
+      if (match.name === null) {
+        setTypedError(match.message ?? undefined)
+      } else if (departments.includes(match.name)) {
+        setTypedError(`${match.name} is already added.`)
+      } else {
+        setDepartments((all) => [...all, match.name as string])
+        setTyped('')
+        setTypedError(undefined)
+      }
+    },
+    onError: (error) => setTypedError(messageOf(error)),
+  })
+  const submitDepartment = (): void => {
+    const name = typed.trim()
+    if (!name) {
+      setTypedError('Type a department first.')
+      return
+    }
+    addDepartment.mutate(name)
+  }
+  const countOf = (name: string): number | undefined => available.find((d) => d.name === name)?.count
 
   const save = useMutation({
     mutationFn: () =>
@@ -151,18 +180,43 @@ export function Cutoffs() {
                 <span className="atl-callout">Only these departments</span>
                 {available.length ? (
                   <>
-                    <div className="chips" role="group" aria-label="Departments">
-                      {available.map((d) => (
-                        <Chip
-                          key={d.name}
-                          pressed={departments.includes(d.name)}
-                          onClick={() => toggleDepartment(d.name)}
-                          description={plural(d.count, 'student')}
-                        >
-                          {d.name} <span className="atl-tabular chip-count">{d.count}</span>
-                        </Chip>
-                      ))}
+                    <div className="department-add">
+                      <TextField
+                        label="Add a department"
+                        hideLabel
+                        placeholder="Department, as in the student list"
+                        value={typed}
+                        maxLength={200}
+                        onChange={(value) => {
+                          setTyped(value)
+                          setTypedError(undefined)
+                        }}
+                        onEnter={submitDepartment}
+                        error={typedError}
+                      />
+                      <Button loading={addDepartment.isPending} onClick={submitDepartment}>
+                        Add
+                      </Button>
                     </div>
+                    {departments.length > 0 && (
+                      <div className="chips" role="group" aria-label="Departments">
+                        {departments.map((name) => {
+                          const count = countOf(name)
+                          return (
+                            <Chip
+                              key={name}
+                              pressed
+                              onClick={() => removeDepartment(name)}
+                              description={`Remove ${name}${count === undefined ? '' : `, ${plural(count, 'student')}`}`}
+                            >
+                              {name}
+                              {count !== undefined && <span className="atl-tabular chip-count">{count}</span>}
+                              <X aria-hidden size={12} strokeWidth={2} />
+                            </Chip>
+                          )
+                        })}
+                      </div>
+                    )}
                     <span className="atl-footnote atl-secondary">
                       {departments.length === 0
                         ? 'None selected: every department is included.'

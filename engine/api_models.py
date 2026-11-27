@@ -228,6 +228,26 @@ class ConfirmOut(BaseModel):
     added: int
 
 
+class InputColumnOut(BaseModel):
+    label: str
+    required: bool
+    help: str
+    also_accepted: list[str]
+
+
+class InputFormatOut(BaseModel):
+    """What a student list must contain: the "Input fields" box."""
+    file_types: list[str]
+    columns: list[InputColumnOut]
+
+
+class DepartmentMatchOut(BaseModel):
+    """A department the recruiter typed, as the file spells it; ``name: null`` (with ``message``) when no student has it."""
+    name: str | None
+    count: int
+    message: str | None = None
+
+
 class FilterPreviewOut(BaseModel):
     total: int
     removed: int

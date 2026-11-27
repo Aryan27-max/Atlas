@@ -92,6 +92,13 @@ export interface DepartmentCountOut {
   name: string
 }
 
+/** A department the recruiter typed, as the file spells it; ``name: null`` (with ``message``) when no student has it. */
+export interface DepartmentMatchOut {
+  count: number
+  message?: string | null
+  name: string | null
+}
+
 export interface ErrorOut {
   code: string
   message: string
@@ -176,6 +183,19 @@ export interface HardwareOut {
 export interface HealthOut {
   status: "ok"
   version: string
+}
+
+export interface InputColumnOut {
+  also_accepted: string[]
+  help: string
+  label: string
+  required: boolean
+}
+
+/** What a student list must contain: the "Input fields" box. */
+export interface InputFormatOut {
+  columns: InputColumnOut[]
+  file_types: string[]
 }
 
 export interface IssueGroupOut {
@@ -457,6 +477,12 @@ export interface ApiRoutes {
     body: never
     response: HealthOut
   }
+  "GET /input-format": {
+    params: never
+    query: never
+    body: never
+    response: InputFormatOut
+  }
   "GET /models": {
     params: never
     query: never
@@ -540,6 +566,12 @@ export interface ApiRoutes {
     query: never
     body: CutoffsIn
     response: RunOut
+  }
+  "GET /runs/{run_id}/departments/match": {
+    params: { run_id: number }
+    query: { name: string }
+    body: never
+    response: DepartmentMatchOut
   }
   "GET /runs/{run_id}/estimate": {
     params: { run_id: number }

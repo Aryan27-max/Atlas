@@ -1,4 +1,4 @@
-# Atlas 0.2.0
+# Atlas 0.3.0
 
 Atlas screens student résumés on your own computer. You give it the student list (Excel or CSV), describe who you're looking for, and an AI model running on the same computer (through Ollama) reads each résumé and sorts the students into **Shortlisted**, **Cutoff** and **Rejected**, with the reasons. Nothing about the students is sent to an online AI service.
 
@@ -6,9 +6,9 @@ Atlas screens student résumés on your own computer. You give it the student li
 
 | Your computer | File |
 |---|---|
-| Windows 10 or 11 (64-bit) | `Atlas-Setup-0.2.0-x64.exe` |
-| Mac with Apple silicon (M1 or later) | `Atlas-0.2.0-arm64.dmg` |
-| Mac with an Intel processor | `Atlas-0.2.0-x64.dmg` |
+| Windows 10 or 11 (64-bit) | `Atlas-Setup-0.3.0-x64.exe` |
+| Mac with Apple silicon (M1 or later) | `Atlas-0.3.0-arm64.dmg` |
+| Mac with an Intel processor | `Atlas-0.3.0-x64.dmg` |
 
 Not sure which Mac you have? Apple menu → **About This Mac**: "Chip: Apple M…" means Apple silicon.
 
@@ -25,7 +25,11 @@ Follow **INSTALL.md**, attached to this release. In short:
 
 **Smart App Control.** On a Windows 11 PC with Smart App Control switched on, the installer may be blocked with no "Run anyway". Ask your IT contact; a signed version of Atlas is the lasting fix.
 
-## What's in this version
+## New in 0.3.0
+- **Input fields:** when you start a new screening, an **Input fields** box lists every column Atlas reads from the student list, which ones are required (RA number and résumé link), what each is for, and the other column names it accepts. Student lists can be CSV (.csv) or Excel (.xlsx); save an old .xls file as .xlsx first.
+- **Department filter:** on the Cutoffs page you now type the departments you want and press **Add**. Atlas checks each one against the student list (capitals, spaces and dots don't matter, so "cse" finds "C.S.E."). A department that isn't in the list is refused with a message, so you can't filter on a typo. Leave it empty to include every department.
+
+## Everything in Atlas
 - **Student lists:** Excel (.xlsx) and CSV student lists, checked before anything is saved.
 - **Private scoring:** résumés are downloaded and scored by a local AI model, with names, emails, phone numbers and RA numbers kept from the model.
 - **Results:** live cutoffs, a minimum number to shortlist, and moving students between groups by hand, with a note.
