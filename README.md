@@ -21,6 +21,8 @@ More, for every screen and both themes: [`docs/summaries/phase2/screens/`](docs/
 
 ## Key features
 - **CSV or Excel in, with a pre-flight report.** Atlas reads the Google Forms export (`.csv` or `.xlsx`), recognises its columns, and lists every problem before anything is saved: missing or duplicate RA numbers, missing links, links shared by several students.
+- **Input fields shown up front.** Before you add a file, the *Input fields* box lists every column Atlas reads, which are required (RA number and résumé link), what each is for, and the other column names it accepts.
+- **Filters before scoring.** A minimum CGPA, and only the departments you type: each one is checked against the student list ("cse" finds "C.S.E."), and one that isn't there is refused, so a typo can't empty the screening.
 - **A local AI model, through Ollama.** The model (for example `qwen3:8b`) runs on the recruiter's computer. Atlas tests a model once before using it, and can find and start an installed Ollama for you.
 - **Identity redaction.** Name, email, phone, RA number, section and photos never reach the model, including the copies inside the résumé itself (its header, email addresses, profile handles).
 - **Live cutoffs, minimum fill and ties.** Move the shortlist and cutoff lines and see the groups change at once. Ask for "at least N shortlisted" and Atlas fills by rank, labels who was filled, and never splits a tie.
@@ -343,7 +345,7 @@ Details for the firm and its legal team: [docs/DATA_HANDLING.md](docs/DATA_HANDL
 ## Testing
 | Suite | Count | Command |
 |---|---|---|
-| Engine (unittest) | 429 (1 skipped: OCR, which the shipped app doesn't include) | `python -m unittest discover -s engine/tests -t .` |
+| Engine (unittest) | 432 (1 skipped: OCR, which the shipped app doesn't include) | `python -m unittest discover -s engine/tests -t .` |
 | App unit tests (Vitest) | 253 | `cd app; npm test` |
 | End to end (Playwright, the real app against local stubs) | 69, plus 2 that need a packaged build or an install | `cd app; npm run e2e` |
 

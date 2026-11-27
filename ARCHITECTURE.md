@@ -516,7 +516,7 @@ Both kill tests use `Popen.kill()` (SIGKILL on POSIX, `TerminateProcess` on Wind
 
 **Excel input** *(Phase 2)*: `.xlsx` is read with openpyxl — first sheet only, each cell as the text Excel shows (whole numbers written out in full, so a phone stored as a number never becomes `9.19877E+11`; other numbers up to 15 significant digits or the decimals of the cell's format; dates as `YYYY-MM-DD`), and a résumé-link cell that shows a word ("Resume") uses its hyperlink target. Other columns' hyperlinks (e.g. `mailto:` on an email) are ignored. The file type is decided by its first bytes, then its extension. An old binary `.xls` is refused: "Save this file as .xlsx or CSV and try again." After reading, CSV and Excel go through exactly the same header matching, normalisation and report.
 
-**Expected fields**, with header aliases matched case- and punctuation-insensitively:
+**Expected fields**, with header aliases matched case- and punctuation-insensitively. *(0.3.0)* The app shows this list on the Students & model screen (the "Input fields" box, `GET /input-format`), built from `LABELS`, `REQUIRED`, `_ALIASES` and `COLUMN_HELP`, so it can't drift from what the loader accepts:
 
 | Field | DB column | Accepted headers (examples) | Required |
 |---|---|---|---|
@@ -796,6 +796,8 @@ Scoring times are measured inside the model call, so paused time never counts. K
 | POST / DELETE | `/runs/{id}/table` | upload CSV/XLSX (multipart, ≤ 20 MB) → pre-flight report; nothing stored / discard the upload |
 | POST | `/runs/{id}/table/confirm` | insert the ready rows (draft only, once) |
 | GET | `/runs/{id}/filters/preview?cgpa_min=&departments=` | how many students each filter removes (same rule as the worker, `engine/filters.py`) |
+| GET | `/runs/{id}/departments/match?name=` *(0.3.0)* | the file's department a typed name means (`match_department`, the filter's own matching) with its count, or `name: null` and `Api.unknown_department` |
+| GET | `/input-format` *(0.3.0)* | the "Input fields" box: accepted file types and every column (label, required, what it's for, other accepted headers), from the loader's own tables (`input_columns`) |
 | POST | `/runs/{id}/filters/clear` | `clear_filters` (draft or paused) |
 | GET | `/runs/{id}/estimate?count=` | §15 estimate for what's left (or for the pending upload before confirm), plus `long_run` *(3.3)* |
 | POST | `/runs/{id}/start` · `/pause` · `/resume` · `/cancel` | lifecycle; one active run at a time (`409 busy`) |
@@ -865,7 +867,7 @@ flowchart LR
     w["1 Welcome<br/>resume unfinished run?"]
     u["2 Upload + Model<br/>CSV drop · pre-flight report<br/>model picker + pre-check"]
     c["3 Criteria<br/>what the recruiter wants"]
-    k["4 Cutoffs<br/>shortlist score · band start<br/>min count · CGPA/dept filters"]
+    k["4 Cutoffs<br/>shortlist score · band start<br/>min count · CGPA/dept filters (typed, checked)"]
     t["5 Review + Timeline<br/>estimate range + disclaimer<br/>Start"]
     p["Progress<br/>live counts · measured ETA<br/>pause / resume banner"]
     r["6 Results<br/>Shortlisted · Cutoff · Rejected · Failed<br/>live cutoff sliders · detail · override · export"]
