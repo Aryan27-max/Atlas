@@ -53,10 +53,16 @@ export async function splashGone(page: Page): Promise<void> {
   await expect(page.locator('.splash')).toHaveCount(0, { timeout: 120_000 })
 }
 
-/** Atlas is ready to use: past the start-up screen, with the engine ready. */
+/**
+ * Atlas is ready to use: past the start-up screen, with the engine ready.
+ * The engine first: the start-up screen is drawn with the app's first frame
+ * and only leaves after the engine is ready, so checking it is gone before
+ * the app has drawn anything would pass too early (and keys pressed then
+ * reach nothing: the app is inert under the start-up screen).
+ */
 export async function waitForWelcome(page: Page): Promise<void> {
-  await splashGone(page)
   await expect(page.locator('[data-engine="ready"]')).toBeVisible({ timeout: 120_000 })
+  await splashGone(page)
 }
 
 export async function close(launched: Launched, removeData = true): Promise<void> {

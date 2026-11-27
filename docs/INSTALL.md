@@ -50,10 +50,10 @@ Atlas first writes **"hello"** on an off-white screen (off-white even in dark mo
 The card also shows the folder where Atlas keeps everything.
 
 ## 4. Your first screening
-1. **New screening**, then **Choose file…**: the student list as **Excel (.xlsx) or CSV**, for example the Google Forms export. Atlas checks it first and lists anything to fix (missing links, duplicate RA numbers…). Nothing is saved until you start.
+1. **New screening**, then **Choose file…**: the student list as **Excel (.xlsx) or CSV**, for example the Google Forms export. The **Input fields** box on the same screen lists the columns Atlas reads and which two are required (RA number and résumé link). An old Excel file (.xls) has to be saved as .xlsx first. Atlas checks it first and lists anything to fix (missing links, duplicate RA numbers…). Nothing is saved until you start.
 2. Choose the **model**. The first time you use a model, Atlas tests it on a sample résumé: a minute or two, up to five on a slower computer.
 3. **Criteria**: describe who you're looking for, in plain words.
-4. **Cutoffs**: the score for the shortlist, where the cutoff band starts, an optional minimum number to shortlist, and optional CGPA or department filters.
+4. **Cutoffs**: the score for the shortlist, where the cutoff band starts, an optional minimum number to shortlist, and optional filters: a minimum CGPA, and the departments to keep. Type a department as it appears in the student list and press **Add**; Atlas tells you if no student is in that department. Click a department to remove it.
 5. **Review**: check everything and the time estimate, then **Start screening**. If it will take more than 4 hours, Atlas asks first and suggests running it overnight.
 
 When it finishes, **View results**. You can adjust the cutoffs (nothing is re-scored), open any student to see the reasons and the quotes from their résumé, move students between buckets (one at a time, or several: Shift- or Ctrl-click, Cmd-click on a Mac, then *Move to…*), and **Export** to a CSV that opens in Excel.
