@@ -39,6 +39,15 @@ test('Upload + Model: a file with a problem cannot continue', async () => {
   await page.getByRole('button', { name: 'New screening' }).click()
   await expect(page.getByRole('heading', { name: 'Students and model' })).toBeVisible()
   await expect(page.getByLabel('Screening name')).toHaveValue(/^Screening /)
+
+  // The "Input fields" box lists every column the engine reads, required ones first.
+  const fields = page.getByRole('list', { name: 'Input fields' })
+  await expect(fields.getByRole('listitem')).toHaveCount(10)
+  await expect(fields.getByRole('listitem').nth(0)).toContainText('RA numberRequired')
+  await expect(fields.getByRole('listitem').nth(1)).toContainText('Résumé linkRequired')
+  await expect(fields.getByRole('listitem').nth(2)).toContainText('NameOptional')
+  await expect(page.getByText('File types: .csv, .xlsx. Save an old .xls file as .xlsx first.')).toBeVisible()
+  await expect(page.getByText(/Column order doesn’t matter/)).toBeVisible()
   for (const theme of ['light', 'dark'] as const) {
     await setTheme(page, theme)
     await capture(page, 'upload-empty', theme)

@@ -166,6 +166,14 @@ class AuthTests(ServerTestCase):
                 self.assertError(self.client.get("/runs", headers={"Host": host}), 403, "wrong_host", Api.WRONG_HOST)
         self.assertError(self.client.get("/health", headers={"Host": "evil.example"}), 403, "wrong_host")
 
+    def test_input_format_needs_the_token_and_lists_every_column(self) -> None:
+        self.assertError(self.client.get("/input-format", headers={"Authorization": ""}),
+                         401, "unauthorized", Api.UNAUTHORIZED)
+        body = self.client.get("/input-format").json()
+        self.assertEqual(body["file_types"], [".csv", ".xlsx"])
+        self.assertEqual([c["label"] for c in body["columns"] if c["required"]], ["RA number", "Résumé link"])
+        self.assertEqual(len(body["columns"]), 10)
+
     def test_right_token_and_host(self) -> None:
         self.assertEqual(self.client.get("/runs").status_code, 200)
 
@@ -208,6 +216,18 @@ class FlowTests(ServerTestCase):
                                   params=[("departments", "cse")]).json()
         self.assertEqual(preview["removed_by_department"], 2)
 
+        # A department the recruiter types is checked against the file, with the filter's matching.
+        match = f"/runs/{run_id}/departments/match"
+        self.assertEqual(self.client.get(match, params={"name": "c.s.e"}).json(),
+                         {"name": "CSE", "count": 8, "message": None})
+        self.assertEqual(self.client.get(match, params={"name": "  Astrology "}).json(),
+                         {"name": None, "count": 0, "message": Api.unknown_department("Astrology")})
+        self.assertEqual(self.client.get(match, params={"name": ""}).status_code, 422)
+        self.assertEqual(self.client.get(match, params={"name": "x" * 201}).status_code, 422)
+        self.assertEqual(self.client.get("/runs/999999/departments/match", params={"name": "CSE"}).status_code, 404)
+        self.assertError(self.client.get(match, params={"name": "CSE"}, headers={"Authorization": ""}),
+                         401, "unauthorized", Api.UNAUTHORIZED)
+
         # Model: not checked → pre-check → ready.
         models = self.client.get("/models").json()
         self.assertTrue(models["ollama_running"])
@@ -225,6 +245,9 @@ class FlowTests(ServerTestCase):
 
         # Confirm inserts the rows; a second confirm is refused.
         self.assertEqual(self.client.post(f"/runs/{run_id}/table/confirm").json(), {"added": 10})
+        # After confirm the match reads the stored students (only the 10 that were added).
+        self.assertEqual(self.client.get(match, params={"name": "ece"}).json()["name"], "ECE")
+        self.assertEqual(self.client.get(match, params={"name": "ece"}).json()["count"], 2)
         self.assertError(self.client.post(f"/runs/{run_id}/table/confirm"), 409, "no_upload")
         self.assertEqual(self.client.get(f"/runs/{run_id}").json()["csv_filename"], "students.csv")
 

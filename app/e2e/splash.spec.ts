@@ -306,7 +306,7 @@ test('the logo on Welcome and in Settings → About (screenshots)', async () => 
       await page.getByRole('button', { name: 'Settings' }).click()
       const about = page.getByRole('region', { name: 'About Atlas' })
       await about.scrollIntoViewIfNeeded()
-      await expect(about).toContainText('0.2.0 · Running')
+      await expect(about).toContainText('0.3.0 · Running')
       await expect(about).toContainText('Running · 0.0.0-stub')
       await expect(about.locator('dd').nth(3)).not.toHaveText('–')
       await expect

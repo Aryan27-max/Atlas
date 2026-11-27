@@ -8,7 +8,7 @@ In Windows PowerShell, `curl` is a different command: always type **`curl.exe`**
 
 ## Quick start (Windows PowerShell)
 
-**Just want to use Atlas?** Install it from the [v0.2.0 release](https://github.com/Aryan27-max/Atlas-iOS_Dev_center/releases/tag/v0.2.0) and follow its `INSTALL.md`. The steps below are for running it from the source.
+**Just want to use Atlas?** Install it from the [v0.3.0 release](https://github.com/Aryan27-max/Atlas/releases/tag/v0.3.0) and follow its `INSTALL.md`. The steps below are for running it from the source.
 
 1. **Install the tools once:** Python 3.12, Node.js 20+, Git, and [Ollama](https://ollama.com/download). Then get the model (about 5 GB):
    ```powershell
@@ -73,7 +73,7 @@ source .venv/bin/activate
 pip install -r engine/requirements-dev.txt -c engine/constraints.txt
 (cd app && npm ci)
 ```
-**You should see** `Successfully installed …` from pip (about a minute), and from npm `> atlas@0.2.0 postinstall`, `Downloading Electron binary...` (first time only; Atlas's `postinstall` fetches it, because current npm no longer runs packages' own install scripts) and `added … packages` (under a minute).
+**You should see** `Successfully installed …` from pip (about a minute), and from npm `> atlas@0.3.0 postinstall`, `Downloading Electron binary...` (first time only; Atlas's `postinstall` fetches it, because current npm no longer runs packages' own install scripts) and `added … packages` (under a minute).
 
 npm 11 also prints `npm warn allow-scripts … esbuild … (postinstall: node install.js)` (and `electron-winstaller`). **That's expected and harmless:** npm now asks before running packages' install scripts; esbuild works without its script, and `electron-winstaller` is only for an installer type Atlas doesn't build.
 
@@ -242,7 +242,7 @@ build/venv-engine/bin/python -m pip install -r packaging/requirements-build.txt 
 build/venv-engine/bin/python packaging/build_engine.py
 cd app && npm run dist -- -c.mac.identity=- -c.mac.hardenedRuntime=false     # unsigned: ad-hoc signed
 ```
-**You should see** `smoke: passed`, then `app/dist/Atlas-Setup-0.2.0-x64.exe` (about 127 MB) and `app/dist/win-unpacked/` (macOS: `app/dist/Atlas-0.2.0-arm64.dmg` and `app/dist/mac-arm64/`).
+**You should see** `smoke: passed`, then `app/dist/Atlas-Setup-0.3.0-x64.exe` (about 127 MB) and `app/dist/win-unpacked/` (macOS: `app/dist/Atlas-0.3.0-arm64.dmg` and `app/dist/mac-arm64/`).
 
 **Common errors**
 - `No engine build at …` → run `build_engine.py` first.

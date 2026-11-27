@@ -121,6 +121,10 @@ class Api:
         "a Mac), wait a few seconds, then press Check again."
     )
 
+    @staticmethod
+    def unknown_department(name: str) -> str:
+        return f"\u201c{name}\u201d isn\u2019t a department in the student list. Check the spelling."
+
 
 # Only these resume on their own, when the health probe succeeds again.
 AUTO_RESUME_REASONS = frozenset({Pause.NO_INTERNET, Pause.CAPTIVE_PORTAL, Pause.OLLAMA_DOWN})
